@@ -7,6 +7,7 @@ import { routing } from '@/i18n/routing';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import Script from 'next/script';
 import '@/app/globals.css';
 
 // Load Inter for UI text
@@ -125,6 +126,7 @@ export default async function RootLayout({ children, params }: RootLayoutProps) 
                         <Toaster position="bottom-right" theme="dark" />
                     </NextIntlClientProvider>
                 </ThemeProvider>
+                <Script src="https://userhero.co/widget.js" data-key="pk_live_f1iT3MsNLDWy88b4w9ty" strategy="lazyOnload" />
             </body>
         </html>
     );
