@@ -12,7 +12,6 @@ A professional browser-based Digital Audio Workstation (DAW) with an Ableton-lik
 [![Docker Pulls](https://img.shields.io/docker/pulls/appsyogi/composeyogi)](https://hub.docker.com/r/appsyogi/composeyogi)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Patreon](https://img.shields.io/badge/Patreon-Support%20Us-f96854?logo=patreon&logoColor=white)](https://patreon.com/SuperZero11)
-[![Sponsor](https://img.shields.io/badge/Sponsor-❤-ea4aaa)](https://github.com/sponsors/AppsYogi-com)
 
 [Live Demo](https://composeyogi.com) · [Report Bug](https://github.com/AppsYogi-com/ComposeYogi/issues) · [Request Feature](https://github.com/AppsYogi-com/ComposeYogi/issues)
 
