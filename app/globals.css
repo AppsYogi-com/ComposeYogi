@@ -1,0 +1,480 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* Ableton-like dark theme - premium, minimal, instrument-grade */
+
+        /* Font families */
+        --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+        /* shadcn radius */
+        --radius: 0.5rem;
+
+        /* Track colors - saturated but muted */
+        --track-drums: 25 80% 50%;
+        --track-bass: 200 70% 45%;
+        --track-keys: 280 60% 55%;
+        --track-melody: 150 60% 45%;
+        --track-vocals: 340 70% 55%;
+        --track-fx: 60 70% 50%;
+
+        /* Light theme (default for :root, but we force dark) */
+        --background: 0 0% 100%;
+        --foreground: 0 0% 8%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 0 0% 8%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 0 0% 8%;
+
+        --primary: 35 100% 50%;
+        --primary-foreground: 0 0% 100%;
+
+        --secondary: 0 0% 96%;
+        --secondary-foreground: 0 0% 8%;
+
+        --muted: 0 0% 96%;
+        --muted-foreground: 0 0% 45%;
+
+        --accent: 35 100% 50%;
+        --accent-foreground: 0 0% 100%;
+
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 0 0% 90%;
+        --input: 0 0% 90%;
+        --ring: 35 100% 50%;
+
+        /* Surface levels for elevation */
+        --surface: 0 0% 98%;
+        --surface-elevated: 0 0% 100%;
+
+        /* Chart colors */
+        --chart-1: 35 100% 50%;
+        --chart-2: 200 70% 45%;
+        --chart-3: 150 60% 45%;
+        --chart-4: 280 60% 55%;
+        --chart-5: 340 70% 55%;
+    }
+
+    /* Dark theme */
+    .dark {
+        --background: 0 0% 8%;
+        --foreground: 0 0% 95%;
+
+        --card: 0 0% 10%;
+        --card-foreground: 0 0% 95%;
+
+        --popover: 0 0% 12%;
+        --popover-foreground: 0 0% 95%;
+
+        --primary: 35 100% 55%;
+        --primary-foreground: 0 0% 8%;
+
+        --secondary: 0 0% 16%;
+        --secondary-foreground: 0 0% 95%;
+
+        --muted: 0 0% 20%;
+        --muted-foreground: 0 0% 60%;
+
+        --accent: 35 100% 55%;
+        --accent-foreground: 0 0% 8%;
+
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 0 0% 20%;
+        --input: 0 0% 16%;
+        --ring: 35 100% 55%;
+
+        /* Surface levels for elevation */
+        --surface: 0 0% 12%;
+        --surface-elevated: 0 0% 16%;
+
+        /* Chart colors */
+        --chart-1: 35 100% 55%;
+        --chart-2: 200 70% 45%;
+        --chart-3: 150 60% 45%;
+        --chart-4: 280 60% 55%;
+        --chart-5: 340 70% 55%;
+    }
+}
+
+/* Base styles */
+* {
+    border-color: hsl(var(--border));
+}
+
+html {
+    color-scheme: light dark;
+    text-rendering: optimizeLegibility;
+}
+
+html.dark {
+    color-scheme: dark;
+}
+
+body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling for DAW feel */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: hsl(var(--surface));
+}
+
+::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+}
+
+/* Selection styling */
+::selection {
+    background-color: hsl(var(--accent) / 0.3);
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+}
+
+/* Prevent text selection during drag operations */
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* GPU-accelerated animations */
+.gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* Playhead styling */
+.playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    background-color: #ff4444;
+    pointer-events: none;
+    will-change: transform;
+    z-index: 100;
+}
+
+.playhead::before {
+    content: '';
+    position: absolute;
+    top: -24px;
+    /* Extend into ruler area */
+    left: -5px;
+    width: 12px;
+    height: 12px;
+    background-color: #ff4444;
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+}
+
+/* Unified playhead (ruler + tracks in single scroll container) */
+.playhead-unified {
+    position: absolute;
+    left: 0;
+    width: 2px;
+    background-color: #ff4444;
+    pointer-events: none;
+    will-change: transform;
+    z-index: 100;
+}
+
+.playhead-unified::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -5px;
+    width: 12px;
+    height: 12px;
+    background-color: #ff4444;
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+}
+
+/* Playhead marker only (for Timeline ruler) */
+.playhead-marker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background-color: #ff4444;
+    pointer-events: none;
+    will-change: transform;
+    z-index: 100;
+}
+
+.playhead-marker::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -5px;
+    width: 12px;
+    height: 12px;
+    background-color: #ff4444;
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+}
+
+/* Clip styling */
+.clip {
+    position: absolute;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: box-shadow 150ms ease-out;
+    user-select: none;
+    /* Prevent text selection on Shift+click */
+}
+
+.clip:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.clip.selected {
+    box-shadow: 0 0 0 3px #fff, 0 0 16px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+    outline: none;
+    filter: brightness(1.2);
+}
+
+/* Transport button styling */
+.transport-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    background-color: transparent;
+    color: hsl(var(--foreground));
+    transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.transport-btn:hover {
+    background-color: hsl(var(--surface-elevated));
+}
+
+.transport-btn.active {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+}
+
+.transport-btn.record {
+    color: hsl(var(--destructive));
+}
+
+.transport-btn.record.active {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    animation: glow 2s ease-in-out infinite;
+}
+
+/* Grid overlay for timeline */
+.grid-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    pointer-events: none;
+}
+
+.grid-line.bar {
+    background-color: hsl(var(--border) / 0.4);
+}
+
+.grid-line.downbeat {
+    background-color: hsl(var(--border) / 0.7);
+}
+
+/* Loop region styling */
+.loop-region {
+    position: absolute;
+    top: 0;
+    height: 20px;
+    background-color: hsl(var(--accent) / 0.3);
+    border-left: 2px solid hsl(var(--accent));
+    border-right: 2px solid hsl(var(--accent));
+}
+
+.loop-region.punch {
+    background-color: hsl(var(--destructive) / 0.3);
+    border-color: hsl(var(--destructive));
+}
+
+/* Step sequencer grid */
+.step-grid {
+    display: grid;
+    gap: 2px;
+}
+
+.step {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    background-color: hsl(var(--muted) / 0.3);
+    cursor: pointer;
+    transition: background-color 80ms ease-out;
+}
+
+.step:hover {
+    background-color: hsl(var(--muted) / 0.5);
+}
+
+.step.active {
+    background-color: hsl(var(--accent));
+}
+
+/* Piano roll note styling */
+.piano-note {
+    position: absolute;
+    height: 100%;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: filter 80ms ease-out;
+}
+
+.piano-note:hover {
+    filter: brightness(1.2);
+}
+
+.piano-note.selected {
+    box-shadow: 0 0 0 1px hsl(var(--primary));
+}
+
+/* Disabled scale notes (faint) */
+.piano-key.disabled {
+    opacity: 0.3;
+}
+
+/* Skeleton loading animation */
+@keyframes skeleton-pulse {
+
+    0%,
+    100% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(90deg,
+            hsl(var(--surface)) 0%,
+            hsl(var(--surface-elevated)) 50%,
+            hsl(var(--surface)) 100%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* Waveform canvas container */
+.waveform-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.waveform-container canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Offline indicator */
+.offline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    background-color: hsl(45 100% 40% / 0.2);
+    color: hsl(45 100% 60%);
+    border-radius: 9999px;
+}
+
+/* Mono font for numbers */
+.font-mono-nums {
+    font-family: var(--font-geist-mono), 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Glow animation for keyframes */
+@keyframes glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px currentColor;
+    }
+
+    50% {
+        box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+    }
+}
+
+/* Music wave animation */
+@keyframes musicBar {
+
+    0%,
+    100% {
+        height: 8px;
+    }
+
+    25% {
+        height: 24px;
+    }
+
+    50% {
+        height: 16px;
+    }
+
+    75% {
+        height: 32px;
+    }
+}
+
+.music-bar {
+    animation: musicBar 1.2s ease-in-out infinite;
+}
+
+/* Vertical text for collapsed panels */
+.writing-mode-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+}

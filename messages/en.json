@@ -1,0 +1,171 @@
+{
+    "app": {
+        "name": "ComposeYogi",
+        "tagline": "Make real music. Instantly. In your browser.",
+        "description": "The world's most intuitive online music composer — create professional beats without installing anything."
+    },
+    "landing": {
+        "hero": {
+            "title": "Make real music.",
+            "subtitle": "Instantly. In your browser.",
+            "cta": "Start Creating",
+            "ctaSubtext": "No sign-up required"
+        },
+        "features": {
+            "title": "Everything you need to create",
+            "daw": {
+                "title": "Professional DAW",
+                "description": "Ableton-like interface with clips, tracks, and arrangement view"
+            },
+            "recording": {
+                "title": "Studio Recording",
+                "description": "Record vocals and instruments with auto latency compensation"
+            },
+            "offline": {
+                "title": "Works Offline",
+                "description": "Keep creating even without internet connection"
+            },
+            "export": {
+                "title": "Export Anywhere",
+                "description": "Download as WAV or MIDI for use in any DAW"
+            }
+        }
+    },
+    "templates": {
+        "title": "Choose a starting point",
+        "subtitle": "Pick a template and start creating immediately",
+        "lofi": {
+            "name": "Lo-Fi Chill",
+            "description": "Relaxed beats with jazzy keys"
+        },
+        "trap": {
+            "name": "Trap Beat",
+            "description": "Hard-hitting 808s and hi-hats"
+        },
+        "ambient": {
+            "name": "Ambient",
+            "description": "Atmospheric pads and textures"
+        },
+        "afro": {
+            "name": "Afro Groove",
+            "description": "Energetic African rhythms"
+        },
+        "pop": {
+            "name": "Pop Starter",
+            "description": "Radio-ready pop foundation"
+        },
+        "empty": {
+            "name": "Empty Project",
+            "description": "Start from scratch"
+        }
+    },
+    "transport": {
+        "play": "Play",
+        "stop": "Stop",
+        "record": "Record",
+        "bpm": "BPM",
+        "key": "Key",
+        "scale": "Scale",
+        "metronome": "Metronome",
+        "countIn": "Count-in",
+        "loop": "Loop",
+        "export": "Export"
+    },
+    "browser": {
+        "templates": "Templates",
+        "instruments": "Instruments",
+        "samples": "Samples",
+        "fx": "FX",
+        "search": "Search..."
+    },
+    "inspector": {
+        "track": {
+            "title": "Track",
+            "volume": "Volume",
+            "pan": "Pan",
+            "preset": "Preset",
+            "color": "Color"
+        },
+        "clip": {
+            "title": "Clip",
+            "energy": "Energy",
+            "groove": "Groove",
+            "brightness": "Brightness",
+            "space": "Space",
+            "transpose": "Transpose",
+            "humanize": "Humanize"
+        }
+    },
+    "editor": {
+        "drum": {
+            "title": "Drum Sequencer",
+            "presets": "Presets"
+        },
+        "piano": {
+            "title": "Piano Roll",
+            "quantize": "Quantize",
+            "scaleLock": "Scale Lock"
+        },
+        "waveform": {
+            "title": "Audio Editor",
+            "trim": "Trim",
+            "fade": "Fade",
+            "stretch": "Stretch to BPM"
+        }
+    },
+    "export": {
+        "title": "Export Project",
+        "format": "Format",
+        "wav": "WAV Audio",
+        "midi": "MIDI File",
+        "rendering": "Rendering...",
+        "download": "Download",
+        "cancel": "Cancel"
+    },
+    "calibration": {
+        "title": "Audio Latency Calibration",
+        "description": "We'll calibrate your audio to ensure recordings are perfectly aligned.",
+        "instructions": "Make sure your speakers are on or headphones connected.",
+        "start": "Start Calibration",
+        "analyzing": "Analyzing...",
+        "complete": "Calibration Complete",
+        "latency": "Detected latency: {ms}ms",
+        "recalibrate": "Recalibrate",
+        "skip": "Skip for now"
+    },
+    "mobile": {
+        "title": "View-Only Mode",
+        "description": "Open on desktop to edit",
+        "playback": "You can listen to this project on mobile",
+        "openDesktop": "Open on Desktop"
+    },
+    "offline": {
+        "badge": "Offline",
+        "message": "You're working offline. Changes will sync when connected."
+    },
+    "shortcuts": {
+        "title": "Keyboard Shortcuts",
+        "transport": "Transport",
+        "editing": "Editing",
+        "navigation": "Navigation"
+    },
+    "errors": {
+        "microphonePermission": "Microphone permission required for recording",
+        "audioContext": "Audio playback failed. Click to retry.",
+        "exportFailed": "Export failed. Please try again.",
+        "loadFailed": "Failed to load project"
+    },
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "duplicate": "Duplicate",
+        "rename": "Rename",
+        "undo": "Undo",
+        "redo": "Redo",
+        "close": "Close",
+        "loading": "Loading...",
+        "saved": "Saved",
+        "saving": "Saving..."
+    }
+}
