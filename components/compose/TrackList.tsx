@@ -34,6 +34,12 @@ import {
 import { useProjectStore, useUIStore, usePlaybackStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
 import { Button } from '@/components/ui';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { DraggableClip } from './DraggableClip';
 import { LoopBraces } from './LoopBraces';
 import type { Track, TrackColor } from '@/types';
@@ -50,6 +56,14 @@ const TRACK_HEADER_COLORS: Record<TrackColor, string> = {
     melody: '#3b82f6',
     vocals: '#a855f7',
     fx: '#ec4899',
+};
+
+const FX_ABBR: Record<string, string> = {
+    reverb: 'REV',
+    delay: 'DLY',
+    distortion: 'DIST',
+    filter: 'FILT',
+    compression: 'COMP',
 };
 
 // Demo notes for different instrument types (startBeat is relative to clip start)
@@ -311,13 +325,13 @@ export function TrackList() {
     // Handle ruler click to seek
     const seekTo = usePlaybackStore((s) => s.seekTo);
     const handleRulerClick = useCallback((e: React.MouseEvent) => {
-        if (!project || !scrollContainerRef.current) return;
+        if (!project || !rulerCanvasRef.current) return;
 
-        const rect = rulerCanvasRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const scrollLeft = scrollContainerRef.current.scrollLeft;
-        const x = e.clientX - rect.left + scrollLeft;
+        const rect = rulerCanvasRef.current.getBoundingClientRect();
+        // e.clientX - rect.left gives us the position within the visible canvas
+        // Since the canvas spans the full content width and scrolls with the container,
+        // we don't need to add scrollLeft - the click position is already correct
+        const x = e.clientX - rect.left;
         const beat = x / pixelsPerBeat;
         const secondsPerBeat = 60 / project.bpm;
         const time = Math.max(0, beat * secondsPerBeat);
@@ -551,6 +565,19 @@ function TrackHeader({
                 </Button>
             </div>
 
+            {/* Active Effects Indicators */}
+            <div className="flex flex-wrap gap-1 mt-1 pl-6 h-[18px] overflow-hidden">
+                {track.effects?.filter((fx) => fx.active).map((fx) => (
+                    <div
+                        key={fx.id}
+                        className="text-[9px] font-bold px-1 rounded-[2px] bg-pink-500/10 text-pink-500 border border-pink-500/20 flex items-center justify-center uppercase tracking-wider"
+                        title={`${fx.type} active`}
+                    >
+                        {FX_ABBR[fx.type] || fx.type.substring(0, 3)}
+                    </div>
+                ))}
+            </div>
+
             <div className="mt-auto flex items-center gap-1">
                 <Button
                     variant="ghost"
@@ -724,6 +751,42 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                         className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-muted [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
                     />
                 </div>
+
+                {/* Active Effects Indicators */}
+                {props.track.effects && props.track.effects.filter((fx) => fx.active).length > 0 && (
+                    <TooltipProvider delayDuration={200}>
+                        <div className="flex items-center gap-1 overflow-hidden">
+                            {props.track.effects.filter((fx) => fx.active).slice(0, 3).map((fx) => (
+                                <Tooltip key={fx.id}>
+                                    <TooltipTrigger asChild>
+                                        <div
+                                            className="text-[9px] font-bold px-1 rounded-[2px] bg-pink-500/20 text-pink-400 border border-pink-500/30 flex items-center justify-center uppercase tracking-wider shrink-0 cursor-default"
+                                        >
+                                            {FX_ABBR[fx.type] || fx.type.substring(0, 3).toUpperCase()}
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="capitalize">{fx.type}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ))}
+                            {props.track.effects.filter((fx) => fx.active).length > 3 && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div
+                                            className="text-[9px] font-bold px-1 rounded-[2px] bg-muted text-muted-foreground flex items-center justify-center shrink-0 cursor-default"
+                                        >
+                                            +{props.track.effects.filter((fx) => fx.active).length - 3}
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="capitalize">{props.track.effects.filter((fx) => fx.active).slice(3).map(fx => fx.type).join(', ')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </div>
+                    </TooltipProvider>
+                )}
             </div>
         </div>
     );

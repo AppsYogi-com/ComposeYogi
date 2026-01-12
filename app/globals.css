@@ -203,7 +203,7 @@ body {
     background-color: #ff4444;
     pointer-events: none;
     will-change: transform;
-    z-index: 100;
+    z-index: 30;
 }
 
 .playhead-unified::before {
@@ -227,7 +227,7 @@ body {
     background-color: #ff4444;
     pointer-events: none;
     will-change: transform;
-    z-index: 100;
+    z-index: 30;
 }
 
 .playhead-marker::before {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
-import { ZoomIn, ZoomOut, MousePointer2, Pencil, Eraser } from 'lucide-react';
+import { ZoomIn, ZoomOut, MousePointer2, Pencil, Eraser, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import {
@@ -292,8 +292,21 @@ export function PianoRoll({ clip }: PianoRollProps) {
         return result;
     }, []);
 
+    // Check if clip is compatible with piano roll
+    const isCompatible = clip.type === 'midi';
+
     return (
         <div className="flex h-full flex-col">
+            {/* Incompatible clip warning */}
+            {!isCompatible && (
+                <div className="flex items-center gap-2 border-b border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-500" />
+                    <span className="text-xs text-yellow-500">
+                        This is {clip.type === 'audio' ? 'an audio' : 'a drum'} clip. Switch to a MIDI clip to use the piano roll, or change the clip type.
+                    </span>
+                </div>
+            )}
+
             {/* Toolbar */}
             <div className="flex items-center gap-3 border-b border-border bg-surface px-3 py-1.5">
                 {/* Tool selection */}
@@ -316,6 +329,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                                 variant={tool === 'draw' ? 'default' : 'ghost'}
                                 size="icon-sm"
                                 onClick={() => setTool('draw')}
+                                disabled={!isCompatible}
                             >
                                 <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -328,6 +342,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                                 variant={tool === 'erase' ? 'default' : 'ghost'}
                                 size="icon-sm"
                                 onClick={() => setTool('erase')}
+                                disabled={!isCompatible}
                             >
                                 <Eraser className="h-3.5 w-3.5" />
                             </Button>
@@ -339,7 +354,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 {/* Snap selector */}
                 <div className="flex items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">Snap:</span>
-                    <Select value={snap} onValueChange={(v) => setSnap(v as SnapValue)}>
+                    <Select value={snap} onValueChange={(v) => setSnap(v as SnapValue)} disabled={!isCompatible}>
                         <SelectTrigger className="h-7 w-16 text-xs">
                             <SelectValue />
                         </SelectTrigger>
