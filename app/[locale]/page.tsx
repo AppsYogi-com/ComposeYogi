@@ -24,17 +24,18 @@ function HomePageContent() {
 
     return (
         <main className="flex min-h-screen flex-col bg-background">
-            {/* Theme Toggle - Top Right */}
-            <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
+            {/* Header - Top Right */}
+            <div className="absolute top-0 right-0 z-20 flex items-center gap-3 px-4 py-3 sm:px-6 sm:py-4">
                 <a
                     href="https://github.com/AppsYogi-com/ComposeYogi"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hidden sm:flex"
+                    className="flex"
                 >
                     <img
                         src="https://img.shields.io/github/stars/AppsYogi-com/ComposeYogi?style=social"
                         alt="GitHub Stars"
+                        className="h-5"
                     />
                 </a>
                 <TooltipProvider>
@@ -43,7 +44,7 @@ function HomePageContent() {
             </div>
 
             {/* Hero Section - Full screen centered */}
-            <section className="relative flex flex-1 flex-col items-center justify-center px-4">
+            <section className="relative flex flex-1 flex-col items-center justify-center px-4 pt-20 sm:pt-0">
                 {/* Background gradient */}
                 <div className="absolute inset-0 bg-gradient-to-b from-accent/5 via-transparent to-transparent" />
 
@@ -83,8 +84,8 @@ function HomePageContent() {
             </section>
 
             {/* Footer */}
-            <footer className="border-t border-border py-6">
-                <div className="mx-auto max-w-6xl px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <footer className="mt-8 border-t border-border py-6 px-4">
+                <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
                     <p>© {new Date().getFullYear()} ComposeYogi. All rights reserved.</p>
 
                     {/* Social Links */}
