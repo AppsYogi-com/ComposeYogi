@@ -9,7 +9,7 @@ export function DemoTemplates() {
     const t = useTranslations('landing.demos');
 
     return (
-        <section className="w-full max-w-4xl mx-auto mt-16 px-4">
+        <section className="w-full mt-16">
             {/* Section Header */}
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold mb-2">{t('title')}</h2>

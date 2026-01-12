@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
         rules: {
             userAgent: '*',
             allow: '/',
-            disallow: ['/api/', '/compose', '/_next/'], // Don't index the compose page (user-specific)
+            disallow: ['/api/', '*/compose', '/_next/'], // Don't index compose pages (any locale)
         },
         sitemap: 'https://composeyogi.com/sitemap.xml',
     };
