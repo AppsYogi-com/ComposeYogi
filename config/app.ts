@@ -2,7 +2,7 @@
 export const APP_CONFIG = {
     name: 'ComposeYogi',
     tagline: 'Make real music. Instantly. In your browser.',
-    description: 'The world\'s most intuitive online music composer — create professional beats without installing anything.',
+    description: 'Your online music studio and DAW for creating beats, loops, and compositions.',
     baseUrl: 'https://composeyogi.com',
 
     contact: {
