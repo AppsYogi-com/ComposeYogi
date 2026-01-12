@@ -1,8 +1,9 @@
 import { setRequestLocale } from 'next-intl/server';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Play, Music, Twitter, Linkedin, Instagram, Github } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { MusicWave } from '@/components/MusicWave';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { APP_CONFIG } from '@/config/app';
@@ -40,6 +41,7 @@ function HomePageContent() {
                 </a>
                 <TooltipProvider>
                     <ThemeToggle />
+                    <LanguageSwitcher />
                 </TooltipProvider>
             </div>
 
@@ -86,7 +88,7 @@ function HomePageContent() {
             {/* Footer */}
             <footer className="mt-8 border-t border-border py-6 px-4">
                 <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-                    <p>© {new Date().getFullYear()} ComposeYogi. All rights reserved.</p>
+                    <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
 
                     {/* Social Links */}
                     <div className="flex items-center gap-4">
@@ -129,15 +131,18 @@ function HomePageContent() {
                     </div>
 
                     <p>
-                        Made with ❤️ by{' '}
-                        <a
-                            href={APP_CONFIG.company.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                        >
-                            {APP_CONFIG.company.name}
-                        </a> team
+                        {t.rich('footer.madeWith', {
+                            company: (chunks) => (
+                                <a
+                                    href={APP_CONFIG.company.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                >
+                                    {APP_CONFIG.company.name}
+                                </a>
+                            )
+                        })}
                     </p>
                 </div>
             </footer>

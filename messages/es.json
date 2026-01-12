@@ -173,5 +173,9 @@
         "loading": "Cargando...",
         "saved": "Guardado",
         "saving": "Guardando..."
+    },
+    "footer": {
+        "copyright": "© {year} ComposeYogi. Todos los derechos reservados.",
+        "madeWith": "Hecho con ❤️ por el equipo de <company></company> equipo"
     }
 }

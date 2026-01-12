@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { Play } from 'lucide-react';
 import { DEMO_TEMPLATES } from '@/lib/templates';
