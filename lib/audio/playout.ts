@@ -6,7 +6,7 @@
 import * as Tone from 'tone';
 import type { Clip, Project, Track, AudioTake, TrackEffect, TrackEffectType } from '@/types';
 import { getAudioTake } from './recording-manager';
-import { createSynthFromPreset, type SynthType } from './synth-presets';
+import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
 
 // ============================================
 // Types
@@ -295,7 +295,7 @@ class PlayoutManager {
             await this.scheduleAudioClip(clip, track, chain.input, scheduled, project);
         } else if ((clip.type === 'midi' || clip.type === 'drum') && clip.notes) {
             // Schedule MIDI/Drum clip
-            this.scheduleMidiClip(clip, track, chain.input, scheduled, project);
+            await this.scheduleMidiClip(clip, track, chain.input, scheduled, project);
         }
 
         this.state.scheduledClips.set(clip.id, scheduled);
@@ -379,13 +379,13 @@ class PlayoutManager {
         return audioContext.decodeAudioData(arrayBuffer);
     }
 
-    private scheduleMidiClip(
+    private async scheduleMidiClip(
         clip: Clip,
         track: Track,
         destination: Tone.Gain,
         scheduled: ScheduledClip,
         project: Project
-    ): void {
+    ): Promise<void> {
         if (!clip.notes?.length) {
             console.log('[PlayoutManager] Skipping MIDI clip with no notes:', clip.id);
             return;
@@ -395,6 +395,9 @@ class PlayoutManager {
         const synth = this.createSynthForTrack(track);
         synth.connect(destination);
 
+        // Wait for synth to be ready (important for Sampler which loads async)
+        await waitForSynthReady(synth);
+
         const bpm = project.bpm;
         const beatsPerBar = project.timeSignature[0];
 
@@ -403,32 +406,51 @@ class PlayoutManager {
 
         console.log('[PlayoutManager] Scheduling MIDI clip:', clip.id, 'with', clip.notes.length, 'notes at bar', clip.startBar, '(', clipStartSeconds, 's)');
 
-        // Schedule each note using Transport.schedule for proper sync
+        // Check if synth is polyphonic (PolySynth and Sampler can handle multiple notes at same time)
+        const isPolyphonic = synth instanceof Tone.PolySynth || synth instanceof Tone.Sampler;
+
+        // Group notes by start time to handle concurrent notes for monophonic synths
+        const notesByTime = new Map<number, typeof clip.notes>();
         for (const note of clip.notes) {
-            // Note's startBeat is relative to clip start
             const noteOffsetSeconds = this.beatsToSeconds(note.startBeat, bpm);
             const absoluteTime = clipStartSeconds + noteOffsetSeconds;
-            const noteDurationSeconds = this.beatsToSeconds(note.duration, bpm);
+            // Round to avoid floating point issues
+            const timeKey = Math.round(absoluteTime * 10000) / 10000;
 
-            // Use Transport.schedule for proper transport sync
-            const eventId = Tone.getTransport().schedule((time) => {
-                console.log('[PlayoutManager] Triggering note:', note.pitch, 'at', time);
-                synth.triggerAttackRelease(
-                    Tone.Frequency(note.pitch, 'midi').toFrequency(),
-                    noteDurationSeconds,
-                    time,
-                    note.velocity / 127
-                );
-            }, absoluteTime);
+            if (!notesByTime.has(timeKey)) {
+                notesByTime.set(timeKey, []);
+            }
+            notesByTime.get(timeKey)!.push(note);
+        }
 
-            // Create a dummy event to track disposal
-            const event = {
-                stop: () => { },
-                dispose: () => {
-                    Tone.getTransport().clear(eventId);
-                },
-            } as Tone.ToneEvent;
-            scheduled.events.push(event);
+        // Schedule notes, adding tiny offsets for monophonic synths with concurrent notes
+        for (const [timeKey, notes] of notesByTime) {
+            notes.forEach((note, index) => {
+                const noteDurationSeconds = this.beatsToSeconds(note.duration, bpm);
+                // For monophonic synths, add 1ms offset for each concurrent note
+                const offset = isPolyphonic ? 0 : index * 0.001;
+                const scheduledTime = timeKey + offset;
+
+                // Use Transport.schedule for proper transport sync
+                const eventId = Tone.getTransport().schedule((time) => {
+                    console.log('[PlayoutManager] Triggering note:', note.pitch, 'at', time);
+                    synth.triggerAttackRelease(
+                        Tone.Frequency(note.pitch, 'midi').toFrequency(),
+                        noteDurationSeconds,
+                        time,
+                        note.velocity / 127
+                    );
+                }, scheduledTime);
+
+                // Create a dummy event to track disposal
+                const event = {
+                    stop: () => { },
+                    dispose: () => {
+                        Tone.getTransport().clear(eventId);
+                    },
+                } as Tone.ToneEvent;
+                scheduled.events.push(event);
+            });
         }
 
         scheduled.player = synth;
@@ -477,6 +499,8 @@ class PlayoutManager {
                     scheduled.player.unsync();
                     scheduled.player.stop();
                 } else if (scheduled.player instanceof Tone.PolySynth) {
+                    scheduled.player.releaseAll();
+                } else if (scheduled.player instanceof Tone.Sampler) {
                     scheduled.player.releaseAll();
                 } else if (scheduled.player instanceof Tone.MonoSynth || scheduled.player instanceof Tone.MembraneSynth) {
                     scheduled.player.triggerRelease();

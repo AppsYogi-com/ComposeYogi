@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
 import { audioEngine, playoutManager, registerAudioTake, clearAudioTakes, type LatencyCalibrationResult } from '@/lib/audio';
@@ -14,13 +15,18 @@ import { LatencyCalibrationModal } from '@/components/compose/LatencyCalibration
 import { ProjectSelector } from '@/components/compose/ProjectSelector';
 import { useAutosave } from '@/hooks';
 import { listProjects, loadProject, loadAudioTakesForClip } from '@/lib/persistence';
+import { loadDemoTemplate } from '@/lib/templates';
 
 export default function ComposePage() {
+    const searchParams = useSearchParams();
+    const demoId = searchParams.get('demo');
+
     const [isAudioReady, setIsAudioReady] = useState(false);
     const [showLatencyModal, setShowLatencyModal] = useState(false);
     const [showProjectsModal, setShowProjectsModal] = useState(false);
     const [isPlayoutScheduled, setIsPlayoutScheduled] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
+    const [shouldAutoPlay, setShouldAutoPlay] = useState(false);
     const initializedRef = useRef(false);
 
     // Autosave hook
@@ -54,6 +60,18 @@ export default function ComposePage() {
             initializedRef.current = true;
 
             try {
+                // Check for demo template first
+                if (demoId) {
+                    const demoProject = loadDemoTemplate(demoId);
+                    if (demoProject) {
+                        loadProjectStore(demoProject);
+                        setShouldAutoPlay(true);
+                        console.log('[ComposePage] Loaded demo template:', demoId);
+                        setIsInitializing(false);
+                        return;
+                    }
+                }
+
                 // Try to load the most recently updated project
                 const projects = await listProjects();
 
@@ -173,6 +191,18 @@ export default function ComposePage() {
             audioEngine.play();
         }
     }, [initAudio, isPlaying, pause, play, isPlayoutScheduled, project, scheduleClips]);
+
+    // Auto-play demo templates after 1.5 seconds
+    useEffect(() => {
+        if (shouldAutoPlay && project && !isInitializing) {
+            const timer = setTimeout(async () => {
+                setShouldAutoPlay(false);
+                await handlePlay();
+                console.log('[ComposePage] Auto-playing demo template');
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [shouldAutoPlay, project, isInitializing, handlePlay]);
 
     // ============================
     // Keyboard shortcuts

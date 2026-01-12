@@ -11,6 +11,12 @@
             "cta": "Start Creating",
             "ctaSubtext": "No sign-up required"
         },
+        "demos": {
+            "title": "Try These Beats",
+            "subtitle": "Click to hear fully-produced tracks made with ComposeYogi",
+            "playButton": "Play",
+            "helperText": "Templates auto-play • Customize anything • Export when ready"
+        },
         "features": {
             "title": "Everything you need to create",
             "daw": {

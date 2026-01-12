@@ -11,6 +11,12 @@
             "cta": "Empieza a Crear",
             "ctaSubtext": "Sin registro requerido"
         },
+        "demos": {
+            "title": "Prueba Estos Ritmos",
+            "subtitle": "Haz clic para escuchar canciones completas hechas con ComposeYogi",
+            "playButton": "Reproducir",
+            "helperText": "Las plantillas se reproducen automáticamente • Personaliza todo • Exporta cuando quieras"
+        },
         "features": {
             "title": "Todo lo que necesitas para crear",
             "daw": {

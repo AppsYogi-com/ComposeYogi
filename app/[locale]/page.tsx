@@ -6,6 +6,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { MusicWave } from '@/components/MusicWave';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { APP_CONFIG } from '@/config/app';
+import { DemoTemplates } from '@/components/home/DemoTemplates';
 
 interface PageProps {
     params: Promise<{ locale: string }>;
@@ -75,6 +76,9 @@ function HomePageContent() {
                     <p className="mt-4 text-sm text-muted-foreground">
                         {t('landing.hero.ctaSubtext')}
                     </p>
+
+                    {/* Demo Templates */}
+                    <DemoTemplates />
                 </div>
             </section>
 

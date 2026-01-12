@@ -6,7 +6,7 @@
 import * as Tone from 'tone';
 import type { Project, Track, Clip, TrackEffect, TrackEffectType } from '@/types';
 import { getAudioTake } from './recording-manager';
-import { createSynthFromPreset, type SynthType } from './synth-presets';
+import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
 
 // ============================================
 // Types
@@ -293,7 +293,7 @@ export async function exportProjectToWav(
                     );
                 } else if ((clip.type === 'midi' || clip.type === 'drum') && clip.notes) {
                     // Schedule MIDI/Drum clip
-                    scheduleMidiClipOffline(
+                    await scheduleMidiClipOffline(
                         clip,
                         track,
                         chainInput,
@@ -395,35 +395,59 @@ async function scheduleAudioClipOffline(
 // MIDI Clip Scheduling (Offline)
 // ============================================
 
-function scheduleMidiClipOffline(
+async function scheduleMidiClipOffline(
     clip: Clip,
     track: Track,
     destination: Tone.ToneAudioNode,
     startTime: number,
     project: Project,
     nodesToDispose: Tone.ToneAudioNode[]
-): void {
+): Promise<void> {
     if (!clip.notes?.length) return;
 
     const synth = createSynthForTrack(track);
     synth.connect(destination);
     nodesToDispose.push(synth);
 
+    // Wait for synth to be ready (important for Sampler which loads async)
+    await waitForSynthReady(synth);
+
     const transport = Tone.getTransport();
 
+    // Check if synth is polyphonic (PolySynth and Sampler can handle multiple notes at same time)
+    const isPolyphonic = synth instanceof Tone.PolySynth || synth instanceof Tone.Sampler;
+
+    // Group notes by start time to handle concurrent notes for monophonic synths
+    const notesByTime = new Map<number, typeof clip.notes>();
     for (const note of clip.notes) {
         const noteOffsetSeconds = beatsToSeconds(note.startBeat, project.bpm);
         const absoluteTime = startTime + noteOffsetSeconds;
-        const noteDurationSeconds = beatsToSeconds(note.duration, project.bpm);
+        // Round to avoid floating point issues
+        const timeKey = Math.round(absoluteTime * 10000) / 10000;
 
-        transport.schedule((time) => {
-            synth.triggerAttackRelease(
-                Tone.Frequency(note.pitch, 'midi').toFrequency(),
-                noteDurationSeconds,
-                time,
-                note.velocity / 127
-            );
-        }, absoluteTime);
+        if (!notesByTime.has(timeKey)) {
+            notesByTime.set(timeKey, []);
+        }
+        notesByTime.get(timeKey)!.push(note);
+    }
+
+    // Schedule notes, adding tiny offsets for monophonic synths with concurrent notes
+    for (const [timeKey, notes] of notesByTime) {
+        notes.forEach((note, index) => {
+            const noteDurationSeconds = beatsToSeconds(note.duration, project.bpm);
+            // For monophonic synths, add 1ms offset for each concurrent note
+            const offset = isPolyphonic ? 0 : index * 0.001;
+            const scheduledTime = timeKey + offset;
+
+            transport.schedule((time) => {
+                synth.triggerAttackRelease(
+                    Tone.Frequency(note.pitch, 'midi').toFrequency(),
+                    noteDurationSeconds,
+                    time,
+                    note.velocity / 127
+                );
+            }, scheduledTime);
+        });
     }
 
     console.log(`[OfflineRenderer] Scheduled MIDI clip: ${clip.id} with ${clip.notes.length} notes`);

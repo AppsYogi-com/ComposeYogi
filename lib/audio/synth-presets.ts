@@ -10,7 +10,7 @@ import * as Tone from 'tone';
 // ============================================
 
 // Union type for all synths we might create
-export type SynthType = Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth;
+export type SynthType = Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | Tone.Sampler;
 
 export interface SynthPreset {
     id: string;
@@ -152,7 +152,44 @@ const createBasicSynth = (): Tone.PolySynth => {
     });
 };
 
-// Drum synth - Use MembraneSynth directly
+// Drum Sampler - Maps GM drum pitches to actual samples
+// GM Drum mapping: 36=kick, 38=snare, 42=closed hat, 46=open hat, 37=rim, 39=clap
+const createDrumSampler = (): Tone.Sampler => {
+    const sampler = new Tone.Sampler({
+        urls: {
+            // Kicks (GM: 35-36)
+            C1: 'kick-deep.wav',      // 36 - Kick
+            B0: 'kick-808.wav',       // 35 - Acoustic Bass Drum
+            // Snares (GM: 38-40)
+            D1: 'snare-crisp.wav',    // 38 - Snare
+            E1: 'snare-clap.wav',     // 40 - Electric Snare / Clap
+            // Rim (GM: 37)
+            'C#1': 'perc-rim.wav',    // 37 - Side Stick
+            // Hi-hats (GM: 42, 44, 46)
+            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
+            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
+            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
+            // Shaker
+            'D#2': 'perc-shaker.wav',  // 51 - Ride Cymbal (using shaker)
+        },
+        baseUrl: '/samples/drums/',
+        release: 0.5,
+    });
+    return sampler;
+};
+
+/**
+ * Wait for a synth to be ready (mainly for Sampler which loads async)
+ */
+export async function waitForSynthReady(synth: SynthType): Promise<void> {
+    if (synth instanceof Tone.Sampler) {
+        // Wait for all buffers to load
+        await Tone.loaded();
+    }
+    // Other synth types are ready immediately
+}
+
+// Legacy drum synth for fallback (simpler, no samples needed)
 const createDrumSynth = (): Tone.MembraneSynth => {
     return new Tone.MembraneSynth({
         pitchDecay: 0.05,
@@ -242,6 +279,12 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         name: 'Drum Synth',
         category: 'drums',
         createSynth: createDrumSynth,
+    },
+    'drum-sampler': {
+        id: 'drum-sampler',
+        name: 'Drum Kit',
+        category: 'drums',
+        createSynth: createDrumSampler,
     },
 };
 
