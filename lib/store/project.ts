@@ -14,6 +14,8 @@ import type {
     Note,
     TrackType,
     TrackColor,
+    TrackEffect,
+    TrackEffectType,
     ClipType,
     MusicalKey,
     MusicalScale
@@ -44,6 +46,9 @@ interface ProjectActions {
     // Track operations
     addTrack: (type: TrackType, name?: string, color?: TrackColor) => Track;
     updateTrack: (trackId: string, updates: Partial<Track>) => void;
+    addTrackEffect: (trackId: string, type: TrackEffectType, presetId?: string) => void;
+    updateTrackEffect: (trackId: string, effectId: string, updates: Partial<TrackEffect>) => void;
+    removeTrackEffect: (trackId: string, effectId: string) => void;
     deleteTrack: (trackId: string) => void;
     reorderTracks: (trackIds: string[]) => void;
 
@@ -287,6 +292,84 @@ const projectStoreBase = (
                     tracks: state.project.tracks.map((t) =>
                         t.id === trackId ? { ...t, ...updates } : t
                     ),
+                    updatedAt: Date.now(),
+                }
+                : null,
+            hasUnsavedChanges: true,
+        }));
+    },
+
+    addTrackEffect: (trackId, type, presetId) => {
+        set((state) => {
+            if (!state.project) return {};
+
+            // Helper to get default params for effect type
+            const getDefaultParams = (type: TrackEffectType) => {
+                switch (type) {
+                    case 'reverb': return { decay: 1.5, preDelay: 0.01, wet: 0.5 };
+                    case 'delay': return { delayTime: 0.25, feedback: 0.5, wet: 0.5 };
+                    case 'distortion': return { distortion: 0.4, wet: 0.5 };
+                    case 'filter': return { frequency: 1000, type: 'lowpass', Q: 1, wet: 1 };
+                    case 'compression': return { threshold: -24, ratio: 12, attack: 0.003, release: 0.25 };
+                    default: return {};
+                }
+            };
+
+            return {
+                project: {
+                    ...state.project,
+                    tracks: state.project.tracks.map((t) => {
+                        if (t.id !== trackId) return t;
+                        const effects = t.effects || [];
+                        const newEffect: TrackEffect = {
+                            id: uuid(),
+                            type,
+                            active: true,
+                            presetId,
+                            params: getDefaultParams(type)
+                        };
+                        return { ...t, effects: [...effects, newEffect] };
+                    }),
+                    updatedAt: Date.now(),
+                },
+                hasUnsavedChanges: true,
+            };
+        });
+    },
+
+    removeTrackEffect: (trackId, effectId) => {
+        set((state) => ({
+            project: state.project
+                ? {
+                    ...state.project,
+                    tracks: state.project.tracks.map((t) => {
+                        if (t.id !== trackId) return t;
+                        return {
+                            ...t,
+                            effects: (t.effects || []).filter(e => e.id !== effectId)
+                        };
+                    }),
+                    updatedAt: Date.now(),
+                }
+                : null,
+            hasUnsavedChanges: true,
+        }));
+    },
+
+    updateTrackEffect: (trackId, effectId, updates) => {
+        set((state) => ({
+            project: state.project
+                ? {
+                    ...state.project,
+                    tracks: state.project.tracks.map((t) => {
+                        if (t.id !== trackId) return t;
+                        return {
+                            ...t,
+                            effects: (t.effects || []).map(e =>
+                                e.id === effectId ? { ...e, ...updates } : e
+                            )
+                        };
+                    }),
                     updatedAt: Date.now(),
                 }
                 : null,

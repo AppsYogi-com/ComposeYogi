@@ -4,7 +4,7 @@
 // ============================================
 
 import * as Tone from 'tone';
-import type { Clip, Project, Track, AudioTake } from '@/types';
+import type { Clip, Project, Track, AudioTake, TrackEffect, TrackEffectType } from '@/types';
 import { getAudioTake } from './recording-manager';
 import { createSynthFromPreset, type SynthType } from './synth-presets';
 
@@ -43,6 +43,8 @@ class PlayoutManager {
     private analyser: Tone.Analyser | null = null;
     private trackGains: Map<string, Tone.Gain> = new Map();
     private trackPanners: Map<string, Tone.Panner> = new Map();
+    private trackEntries: Map<string, Tone.Gain> = new Map();
+    private trackEffects: Map<string, Tone.ToneAudioNode[]> = new Map();
 
     // ========================================
     // Initialization
@@ -83,27 +85,123 @@ class PlayoutManager {
     // Track Signal Chain
     // ========================================
 
-    private getOrCreateTrackChain(track: Track): { gain: Tone.Gain; panner: Tone.Panner } {
+    private getOrCreateTrackChain(track: Track): { input: Tone.Gain; gain: Tone.Gain; panner: Tone.Panner } {
         if (!this.masterGain) {
             throw new Error('PlayoutManager not initialized');
         }
 
+        let entry = this.trackEntries.get(track.id);
         let gain = this.trackGains.get(track.id);
         let panner = this.trackPanners.get(track.id);
 
-        if (!gain || !panner) {
+        if (!entry || !gain || !panner) {
+            entry = new Tone.Gain(1);
             panner = new Tone.Panner(track.pan || 0);
             gain = new Tone.Gain(track.volume || 0.8);
 
-            // Chain: source -> gain -> panner -> master
+            // Default Chain: entry -> gain -> panner -> master
+            entry.connect(gain);
             gain.connect(panner);
             panner.connect(this.masterGain);
 
+            this.trackEntries.set(track.id, entry);
             this.trackGains.set(track.id, gain);
             this.trackPanners.set(track.id, panner);
+
+            // Initialize effects if present
+            if (track.effects && track.effects.length > 0) {
+                this.rebuildTrackEffects(track.id, track.effects);
+            }
         }
 
-        return { gain, panner };
+        return { input: entry, gain, panner };
+    }
+
+    public updateTrackEffects(trackId: string, effects: TrackEffect[]): void {
+        this.rebuildTrackEffects(trackId, effects);
+    }
+
+    private rebuildTrackEffects(trackId: string, effects: TrackEffect[]): void {
+        const entry = this.trackEntries.get(trackId);
+        const gain = this.trackGains.get(trackId);
+
+        if (!entry || !gain) return;
+
+        // Dispose old effects
+        const oldEffects = this.trackEffects.get(trackId);
+        if (oldEffects) {
+            oldEffects.forEach(node => node.dispose());
+        }
+
+        // Always disconnect entry from whatever it was connected to
+        entry.disconnect();
+
+        if (!effects || effects.length === 0) {
+            // No effects: entry -> gain
+            entry.connect(gain);
+            this.trackEffects.set(trackId, []);
+            return;
+        }
+
+        // Build new chain
+        const effectNodes: Tone.ToneAudioNode[] = [];
+        let currentNode: Tone.ToneAudioNode = entry;
+
+        effects.forEach(effect => {
+            const node = this.createEffectNode(effect);
+            if (node) {
+                currentNode.connect(node);
+                currentNode = node;
+                effectNodes.push(node);
+            }
+        });
+
+        currentNode.connect(gain);
+        this.trackEffects.set(trackId, effectNodes);
+    }
+
+    private createEffectNode(effect: TrackEffect): Tone.ToneAudioNode | null {
+        try {
+            switch (effect.type) {
+                case 'reverb':
+                    const rev = new Tone.Reverb({
+                        decay: effect.params.decay || 1.5,
+                        preDelay: 0.01,
+                        wet: effect.params.wet || 0.5
+                    });
+                    // rev.generate(); // Tone v14.8+ auto-generates on connect/start usually, but manual call is safe
+                    // Calling generate() helps ensure silent impulse generation
+                    void rev.generate();
+                    return rev;
+                case 'delay':
+                    return new Tone.FeedbackDelay({
+                        delayTime: effect.params.delayTime || 0.25,
+                        feedback: effect.params.feedback || 0.5,
+                        wet: effect.params.wet || 0.5
+                    });
+                case 'distortion':
+                    return new Tone.Distortion({
+                        distortion: effect.params.distortion || 0.4,
+                        wet: effect.params.wet || 0.5
+                    });
+                case 'filter':
+                    return new Tone.Filter({
+                        frequency: effect.params.frequency || 1000,
+                        type: effect.params.filterType || 'lowpass',
+                        Q: effect.params.Q || 1
+                    });
+                case 'compression':
+                    return new Tone.Compressor({
+                        threshold: effect.params.threshold || -30,
+                        ratio: effect.params.ratio || 12
+                    });
+                default:
+                    return null;
+            }
+        } catch (e) {
+            console.error('Error creating effect:', e);
+            return null;
+        }
     }
 
     /**
@@ -180,7 +278,8 @@ class PlayoutManager {
         // Remove any existing schedule for this clip
         this.unscheduleClip(clip.id);
 
-        const { gain } = this.getOrCreateTrackChain(track);
+        // Get track entry point (effects -> volume -> pan)
+        const chain = this.getOrCreateTrackChain(track);
         const scheduled: ScheduledClip = {
             clipId: clip.id,
             player: null,
@@ -193,10 +292,10 @@ class PlayoutManager {
 
         if (clip.type === 'audio' && clip.activeTakeId) {
             // Schedule audio clip from AudioTake
-            await this.scheduleAudioClip(clip, track, gain, scheduled, project);
+            await this.scheduleAudioClip(clip, track, chain.input, scheduled, project);
         } else if ((clip.type === 'midi' || clip.type === 'drum') && clip.notes) {
             // Schedule MIDI/Drum clip
-            this.scheduleMidiClip(clip, track, gain, scheduled, project);
+            this.scheduleMidiClip(clip, track, chain.input, scheduled, project);
         }
 
         this.state.scheduledClips.set(clip.id, scheduled);
@@ -239,17 +338,29 @@ class PlayoutManager {
             player.sync(); // Sync to transport
             player.connect(destination);
 
+            // Apply fades (Tone.Player supports simple curves)
+            player.fadeIn = clip.fadeIn || 0;
+            player.fadeOut = clip.fadeOut || 0;
+
             // Calculate start time in seconds
             const bpm = project.bpm;
             const beatsPerBar = project.timeSignature[0];
             const clipStartSeconds = this.barsToSeconds(clip.startBar, bpm, beatsPerBar);
 
+            // Calculate trim/duration
+            const trimStart = clip.trimStart || 0;
+            const trimEnd = clip.trimEnd || 0;
+            const sourceDuration = toneBuffer.duration;
+            const playDuration = Math.max(0, sourceDuration - trimStart - trimEnd);
+
             // Schedule the player to start at the clip position
-            // Using sync() + start(time) schedules relative to transport
-            player.start(clipStartSeconds);
+            // using sync() + start(startTime, offset, duration)
+            if (playDuration > 0) {
+                player.start(clipStartSeconds, trimStart, playDuration);
+            }
 
             scheduled.player = player;
-            console.log('[PlayoutManager] Scheduled audio clip:', clip.id, 'at', clipStartSeconds, 'seconds (bar', clip.startBar, ')');
+            console.log('[PlayoutManager] Scheduled audio clip:', clip.id, 'with trim:', trimStart, '-', trimEnd);
         } catch (error) {
             console.error('[PlayoutManager] Failed to schedule audio clip:', error);
         }
@@ -360,10 +471,22 @@ class PlayoutManager {
 
         // Unsync and dispose player/synth
         if (scheduled.player) {
-            if (scheduled.player instanceof Tone.Player) {
-                scheduled.player.unsync();
+            try {
+                if (scheduled.player instanceof Tone.Player) {
+                    // Unsync first to detach from Transport checks that can cause RangeErrors
+                    scheduled.player.unsync();
+                    scheduled.player.stop();
+                } else if (scheduled.player instanceof Tone.PolySynth) {
+                    scheduled.player.releaseAll();
+                } else if (scheduled.player instanceof Tone.MonoSynth || scheduled.player instanceof Tone.MembraneSynth) {
+                    scheduled.player.triggerRelease();
+                }
+            } catch (error) {
+                console.warn('[PlayoutManager] Error stopping clip player:', error);
+            } finally {
+                // Always dispose to ensure disconnect
+                scheduled.player.dispose();
             }
-            scheduled.player.dispose();
         }
 
         this.state.scheduledClips.delete(clipId);

@@ -272,9 +272,10 @@ class RecordingManager {
             return;
         }
 
-        // Calculate clip length in bars (round up to nearest bar)
+        // Calculate clip length in bars (use exact duration for audio clips)
         const durationInBars = audioEngine.secondsToBar(segment.duration);
-        const lengthBars = Math.max(1, Math.ceil(durationInBars));
+        // Use exact fractional bars for audio clips so visual width matches audio duration
+        const lengthBars = Math.max(0.25, durationInBars);
         console.log('[RecordingManager] segment.duration:', segment.duration, 'durationInBars:', durationInBars, 'lengthBars:', lengthBars);
 
         // Create Clip via store method

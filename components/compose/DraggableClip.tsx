@@ -5,8 +5,9 @@
 
 'use client';
 
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import { useProjectStore, useUIStore } from '@/lib/store';
+import { getAudioTake, audioEngine } from '@/lib/audio';
 import { AudioClip } from './AudioClip';
 import type { Clip, Track, TrackColor } from '@/types';
 
@@ -60,6 +61,19 @@ export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: Dragg
     const isSelected = selectedClipIds.includes(clip.id);
     const pixelsPerBar = pixelsPerBeat * beatsPerBar;
     const isInMultiDrag = isSelected && multiDragOffsetBars !== 0 && !isLeadingDrag;
+
+    // For audio clips, get the source audio duration (in seconds and bars)
+    const audioSourceInfo = useMemo(() => {
+        if (clip.type !== 'audio' || !clip.activeTakeId) return null;
+        const take = getAudioTake(clip.activeTakeId);
+        if (!take) return null;
+        const sourceDurationSec = take.duration;
+        const sourceDurationBars = audioEngine.secondsToBar(sourceDurationSec);
+        return {
+            durationSec: sourceDurationSec,
+            durationBars: sourceDurationBars,
+        };
+    }, [clip.type, clip.activeTakeId]);
 
     // Calculate position and size with drag/resize offsets
     const startBeat = clip.startBar * beatsPerBar;
@@ -177,19 +191,32 @@ export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: Dragg
             } else if (dragMode === 'resize-left') {
                 const deltaBars = deltaX / pixelsPerBar;
                 const snappedDeltaBars = Math.round(deltaBars / snapUnit) * snapUnit;
-                // Limit so clip doesn't go negative and maintains minimum length
-                const maxDelta = Math.min(
-                    dragStartRef.current.originalBar, // Can't go before bar 0
-                    dragStartRef.current.originalLength - MIN_CLIP_BARS // Maintain min length
-                );
-                const clampedDelta = Math.max(-dragStartRef.current.originalBar, Math.min(maxDelta, snappedDeltaBars));
+
+                // For audio clips, clamp to source audio bounds
+                let maxExpandLeft = dragStartRef.current.originalBar; // Can't go before bar 0
+                if (audioSourceInfo) {
+                    // Can only expand left by the amount of trimStart available
+                    const currentTrimStartBars = audioEngine.secondsToBar(clip.trimStart || 0);
+                    maxExpandLeft = Math.min(maxExpandLeft, currentTrimStartBars);
+                }
+
+                const maxShrink = dragStartRef.current.originalLength - MIN_CLIP_BARS;
+                const clampedDelta = Math.max(-maxExpandLeft, Math.min(maxShrink, snappedDeltaBars));
                 setResizeOffset(clampedDelta * pixelsPerBar);
             } else if (dragMode === 'resize-right') {
                 const deltaBars = deltaX / pixelsPerBar;
                 const snappedDeltaBars = Math.round(deltaBars / snapUnit) * snapUnit;
-                // Ensure minimum length
+
+                // For audio clips, clamp to source audio bounds
+                let maxExpandRight = Infinity;
+                if (audioSourceInfo) {
+                    // Can only expand right by the amount of trimEnd available
+                    const currentTrimEndBars = audioEngine.secondsToBar(clip.trimEnd || 0);
+                    maxExpandRight = currentTrimEndBars;
+                }
+
                 const minDelta = MIN_CLIP_BARS - dragStartRef.current.originalLength;
-                const clampedDelta = Math.max(minDelta, snappedDeltaBars);
+                const clampedDelta = Math.max(minDelta, Math.min(maxExpandRight, snappedDeltaBars));
                 setResizeOffset(clampedDelta * pixelsPerBar);
             }
         };
@@ -219,16 +246,45 @@ export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: Dragg
                     }
                 } else if (dragMode === 'resize-left') {
                     const deltaBars = resizeOffset / pixelsPerBar;
-                    const newStartBar = Math.max(0, dragStartRef.current.originalBar + deltaBars);
-                    const newLength = Math.max(MIN_CLIP_BARS, dragStartRef.current.originalLength - deltaBars);
                     if (Math.abs(deltaBars) > 0.001) {
-                        updateClip(clip.id, { startBar: newStartBar, lengthBars: newLength });
+                        const newStartBar = Math.max(0, dragStartRef.current.originalBar + deltaBars);
+                        const newLength = Math.max(MIN_CLIP_BARS, dragStartRef.current.originalLength - deltaBars);
+
+                        if (audioSourceInfo) {
+                            // Audio clip: adjust trimStart instead of just lengthBars
+                            const deltaSeconds = audioEngine.barToSeconds(deltaBars);
+                            const currentTrimStart = clip.trimStart || 0;
+                            const newTrimStart = Math.max(0, currentTrimStart + deltaSeconds);
+
+                            updateClip(clip.id, {
+                                startBar: newStartBar,
+                                lengthBars: newLength,
+                                trimStart: newTrimStart,
+                            });
+                        } else {
+                            // MIDI/Drum clip: just resize
+                            updateClip(clip.id, { startBar: newStartBar, lengthBars: newLength });
+                        }
                     }
                 } else if (dragMode === 'resize-right') {
                     const deltaBars = resizeOffset / pixelsPerBar;
                     const newLength = Math.max(MIN_CLIP_BARS, dragStartRef.current.originalLength + deltaBars);
                     if (Math.abs(newLength - dragStartRef.current.originalLength) > 0.001) {
-                        resizeClip(clip.id, newLength);
+                        if (audioSourceInfo) {
+                            // Audio clip: adjust trimEnd instead of just lengthBars
+                            const deltaSeconds = audioEngine.barToSeconds(deltaBars);
+                            const currentTrimEnd = clip.trimEnd || 0;
+                            // Expanding right means reducing trimEnd, shrinking means increasing it
+                            const newTrimEnd = Math.max(0, currentTrimEnd - deltaSeconds);
+
+                            updateClip(clip.id, {
+                                lengthBars: newLength,
+                                trimEnd: newTrimEnd,
+                            });
+                        } else {
+                            // MIDI/Drum clip: just resize
+                            resizeClip(clip.id, newLength);
+                        }
                     }
                 }
             }
@@ -249,7 +305,7 @@ export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: Dragg
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [dragMode, dragOffset, resizeOffset, pixelsPerBar, beatsPerBar, clip.id, updateClip, resizeClip, duplicateClip, selectClip, selectedClipIds, moveClipsByDelta, isLeadingDrag, setMultiDragOffset]);
+    }, [dragMode, dragOffset, resizeOffset, pixelsPerBar, beatsPerBar, clip.id, clip.trimStart, clip.trimEnd, updateClip, resizeClip, duplicateClip, selectClip, selectedClipIds, moveClipsByDelta, isLeadingDrag, setMultiDragOffset, audioSourceInfo]);
 
     // Get cursor style based on hover position
     const getCursorStyle = useCallback((e: React.MouseEvent): string => {
@@ -341,6 +397,10 @@ export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: Dragg
                         width={clipWidth}
                         height={clipHeight}
                         color="rgba(255, 255, 255, 0.7)"
+                        trimStart={clip.trimStart}
+                        trimEnd={clip.trimEnd}
+                        fadeIn={clip.fadeIn}
+                        fadeOut={clip.fadeOut}
                     />
                 ) : (
                     <div className="flex h-full flex-col p-1 px-2">

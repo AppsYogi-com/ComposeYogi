@@ -49,7 +49,18 @@ export interface Track {
     solo: boolean;
     armed: boolean;
     instrumentPreset?: string;
+    effects?: TrackEffect[];
     order: number;
+}
+
+export type TrackEffectType = 'reverb' | 'delay' | 'distortion' | 'filter' | 'compression';
+
+export interface TrackEffect {
+    id: string;
+    type: TrackEffectType;
+    active: boolean;
+    presetId?: string; // Reference to FX_PRESETS
+    params: Record<string, any>;
 }
 
 export type TrackType = 'audio' | 'midi' | 'drum';
@@ -76,6 +87,10 @@ export interface Clip {
     // Audio-specific
     audioTakeIds?: string[];
     activeTakeId?: string;
+    trimStart?: number;    // seconds
+    trimEnd?: number;      // seconds
+    fadeIn?: number;       // seconds
+    fadeOut?: number;      // seconds
     // MIDI/Drum-specific
     notes?: Note[];
     // Common

@@ -13,7 +13,7 @@ import {
     Repeat
 } from 'lucide-react';
 import { useProjectStore } from '@/lib/store';
-import { getAudioTake } from '@/lib/audio';
+import { getAudioTake, audioEngine } from '@/lib/audio';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -59,12 +59,28 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
 
     // Trim/fade state
     const [trimHandles, setTrimHandles] = useState<TrimHandles>({
-        startOffset: 0,
-        endOffset: 0,
+        startOffset: clip.trimStart || 0,
+        endOffset: clip.trimEnd || 0,
     });
-    const [fadeIn, setFadeIn] = useState(0); // seconds
-    const [fadeOut, setFadeOut] = useState(0); // seconds
+    const trimHandlesRef = useRef(trimHandles); // Ref to track latest value for callbacks
+    const [fadeIn, setFadeIn] = useState(clip.fadeIn || 0); // seconds
+    const [fadeOut, setFadeOut] = useState(clip.fadeOut || 0); // seconds
     const [isDraggingTrim, setIsDraggingTrim] = useState<'start' | 'end' | null>(null);
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        trimHandlesRef.current = trimHandles;
+    }, [trimHandles]);
+
+    // Sync local state when clip selection changes or undo happens
+    useEffect(() => {
+        setTrimHandles({
+            startOffset: clip.trimStart || 0,
+            endOffset: clip.trimEnd || 0,
+        });
+        setFadeIn(clip.fadeIn || 0);
+        setFadeOut(clip.fadeOut || 0);
+    }, [clip.id, clip.trimStart, clip.trimEnd, clip.fadeIn, clip.fadeOut]);
 
     // Selection state for click-and-drag region
     const [selection, setSelection] = useState<{ start: number; end: number } | null>(null);
@@ -356,7 +372,20 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
     }, [isDraggingTrim, isSelecting, audioBuffer, zoom, scrollX]);
 
     const handleMouseUp = useCallback(() => {
-        if (isDraggingTrim) {
+        if (isDraggingTrim && audioBuffer) {
+            // Use ref to get latest trimHandles value (avoids stale closure)
+            const currentTrimHandles = trimHandlesRef.current;
+
+            // Calculate new lengthBars based on trimmed duration
+            const sourceDuration = audioBuffer.duration;
+            const trimmedDuration = sourceDuration - currentTrimHandles.startOffset - currentTrimHandles.endOffset;
+            const newLengthBars = audioEngine.secondsToBar(trimmedDuration);
+
+            updateClip(clip.id, {
+                trimStart: currentTrimHandles.startOffset,
+                trimEnd: currentTrimHandles.endOffset,
+                lengthBars: Math.max(0.25, newLengthBars), // Update visual width
+            });
             setIsDraggingTrim(null);
         }
         if (isSelecting) {
@@ -372,7 +401,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                 setSelection(null);
             }
         }
-    }, [isDraggingTrim, isSelecting, selection]);
+    }, [isDraggingTrim, isSelecting, selection, audioBuffer, clip.id, updateClip]);
 
     // Stop playback
     const stopPlayback = useCallback(() => {
@@ -476,12 +505,24 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
         const start = Math.min(selection.start, selection.end);
         const end = Math.max(selection.start, selection.end);
 
+        const newStart = start;
+        const newEnd = audioBuffer.duration - end;
+
+        // Calculate new lengthBars based on trimmed duration
+        const trimmedDuration = end - start; // selection range is the new duration
+        const newLengthBars = audioEngine.secondsToBar(trimmedDuration);
+
         setTrimHandles({
-            startOffset: start,
-            endOffset: audioBuffer.duration - end,
+            startOffset: newStart,
+            endOffset: newEnd,
+        });
+        updateClip(clip.id, {
+            trimStart: newStart,
+            trimEnd: newEnd,
+            lengthBars: Math.max(0.25, newLengthBars), // Update visual width
         });
         setSelection(null);
-    }, [selection, audioBuffer]);
+    }, [selection, audioBuffer, clip.id, updateClip]);
 
     // Clear selection
     const clearSelection = useCallback(() => {
@@ -491,12 +532,24 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
 
     // Reset trim/fade
     const resetAll = useCallback(() => {
+        if (!audioBuffer) return;
+
+        // Calculate lengthBars for full audio duration (no trim)
+        const newLengthBars = audioEngine.secondsToBar(audioBuffer.duration);
+
         setTrimHandles({ startOffset: 0, endOffset: 0 });
         setFadeIn(0);
         setFadeOut(0);
         setSelection(null);
         setIsLooping(false);
-    }, []);
+        updateClip(clip.id, {
+            trimStart: 0,
+            trimEnd: 0,
+            fadeIn: 0,
+            fadeOut: 0,
+            lengthBars: Math.max(0.25, newLengthBars), // Restore full width
+        });
+    }, [clip.id, updateClip, audioBuffer]);
 
     // Zoom controls
     const zoomIn = () => setZoom((z) => Math.min(z * 1.5, 10));
@@ -625,6 +678,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                     <Slider
                         value={[fadeIn]}
                         onValueChange={([v]) => setFadeIn(v)}
+                        onValueCommit={([v]) => updateClip(clip.id, { fadeIn: v })}
                         min={0}
                         max={Math.min(2, effectiveDuration / 2)}
                         step={0.05}
@@ -638,6 +692,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                     <Slider
                         value={[fadeOut]}
                         onValueChange={([v]) => setFadeOut(v)}
+                        onValueCommit={([v]) => updateClip(clip.id, { fadeOut: v })}
                         min={0}
                         max={Math.min(2, effectiveDuration / 2)}
                         step={0.05}

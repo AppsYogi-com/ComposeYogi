@@ -6,7 +6,9 @@ import {
     Sliders,
     Music,
     Clock,
-    Hash
+    Hash,
+    Sparkles,
+    Trash2
 } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -44,6 +46,9 @@ export function Inspector() {
     const project = useProjectStore((s) => s.project);
     const setKey = useProjectStore((s) => s.setKey);
     const setScale = useProjectStore((s) => s.setScale);
+    const updateTrack = useProjectStore((s) => s.updateTrack);
+    const removeTrackEffect = useProjectStore((s) => s.removeTrackEffect);
+    const updateTrackEffect = useProjectStore((s) => s.updateTrackEffect);
     const selectedTrackId = useUIStore((s) => s.selectedTrackId);
     const selectedClipId = useUIStore((s) => s.selectedClipId);
     const toggleInspector = useUIStore((s) => s.toggleInspector);
@@ -202,6 +207,135 @@ export function Inspector() {
                                 className="py-2"
                             />
                         </div>
+                    </Section>
+                )}
+
+                {/* Selected track effects */}
+                {selectedTrack && (
+                    <Section title="Effects" icon={<Sparkles className="h-4 w-4" />}>
+                        {(!selectedTrack.effects || selectedTrack.effects.length === 0) ? (
+                            <div className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed border-muted rounded-md bg-muted/20">
+                                Drag effects onto the track<br />to add them
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {selectedTrack.effects.map((effect, index) => (
+                                    <div
+                                        key={effect.id}
+                                        className="rounded-md bg-background border border-border overflow-hidden"
+                                    >
+                                        {/* Effect Header */}
+                                        <div className="flex items-center justify-between p-2 bg-muted/30 border-b border-border/50">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                                                    <span className="text-[10px] font-bold text-primary">
+                                                        {index + 1}
+                                                    </span>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="text-xs font-medium truncate capitalize">
+                                                        {effect.type}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => removeTrackEffect(selectedTrack.id, effect.id)}
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+
+                                        {/* Effect Controls */}
+                                        <div className="p-3 space-y-3">
+                                            {/* Common Wet/Dry Control */}
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="text-[10px] text-muted-foreground">Mix (Wet)</Label>
+                                                    <span className="text-[10px] font-mono">
+                                                        {Math.round((effect.params.wet ?? 0.5) * 100)}%
+                                                    </span>
+                                                </div>
+                                                <Slider
+                                                    value={[(effect.params.wet ?? 0.5) * 100]}
+                                                    min={0}
+                                                    max={100}
+                                                    step={1}
+                                                    onValueChange={([v]) => {
+                                                        const newParams = { ...effect.params, wet: v / 100 };
+                                                        updateTrackEffect(selectedTrack.id, effect.id, { params: newParams });
+                                                    }}
+                                                    className="py-1"
+                                                />
+                                            </div>
+
+                                            {/* Specific Controls based on Type */}
+                                            {effect.type === 'reverb' && (
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label className="text-[10px] text-muted-foreground">Decay</Label>
+                                                        <span className="text-[10px] font-mono">{effect.params.decay ?? 1.5}s</span>
+                                                    </div>
+                                                    <Slider
+                                                        value={[(effect.params.decay ?? 1.5) * 10]}
+                                                        min={1}
+                                                        max={100}
+                                                        step={1}
+                                                        onValueChange={([v]) => {
+                                                            const newParams = { ...effect.params, decay: v / 10 };
+                                                            updateTrackEffect(selectedTrack.id, effect.id, { params: newParams });
+                                                        }}
+                                                        className="py-1"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {effect.type === 'delay' && (
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label className="text-[10px] text-muted-foreground">Feedback</Label>
+                                                        <span className="text-[10px] font-mono">{Math.round((effect.params.feedback ?? 0.5) * 100)}%</span>
+                                                    </div>
+                                                    <Slider
+                                                        value={[(effect.params.feedback ?? 0.5) * 100]}
+                                                        min={0}
+                                                        max={90}
+                                                        step={1}
+                                                        onValueChange={([v]) => {
+                                                            const newParams = { ...effect.params, feedback: v / 100 };
+                                                            updateTrackEffect(selectedTrack.id, effect.id, { params: newParams });
+                                                        }}
+                                                        className="py-1"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {effect.type === 'distortion' && (
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label className="text-[10px] text-muted-foreground">Drive</Label>
+                                                        <span className="text-[10px] font-mono">{Math.round((effect.params.distortion ?? 0.4) * 100)}%</span>
+                                                    </div>
+                                                    <Slider
+                                                        value={[(effect.params.distortion ?? 0.4) * 100]}
+                                                        min={0}
+                                                        max={100}
+                                                        step={1}
+                                                        onValueChange={([v]) => {
+                                                            const newParams = { ...effect.params, distortion: v / 100 };
+                                                            updateTrackEffect(selectedTrack.id, effect.id, { params: newParams });
+                                                        }}
+                                                        className="py-1"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </Section>
                 )}
 

@@ -1,6 +1,7 @@
 // ============================================
 // ComposeYogi — Audio Clip Component
 // Renders audio clip with waveform visualization
+// Supports trimmed regions and fade curves
 // ============================================
 
 'use client';
@@ -16,6 +17,12 @@ interface AudioClipProps {
     width: number;
     height: number;
     color: string;
+    // Trim/fade props (in seconds)
+    trimStart?: number;
+    trimEnd?: number;
+    fadeIn?: number;
+    fadeOut?: number;
+    sourceDuration?: number; // Full audio duration before trim
 }
 
 export const AudioClip = memo(function AudioClip({
@@ -24,12 +31,18 @@ export const AudioClip = memo(function AudioClip({
     width,
     height,
     color,
+    trimStart = 0,
+    trimEnd = 0,
+    fadeIn = 0,
+    fadeOut = 0,
+    sourceDuration,
 }: AudioClipProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [audioDuration, setAudioDuration] = useState<number>(sourceDuration || 0);
 
-    console.log('[AudioClip] Rendering clip:', clip.id, 'width:', width, 'height:', height, 'takeId:', clip.activeTakeId);
+    console.log('[AudioClip] Rendering clip:', clip.id, 'width:', width, 'height:', height, 'trim:', trimStart, '-', trimEnd);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -77,28 +90,51 @@ export const AudioClip = memo(function AudioClip({
                 const audioContext = Tone.getContext().rawContext;
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-                console.log('[AudioClip] Decoded audio:', audioBuffer.duration, 'seconds');
+                const fullDuration = audioBuffer.duration;
+                setAudioDuration(fullDuration);
+                console.log('[AudioClip] Decoded audio:', fullDuration, 'seconds');
+
+                // Calculate trimmed region
+                const effectiveTrimStart = Math.min(trimStart, fullDuration);
+                const effectiveTrimEnd = Math.min(trimEnd, fullDuration - effectiveTrimStart);
+                const trimmedDuration = Math.max(0, fullDuration - effectiveTrimStart - effectiveTrimEnd);
+
+                if (trimmedDuration <= 0) {
+                    console.warn('[AudioClip] Trimmed duration is 0 or negative');
+                    setIsLoading(false);
+                    return;
+                }
 
                 // Get channel data
                 const channelData = audioBuffer.getChannelData(0);
-                const samplesPerPixel = Math.ceil(channelData.length / renderWidth);
+                const sampleRate = audioBuffer.sampleRate;
 
-                // Calculate peaks
+                // Calculate sample indices for trimmed region
+                const startSample = Math.floor(effectiveTrimStart * sampleRate);
+                const endSample = Math.floor((fullDuration - effectiveTrimEnd) * sampleRate);
+                const trimmedSampleCount = endSample - startSample;
+
+                // Calculate samples per pixel for the trimmed region
+                const samplesPerPixel = Math.ceil(trimmedSampleCount / renderWidth);
+
+                // Calculate peaks for trimmed region only
                 const peaks: { min: number; max: number }[] = [];
                 let globalMin = 0;
                 let globalMax = 0;
 
                 for (let i = 0; i < renderWidth; i++) {
-                    const start = i * samplesPerPixel;
-                    const end = Math.min(start + samplesPerPixel, channelData.length);
+                    const sampleStart = startSample + (i * samplesPerPixel);
+                    const sampleEnd = Math.min(sampleStart + samplesPerPixel, endSample);
 
                     let min = Infinity;
                     let max = -Infinity;
 
-                    for (let j = start; j < end; j++) {
-                        const sample = channelData[j];
-                        if (sample < min) min = sample;
-                        if (sample > max) max = sample;
+                    for (let j = sampleStart; j < sampleEnd; j++) {
+                        if (j < channelData.length) {
+                            const sample = channelData[j];
+                            if (sample < min) min = sample;
+                            if (sample > max) max = sample;
+                        }
                     }
 
                     const minVal = min === Infinity ? 0 : min;
@@ -106,7 +142,6 @@ export const AudioClip = memo(function AudioClip({
 
                     peaks.push({ min: minVal, max: maxVal });
 
-                    // Track global min/max for normalization
                     if (minVal < globalMin) globalMin = minVal;
                     if (maxVal > globalMax) globalMax = maxVal;
                 }
@@ -148,9 +183,60 @@ export const AudioClip = memo(function AudioClip({
 
                 ctx.closePath();
                 ctx.fill();
+
+                // === Draw Fade Curves ===
+                // Calculate fade widths in pixels (relative to trimmed duration)
+                const fadeInPixels = trimmedDuration > 0 ? (fadeIn / trimmedDuration) * renderWidth : 0;
+                const fadeOutPixels = trimmedDuration > 0 ? (fadeOut / trimmedDuration) * renderWidth : 0;
+
+                // Fade In curve (left side)
+                if (fadeInPixels > 2) {
+                    const gradient = ctx.createLinearGradient(0, 0, fadeInPixels, 0);
+                    gradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, fadeInPixels, renderHeight);
+
+                    // Draw fade curve line
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(0, renderHeight);
+                    // Exponential curve for fade in
+                    for (let x = 0; x <= fadeInPixels; x++) {
+                        const t = x / fadeInPixels;
+                        const y = renderHeight * (1 - Math.pow(t, 0.5)); // sqrt curve
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+
+                // Fade Out curve (right side)
+                if (fadeOutPixels > 2) {
+                    const fadeOutStart = renderWidth - fadeOutPixels;
+                    const gradient = ctx.createLinearGradient(fadeOutStart, 0, renderWidth, 0);
+                    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(fadeOutStart, 0, fadeOutPixels, renderHeight);
+
+                    // Draw fade curve line
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(fadeOutStart, 0);
+                    // Exponential curve for fade out
+                    for (let x = 0; x <= fadeOutPixels; x++) {
+                        const t = x / fadeOutPixels;
+                        const y = renderHeight * Math.pow(t, 0.5); // sqrt curve
+                        ctx.lineTo(fadeOutStart + x, y);
+                    }
+                    ctx.stroke();
+                }
+
                 ctx.globalAlpha = 1;
 
-                console.log('[AudioClip] Waveform rendered successfully');
+                console.log('[AudioClip] Waveform rendered successfully with trims:', effectiveTrimStart, effectiveTrimEnd);
                 setIsLoading(false);
                 setError(null);
             } catch (err) {
@@ -161,7 +247,7 @@ export const AudioClip = memo(function AudioClip({
         };
 
         renderWaveform();
-    }, [clip.activeTakeId, width, height, color]);
+    }, [clip.activeTakeId, width, height, color, trimStart, trimEnd, fadeIn, fadeOut]);
 
     return (
         <div className="relative h-full w-full overflow-hidden">

@@ -11,7 +11,7 @@ import { autosaveManager } from '@/lib/persistence';
  * Fetches an audio file from a URL and registers it as an AudioTake
  * suitable for drag-and-drop sample loading.
  */
-export async function loadSampleAsAudioTake(url: string, name: string): Promise<AudioTake> {
+export async function loadSampleAsAudioTake(url: string, name: string, clipId: string = ''): Promise<AudioTake> {
     try {
         // 1. Fetch the file
         const response = await fetch(url);
@@ -37,7 +37,7 @@ export async function loadSampleAsAudioTake(url: string, name: string): Promise<
         // 5. Create AudioTake
         const take: AudioTake = {
             id: uuidv4(),
-            clipId: '', // Will be assigned by the caller (TrackLane)
+            clipId: clipId,
             audioData: rawBytes,
             sampleRate: audioBuffer.sampleRate,
             duration: audioBuffer.duration,

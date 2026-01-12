@@ -793,6 +793,8 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
     }, []);
 
     // Handle drop from browser panel
+    const addTrackEffect = useProjectStore((s) => s.addTrackEffect);
+
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setIsDragOver(false);
@@ -826,11 +828,12 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                 console.log('[TrackLane] Dropped sample:', sampleName, 'loading from', sampleUrl);
 
                 // 3. Load the audio data
-                loadSampleAsAudioTake(sampleUrl, sampleName)
+                loadSampleAsAudioTake(sampleUrl, sampleName, clip.id)
                     .then((take) => {
                         // 4. Update clip with correct duration and link to take
                         const durationInBars = audioEngine.secondsToBar(take.duration);
-                        const lengthBars = Math.max(1, Math.ceil(durationInBars));
+                        // Use exact fractional bars for audio clips so visual width matches audio duration
+                        const lengthBars = Math.max(0.25, durationInBars);
 
                         useProjectStore.getState().updateClip(clip.id, {
                             audioTakeIds: [take.id],
@@ -861,11 +864,16 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                 selectClip(clip.id);
                 openEditor(clip.id);
                 console.log('[TrackLane] Dropped instrument:', data.data.name, 'preset:', data.data.id, 'at bar', bar, 'with', demoNotes.length, 'demo notes');
+            } else if (data.type === 'fx') {
+                // Add effect to track
+                const preset = data.data;
+                addTrackEffect(track.id, preset.category, preset.id);
+                console.log('[TrackLane] Dropped effect:', preset.name, 'on track:', track.name);
             }
         } catch (err) {
             console.error('[TrackLane] Failed to parse drop data:', err);
         }
-    }, [track.id, track.color, pixelsPerBeat, beatsPerBar, addClip, addNote, selectClip, openEditor, updateTrack]);
+    }, [track.id, track.color, track.name, pixelsPerBeat, beatsPerBar, addClip, addNote, selectClip, openEditor, updateTrack, addTrackEffect]);
 
     return (
         <div

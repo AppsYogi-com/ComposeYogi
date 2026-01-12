@@ -118,12 +118,26 @@ export default function ComposePage() {
     // Calculate a hash of clip notes for change detection
     const clipNotesHash = project?.clips.map(c => `${c.id}:${c.notes?.length || 0}`).join(',') || '';
 
+    // Calculate hash for track effects to detect changes
+    const trackEffectsHash = project?.tracks.map(t =>
+        `${t.id}:${(t.effects || []).map(e => `${e.id}-${JSON.stringify(e.params)}`).join(',')}`
+    ).join('|') || '';
+
     // Re-schedule clips when project clips or notes change
     useEffect(() => {
-        if (isAudioReady && project?.clips.length) {
+        if (isAudioReady && project) {
             scheduleClips();
         }
     }, [isAudioReady, project?.clips.length, clipNotesHash, scheduleClips]);
+
+    // Sync track effects
+    useEffect(() => {
+        if (project && isAudioReady) {
+            project.tracks.forEach(track => {
+                playoutManager.updateTrackEffects(track.id, track.effects || []);
+            });
+        }
+    }, [trackEffectsHash, isAudioReady]); // Only re-run if effects structure changes
 
     // Sync BPM with audio engine
     useEffect(() => {
