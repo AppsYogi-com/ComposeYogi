@@ -177,5 +177,16 @@
     "footer": {
         "copyright": "© {year} ComposeYogi. All rights reserved.",
         "madeWith": "Made with ❤️ by <company></company> team"
+    },
+    "pwa": {
+        "install": "Install",
+        "installTitle": "Install ComposeYogi",
+        "installDescription": "Create music offline, anytime",
+        "iosTitle": "Install ComposeYogi",
+        "iosDescription": "To install on iOS:",
+        "iosStep1": "Tap the Share button",
+        "iosStep2": "Scroll and tap \"Add to Home Screen\"",
+        "iosStep3": "Tap \"Add\" to install",
+        "gotIt": "Got it"
     }
 }

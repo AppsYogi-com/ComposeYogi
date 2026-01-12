@@ -8,6 +8,7 @@ import { MusicWave } from '@/components/MusicWave';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { APP_CONFIG } from '@/config/app';
 import { DemoTemplates } from '@/components/home/DemoTemplates';
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 
 interface PageProps {
     params: Promise<{ locale: string }>;
@@ -40,6 +41,7 @@ function HomePageContent() {
                     />
                 </a>
                 <TooltipProvider>
+                    <PWAInstallButton />
                     <ThemeToggle />
                     <LanguageSwitcher />
                 </TooltipProvider>

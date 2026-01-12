@@ -1,0 +1,73 @@
+{
+    "name": "ComposeYogi - Make Real Music",
+    "short_name": "ComposeYogi",
+    "description": "The world's most intuitive online music composer — create professional beats without installing anything.",
+    "start_url": "/compose",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#09090b",
+    "theme_color": "#f97316",
+    "icons": [
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-maskable-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icons/icon-maskable-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/screenshots/desktop-compose.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "ComposeYogi DAW Interface"
+        }
+    ],
+    "categories": [
+        "music",
+        "entertainment",
+        "productivity"
+    ],
+    "lang": "en",
+    "dir": "ltr",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "shortcuts": [
+        {
+            "name": "New Project",
+            "short_name": "New",
+            "url": "/compose",
+            "icons": [
+                {
+                    "src": "/icons/shortcut-new.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ],
+    "related_applications": [],
+    "handle_links": "preferred",
+    "launch_handler": {
+        "client_mode": "navigate-existing"
+    }
+}

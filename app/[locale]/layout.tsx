@@ -7,6 +7,7 @@ import { routing } from '@/i18n/routing';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 import Script from 'next/script';
 import '@/app/globals.css';
 
@@ -46,7 +47,13 @@ export const metadata: Metadata = {
         icon: [
             { url: '/favicon.svg', type: 'image/svg+xml' },
         ],
-        apple: '/apple-touch-icon.svg',
+        apple: '/icons/apple-touch-icon.png',
+    },
+    manifest: '/manifest.json',
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'black-translucent',
+        title: 'ComposeYogi',
     },
     authors: [{ name: 'ComposeYogi' }],
     creator: 'ComposeYogi',
@@ -84,7 +91,7 @@ export const viewport: Viewport = {
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
-    themeColor: '#141414',
+    themeColor: '#f97316',
 };
 
 export function generateStaticParams() {
@@ -121,6 +128,7 @@ export default async function RootLayout({ children, params }: RootLayoutProps) 
                 >
                     <NextIntlClientProvider messages={messages}>
                         <TooltipProvider delayDuration={300}>
+                            <OfflineIndicator />
                             {children}
                         </TooltipProvider>
                         <Toaster position="bottom-right" theme="dark" />
