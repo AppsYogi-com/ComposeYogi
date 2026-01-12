@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useEffect, useCallback, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
@@ -17,7 +17,24 @@ import { useAutosave } from '@/hooks';
 import { listProjects, loadProject, loadAudioTakesForClip } from '@/lib/persistence';
 import { loadDemoTemplate } from '@/lib/templates';
 
+// Loading fallback for Suspense
+function ComposeLoading() {
+    return (
+        <div className="flex h-screen items-center justify-center bg-background">
+            <div className="text-muted-foreground">Loading...</div>
+        </div>
+    );
+}
+
 export default function ComposePage() {
+    return (
+        <Suspense fallback={<ComposeLoading />}>
+            <ComposePageContent />
+        </Suspense>
+    );
+}
+
+function ComposePageContent() {
     const searchParams = useSearchParams();
     const demoId = searchParams.get('demo');
 
