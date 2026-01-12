@@ -7,6 +7,9 @@
 
 import { saveProject, saveAudioTake } from './db';
 import type { Project, AudioTake } from '@/types';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Autosave');
 
 // ============================================
 // Types
@@ -79,9 +82,9 @@ class AutosaveManager {
     async saveAudioTakeImmediate(take: AudioTake): Promise<void> {
         try {
             await saveAudioTake(take);
-            console.log('[Autosave] Audio take saved immediately:', take.id);
+            logger.debug('Audio take saved immediately', { takeId: take.id });
         } catch (error) {
-            console.error('[Autosave] Failed to save audio take:', error);
+            logger.error('Failed to save audio take', error);
             this.notifyError(error instanceof Error ? error : new Error('Failed to save audio'));
         }
     }
@@ -130,6 +133,7 @@ class AutosaveManager {
 
             this.lastSavedAt = Date.now();
             this.setStatus('saved');
+            logger.debug('Project autosaved successfully');
 
             // Reset to idle after showing "saved" briefly
             setTimeout(() => {
@@ -139,7 +143,7 @@ class AutosaveManager {
             }, 2000);
 
         } catch (error) {
-            console.error('[Autosave] Save failed:', error);
+            logger.error('Autosave failed', error);
             this.setStatus('error');
             this.notifyError(error instanceof Error ? error : new Error('Save failed'));
         }

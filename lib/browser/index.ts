@@ -3,7 +3,7 @@
 // Templates, Instruments, Samples, FX
 // ============================================
 
-import type { TrackType, TrackColor, Note } from '@/types';
+import type { TrackType, TrackColor } from '@/types';
 
 // ============================================
 // Types

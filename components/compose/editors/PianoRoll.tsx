@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
 import { ZoomIn, ZoomOut, MousePointer2, Pencil, Eraser, AlertCircle } from 'lucide-react';
-import { useProjectStore, useUIStore } from '@/lib/store';
+import { useProjectStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -16,7 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { Clip, Note, MusicalKey, MusicalScale } from '@/types';
+import type { Clip, Note, MusicalScale } from '@/types';
 import * as Tone from 'tone';
 
 // ============================================
@@ -54,7 +54,7 @@ interface PianoRollProps {
 export function PianoRoll({ clip }: PianoRollProps) {
     const addNote = useProjectStore((s) => s.addNote);
     const deleteNote = useProjectStore((s) => s.deleteNote);
-    const updateNote = useProjectStore((s) => s.updateNote);
+    const _updateNote = useProjectStore((s) => s.updateNote);
     const project = useProjectStore((s) => s.project);
 
     const [tool, setTool] = useState<Tool>('draw');
@@ -62,8 +62,8 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
     const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
     const [previewSynth, setPreviewSynth] = useState<Tone.PolySynth | null>(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState<{ x: number; y: number; noteId?: string } | null>(null);
+    const [isDragging, _setIsDragging] = useState(false);
+    const [_dragStart, _setDragStart] = useState<{ x: number; y: number; noteId?: string } | null>(null);
 
     const gridRef = useRef<HTMLDivElement>(null);
     const keysRef = useRef<HTMLDivElement>(null);
@@ -137,7 +137,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
     }, []);
 
     // Get note name from pitch
-    const pitchToNoteName = useCallback((pitch: number) => {
+    const _pitchToNoteName = useCallback((pitch: number) => {
         const octave = Math.floor(pitch / 12) - 1;
         const noteIndex = pitch % 12;
         return `${NOTE_NAMES[noteIndex]}${octave}`;
@@ -240,7 +240,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
             }
         }
     }, [
-        tool, snap, snapBeats, pixelsPerBeat, clip.id, clip.notes, totalBeats,
+        tool, snapBeats, pixelsPerBeat, clip.id, clip.notes, totalBeats,
         pitchToRow, rowToPitch, snapToGrid, addNote, deleteNote,
         previewSynth, project?.bpm, isDragging
     ]);

@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Download, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {

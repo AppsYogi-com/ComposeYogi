@@ -4,7 +4,7 @@
 // ============================================
 
 import * as Tone from 'tone';
-import type { Project, Track, Clip, TrackEffect, TrackEffectType } from '@/types';
+import type { Project, Track, Clip, TrackEffect } from '@/types';
 import { getAudioTake } from './recording-manager';
 import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
 
@@ -199,7 +199,6 @@ export async function exportProjectToWav(
             throw new Error('Project has no clips to export');
         }
 
-        console.log(`[OfflineRenderer] Starting export: ${duration.toFixed(2)}s at ${sampleRate}Hz`);
 
         // 2. Create offline context
         const offlineCtx = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
@@ -256,7 +255,6 @@ export async function exportProjectToWav(
                     if (node) {
                         effectNodes.push(node);
                         nodesToDispose.push(node);
-                        console.log(`[OfflineRenderer] Created effect: ${effect.type} for track: ${track.name}`);
                     }
                 }
 
@@ -312,7 +310,6 @@ export async function exportProjectToWav(
         const renderedBuffer = await offlineCtx.startRendering();
         onProgress?.(100); // Complete
 
-        console.log(`[OfflineRenderer] Render complete: ${renderedBuffer.duration.toFixed(2)}s`);
 
         // 7. Cleanup offline nodes
         transport.stop();
@@ -320,7 +317,7 @@ export async function exportProjectToWav(
         nodesToDispose.forEach(node => {
             try {
                 node.dispose();
-            } catch (e) {
+            } catch (_e) {
                 // Ignore disposal errors
             }
         });
@@ -333,7 +330,6 @@ export async function exportProjectToWav(
     } finally {
         // 9. ALWAYS restore original context
         Tone.setContext(originalContext);
-        console.log('[OfflineRenderer] Restored original audio context');
     }
 }
 
@@ -385,7 +381,6 @@ async function scheduleAudioClipOffline(
             player.start(startTime, trimStart, playDuration);
         }
 
-        console.log(`[OfflineRenderer] Scheduled audio clip: ${clip.id} at ${startTime.toFixed(2)}s`);
     } catch (error) {
         console.error('[OfflineRenderer] Failed to schedule audio clip:', error);
     }
@@ -450,7 +445,6 @@ async function scheduleMidiClipOffline(
         });
     }
 
-    console.log(`[OfflineRenderer] Scheduled MIDI clip: ${clip.id} with ${clip.notes.length} notes`);
 }
 
 // ============================================

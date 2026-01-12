@@ -389,7 +389,7 @@ class LatencyCalibrator {
         this.storedResult = null;
         try {
             localStorage.removeItem(STORAGE_KEY);
-        } catch (e) {
+        } catch (_e) {
             // Ignore
         }
     }

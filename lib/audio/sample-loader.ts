@@ -25,7 +25,7 @@ export async function loadSampleAsAudioTake(url: string, name: string, clipId: s
         // 3. Decode to get metadata (duration, sample rate)
         // We use a temporary AudioContext just for decoding if Tone isn't ready,
         // but typically Tone is initialized by now.
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0)); // Decode a copy
 
         // 4. Create raw Uint8Array for storage (simulating a "recording")
@@ -52,7 +52,6 @@ export async function loadSampleAsAudioTake(url: string, name: string, clipId: s
         // We do this immediately so it survives refresh
         await autosaveManager.saveAudioTakeImmediate(take);
 
-        console.log(`[AudioUtils] Loaded sample "${name}" as take ${take.id} (${take.duration.toFixed(2)}s)`);
 
         return take;
     } catch (error) {

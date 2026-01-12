@@ -312,7 +312,7 @@ export function TrackList() {
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [isPlaying, isRecording, positionVersion, project?.bpm, pixelsPerBeat]);
+    }, [isPlaying, isRecording, positionVersion, project, pixelsPerBeat]);
 
     // Redraw ruler on changes
     useEffect(() => {
@@ -526,7 +526,7 @@ interface TrackHeaderProps {
     onDelete: () => void;
 }
 
-function TrackHeader({
+function _TrackHeader({
     track,
     isSelected,
     onSelect,
@@ -806,14 +806,11 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
     const addClip = useProjectStore((s) => s.addClip);
     const addNote = useProjectStore((s) => s.addNote);
     const updateTrack = useProjectStore((s) => s.updateTrack);
+    const addTrackEffect = useProjectStore((s) => s.addTrackEffect);
     const clearSelection = useUIStore((s) => s.clearSelection);
     const selectClip = useUIStore((s) => s.selectClip);
     const openEditor = useUIStore((s) => s.openEditor);
     const [isDragOver, setIsDragOver] = useState(false);
-
-    if (!project) return null;
-
-    const clips = project.clips.filter((c) => c.trackId === track.id);
 
     const handleLaneClick = useCallback((e: React.MouseEvent) => {
         if (e.target === e.currentTarget) {
@@ -824,6 +821,7 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
 
     // Double-click to create new clip
     const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+        if (!project) return;
         if (e.target !== e.currentTarget) return; // Only on empty area
 
         const rect = e.currentTarget.getBoundingClientRect();
@@ -842,7 +840,7 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
         const clip = addClip(track.id, clipType, bar, 1); // 1 bar clip
         selectClip(clip.id);
         openEditor(clip.id);
-    }, [track.id, track.type, track.color, pixelsPerBeat, beatsPerBar, addClip, selectClip, openEditor]);
+    }, [project, track.id, track.type, track.color, pixelsPerBeat, beatsPerBar, addClip, selectClip, openEditor]);
 
     // Handle drag over
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -856,8 +854,6 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
     }, []);
 
     // Handle drop from browser panel
-    const addTrackEffect = useProjectStore((s) => s.addTrackEffect);
-
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setIsDragOver(false);
@@ -888,7 +884,6 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                 useProjectStore.getState().updateClip(clip.id, { name: sampleName });
                 selectClip(clip.id);
 
-                console.log('[TrackLane] Dropped sample:', sampleName, 'loading from', sampleUrl);
 
                 // 3. Load the audio data
                 loadSampleAsAudioTake(sampleUrl, sampleName, clip.id)
@@ -903,7 +898,6 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                             activeTakeId: take.id,
                             lengthBars: lengthBars, // Auto-size to fit sample
                         });
-                        console.log('[TrackLane] Sample loaded and linked to clip:', clip.id);
                     })
                     .catch((err) => {
                         console.error('[TrackLane] Failed to load sample audio:', err);
@@ -926,17 +920,19 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
 
                 selectClip(clip.id);
                 openEditor(clip.id);
-                console.log('[TrackLane] Dropped instrument:', data.data.name, 'preset:', data.data.id, 'at bar', bar, 'with', demoNotes.length, 'demo notes');
             } else if (data.type === 'fx') {
                 // Add effect to track
                 const preset = data.data;
                 addTrackEffect(track.id, preset.category, preset.id);
-                console.log('[TrackLane] Dropped effect:', preset.name, 'on track:', track.name);
             }
         } catch (err) {
             console.error('[TrackLane] Failed to parse drop data:', err);
         }
-    }, [track.id, track.color, track.name, pixelsPerBeat, beatsPerBar, addClip, addNote, selectClip, openEditor, updateTrack, addTrackEffect]);
+    }, [track.id, track.color, pixelsPerBeat, beatsPerBar, addClip, addNote, selectClip, openEditor, updateTrack, addTrackEffect]);
+
+    if (!project) return null;
+
+    const clips = project.clips.filter((c) => c.trackId === track.id);
 
     return (
         <div

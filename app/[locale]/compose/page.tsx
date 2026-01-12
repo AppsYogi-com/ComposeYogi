@@ -5,6 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
 import { audioEngine, playoutManager, registerAudioTake, clearAudioTakes, type LatencyCalibrationResult } from '@/lib/audio';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Compose');
 import { Transport } from '@/components/compose/Transport';
 import { BrowserPanel, BrowserCollapsedBar } from '@/components/compose/BrowserPanel';
 import { Inspector, InspectorCollapsedBar } from '@/components/compose/Inspector';
@@ -81,9 +84,9 @@ function ComposePageContent() {
                 if (demoId) {
                     const demoProject = loadDemoTemplate(demoId);
                     if (demoProject) {
+                        logger.info('Loaded demo template', { demoId });
                         loadProjectStore(demoProject);
                         setShouldAutoPlay(true);
-                        console.log('[ComposePage] Loaded demo template:', demoId);
                         setIsInitializing(false);
                         return;
                     }
@@ -107,19 +110,18 @@ function ComposePageContent() {
                                 for (const take of takes) {
                                     registerAudioTake(take);
                                 }
-                                console.log('[ComposePage] Loaded', takes.length, 'audio takes for clip:', clip.id);
                             }
                         }
 
                         loadProjectStore(fullProject);
-                        console.log('[ComposePage] Loaded project from DB:', fullProject.name);
+                        logger.info('Loaded existing project', { id: fullProject.id, name: fullProject.name });
                     } else {
                         createProject('Untitled Project');
                     }
                 } else {
                     // No existing projects, create a new one
                     createProject('Untitled Project');
-                    console.log('[ComposePage] Created new project');
+                    logger.info('Created new project');
                 }
             } catch (error) {
                 console.error('[ComposePage] Failed to load project:', error);
@@ -130,6 +132,7 @@ function ComposePageContent() {
         }
 
         initializeProject();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [createProject, loadProjectStore]);
 
     // Initialize audio on first user interaction
@@ -146,7 +149,6 @@ function ComposePageContent() {
         if (project && isAudioReady) {
             await playoutManager.scheduleProject(project);
             setIsPlayoutScheduled(true);
-            console.log('[ComposePage] Clips scheduled for playback');
         }
     }, [project, isAudioReady]);
 
@@ -163,6 +165,7 @@ function ComposePageContent() {
         if (isAudioReady && project) {
             scheduleClips();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAudioReady, project?.clips.length, clipNotesHash, scheduleClips]);
 
     // Sync track effects
@@ -172,6 +175,7 @@ function ComposePageContent() {
                 playoutManager.updateTrackEffects(track.id, track.effects || []);
             });
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [trackEffectsHash, isAudioReady]); // Only re-run if effects structure changes
 
     // Sync BPM with audio engine
@@ -180,6 +184,7 @@ function ComposePageContent() {
             audioEngine.setBpm(project.bpm);
             audioEngine.setTimeSignature(project.timeSignature[0], project.timeSignature[1]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project?.bpm, project?.timeSignature, isAudioReady]);
 
     // Sync loop settings with audio engine
@@ -187,7 +192,6 @@ function ComposePageContent() {
     useEffect(() => {
         if (isAudioReady) {
             audioEngine.setLoop(loopEnabled, loopStartBar, loopEndBar);
-            console.log('[ComposePage] Loop synced:', loopEnabled, loopStartBar, '-', loopEndBar);
         }
     }, [isAudioReady, loopEnabled, loopStartBar, loopEndBar]);
 
@@ -215,7 +219,6 @@ function ComposePageContent() {
             const timer = setTimeout(async () => {
                 setShouldAutoPlay(false);
                 await handlePlay();
-                console.log('[ComposePage] Auto-playing demo template');
             }, 1500);
             return () => clearTimeout(timer);
         }
@@ -290,7 +293,6 @@ function ComposePageContent() {
     const handleCalibrationComplete = useCallback((result: LatencyCalibrationResult) => {
         // Apply latency compensation to the playout manager
         playoutManager.setLatencyCompensation(result.inputLatencyMs);
-        console.log('Latency calibration applied:', result);
     }, []);
 
     if (!project || isInitializing) {

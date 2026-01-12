@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import {
     FolderOpen,
     Plus,
@@ -50,7 +49,6 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSelectorProps) {
-    const router = useRouter();
     const [projects, setProjects] = useState<ProjectRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -294,7 +292,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                     <DialogHeader>
                         <DialogTitle>Delete Project?</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete "{projectToDelete?.name}"? This action cannot be undone.
+                            Are you sure you want to delete &ldquo;{projectToDelete?.name}&rdquo;? This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

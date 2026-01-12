@@ -91,7 +91,6 @@ export function loadDemoTemplate(templateId: string): Project | null {
         updatedAt: now,
     };
 
-    console.log(`[loadDemoTemplate] Loaded template: ${template.name} (${tracks.length} tracks, ${clips.length} clips)`);
     return project;
 }
 
@@ -99,6 +98,7 @@ export function loadDemoTemplate(templateId: string): Project | null {
  * Get all available demo template metadata (for display in UI)
  */
 export function getDemoTemplateList() {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { DEMO_TEMPLATES } = require('./demo-templates');
     return DEMO_TEMPLATES.map((t: DemoTemplate) => ({
         id: t.id,

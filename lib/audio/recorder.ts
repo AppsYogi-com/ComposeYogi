@@ -196,7 +196,6 @@ class AudioRecorder {
                 // Capture the ACTUAL time when MediaRecorder starts
                 // This is when audio capture truly begins
                 this.startTime = Tone.getTransport().seconds - (this.options.latencyOffset || 0);
-                console.log('[Recorder] MediaRecorder started at transport time:', this.startTime);
                 resolve();
             };
 
@@ -230,7 +229,6 @@ class AudioRecorder {
             return null;
         }
 
-        console.log('[Recorder] Stop called, startTime was:', this.startTime);
 
         return new Promise((resolve) => {
             this.mediaRecorder!.onstop = async () => {
@@ -252,7 +250,6 @@ class AudioRecorder {
 
         try {
             const blob = new Blob(this.chunks, { type: this.mimeType || 'audio/webm' });
-            console.log('[Recorder] Created blob:', blob.size, 'bytes, chunks:', this.chunks.length);
 
             // Convert blob to AudioBuffer for processing
             let audioBuffer = await this.blobToAudioBuffer(blob);
@@ -262,7 +259,6 @@ class AudioRecorder {
             let duration = audioBuffer.duration;
             let adjustedStartTime = this.startTime;
 
-            console.log('[Recorder] AudioBuffer duration:', duration, 'startTime:', this.startTime);
 
             // Apply latency offset to start time
             const latencyOffset = this.options.latencyOffset || 0;
@@ -287,7 +283,6 @@ class AudioRecorder {
 
             // Convert to Uint8Array for IndexedDB storage
             const audioData = await this.audioBufferToUint8Array(audioBuffer);
-            console.log('[Recorder] Final - duration:', duration, 'startTime:', adjustedStartTime);
 
             const segment: RecordedSegment = {
                 blob,
@@ -304,7 +299,6 @@ class AudioRecorder {
 
             // Notify callback
             if (this.onRecordingComplete) {
-                console.log('[Recorder] Calling onRecordingComplete callback');
                 this.onRecordingComplete(segment);
             }
 

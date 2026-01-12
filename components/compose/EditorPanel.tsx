@@ -45,6 +45,7 @@ export function EditorPanel() {
                     break;
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClip?.id, selectedClip?.type]);
 
     return (

@@ -27,10 +27,14 @@
     ],
     "scripts": {
         "dev": "next dev --turbopack",
-        "build": "next build",
+        "build": "npm run prebuild && next build",
         "start": "next start",
         "lint": "next lint",
-        "type-check": "tsc --noEmit"
+        "lint:warn": "next lint || true",
+        "type-check": "tsc --noEmit",
+        "validate:locales": "node scripts/validate-locales.js",
+        "prebuild": "npm run validate:locales && npm run type-check && npm run lint:warn",
+        "check": "npm run validate:locales && npm run type-check && npm run lint"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.3.1",

@@ -221,7 +221,6 @@ export const useUIStore = create<UIStore>((set, get) => ({
     selectAll: () => {
         // This will be connected to project store
         // For now, just a placeholder
-        console.log('Select all - connect to project store');
     },
 
     // Editor scope

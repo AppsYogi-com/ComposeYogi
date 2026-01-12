@@ -3,8 +3,6 @@
 // Canvas-based audio visualization
 // ============================================
 
-import type { PeaksCache } from '@/types';
-
 export interface WaveformConfig {
     width: number;
     height: number;
@@ -172,7 +170,7 @@ export class WaveformRenderer {
         peaks: WaveformPeaks,
         config: WaveformConfig
     ): void {
-        const { width, height, color, backgroundColor, startX, clipWidth } = config;
+        const { height, color, backgroundColor, startX, clipWidth } = config;
         const centerY = height / 2;
         const amplitude = height / 2 - 2; // Leave 2px padding
 

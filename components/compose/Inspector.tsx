@@ -2,7 +2,6 @@
 
 import {
     ChevronLeft,
-    ChevronRight,
     Sliders,
     Music,
     Clock,
@@ -22,7 +21,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SCALES, NOTES } from '@/lib/utils';
 import type { MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
@@ -46,7 +44,6 @@ export function Inspector() {
     const project = useProjectStore((s) => s.project);
     const setKey = useProjectStore((s) => s.setKey);
     const setScale = useProjectStore((s) => s.setScale);
-    const updateTrack = useProjectStore((s) => s.updateTrack);
     const removeTrackEffect = useProjectStore((s) => s.removeTrackEffect);
     const updateTrackEffect = useProjectStore((s) => s.updateTrackEffect);
     const selectedTrackId = useUIStore((s) => s.selectedTrackId);

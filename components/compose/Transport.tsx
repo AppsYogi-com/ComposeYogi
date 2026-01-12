@@ -42,11 +42,6 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import {
     Select,
     SelectContent,
     SelectItem,
@@ -131,7 +126,6 @@ export function Transport({
                 .then(() => {
                     setIsRecorderReady(true);
                     setRecorderError(null);
-                    console.log('[Transport] Recording manager initialized');
                 })
                 .catch((err) => {
                     // Don't set error yet - user hasn't tried to record
@@ -145,6 +139,7 @@ export function Transport({
         if (project) {
             setLocalBpm(project.bpm);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project?.bpm]);
 
     const handleBpmChange = useCallback((value: number) => {
@@ -190,7 +185,6 @@ export function Transport({
                     await recordingManager.initialize();
                     setIsRecorderReady(true);
                     setRecorderError(null);
-                    console.log('[Transport] Recording manager initialized on-demand');
                 } catch (err) {
                     const message = err instanceof Error ? err.message : 'Microphone access required';
                     setRecorderError(message);
@@ -203,8 +197,7 @@ export function Transport({
                 await recordingManager.startRecording(
                     armedTrack.id,
                     countInBars,
-                    (clip, take) => {
-                        console.log('[Transport] Recording completed:', clip.name);
+                    (_clip, _take) => {
                     }
                 );
             } catch (error) {

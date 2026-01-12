@@ -34,6 +34,7 @@ function HomePageContent() {
                     rel="noopener noreferrer"
                     className="flex"
                 >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src="https://img.shields.io/github/stars/AppsYogi-com/ComposeYogi?style=social"
                         alt="GitHub Stars"
@@ -137,7 +138,7 @@ function HomePageContent() {
 
                         <p>
                             {t.rich('footer.madeWith', {
-                                company: (chunks) => (
+                                company: () => (
                                     <a
                                         href={APP_CONFIG.company.url}
                                         target="_blank"

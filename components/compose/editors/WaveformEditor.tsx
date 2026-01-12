@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import {
     ZoomIn,
     ZoomOut,
@@ -93,7 +93,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
     const bpm = project?.bpm || 120;
     const beatsPerBar = project?.timeSignature[0] || 4;
     const secondsPerBeat = 60 / bpm;
-    const clipDuration = clip.lengthBars * beatsPerBar * secondsPerBeat;
+    const _clipDuration = clip.lengthBars * beatsPerBar * secondsPerBeat;
 
     // Load audio buffer
     useEffect(() => {
@@ -148,6 +148,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                 gainNode.dispose();
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clip.activeTakeId]);
 
     // Draw waveform

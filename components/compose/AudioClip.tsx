@@ -13,7 +13,7 @@ import * as Tone from 'tone';
 
 interface AudioClipProps {
     clip: Clip;
-    track: Track;
+    track: Track; // Kept in props for future use (waveform color from track, etc.)
     width: number;
     height: number;
     color: string;
@@ -27,7 +27,7 @@ interface AudioClipProps {
 
 export const AudioClip = memo(function AudioClip({
     clip,
-    track,
+    track: _track, // Unused currently but part of interface for future use
     width,
     height,
     color,
@@ -40,14 +40,12 @@ export const AudioClip = memo(function AudioClip({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [audioDuration, setAudioDuration] = useState<number>(sourceDuration || 0);
+    const [_audioDuration, setAudioDuration] = useState<number>(sourceDuration || 0);
 
-    console.log('[AudioClip] Rendering clip:', clip.id, 'width:', width, 'height:', height, 'trim:', trimStart, '-', trimEnd);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || !clip.activeTakeId) {
-            console.log('[AudioClip] No canvas or no activeTakeId');
             return;
         }
 
@@ -57,7 +55,6 @@ export const AudioClip = memo(function AudioClip({
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.log('[AudioClip] No canvas context');
             return;
         }
 
@@ -69,13 +66,11 @@ export const AudioClip = memo(function AudioClip({
         // Get audio take
         const take = getAudioTake(clip.activeTakeId);
         if (!take) {
-            console.log('[AudioClip] Audio take not found:', clip.activeTakeId);
             setError('Audio data not found');
             setIsLoading(false);
             return;
         }
 
-        console.log('[AudioClip] Found take, audioData size:', take.audioData.byteLength);
 
         // Decode audio and render waveform
         const renderWaveform = async () => {
@@ -92,7 +87,6 @@ export const AudioClip = memo(function AudioClip({
 
                 const fullDuration = audioBuffer.duration;
                 setAudioDuration(fullDuration);
-                console.log('[AudioClip] Decoded audio:', fullDuration, 'seconds');
 
                 // Calculate trimmed region
                 const effectiveTrimStart = Math.min(trimStart, fullDuration);
@@ -236,7 +230,6 @@ export const AudioClip = memo(function AudioClip({
 
                 ctx.globalAlpha = 1;
 
-                console.log('[AudioClip] Waveform rendered successfully with trims:', effectiveTrimStart, effectiveTrimEnd);
                 setIsLoading(false);
                 setError(null);
             } catch (err) {

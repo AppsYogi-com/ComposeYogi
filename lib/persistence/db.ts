@@ -11,6 +11,9 @@
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import type { Project, Track, Clip, AudioTake, PeaksCache } from '@/types';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('DB');
 
 // ============================================
 // Database Schema
@@ -99,7 +102,7 @@ export async function getDB(): Promise<IDBPDatabase<ComposeYogiDB>> {
     if (dbInstance) return dbInstance;
 
     dbInstance = await openDB<ComposeYogiDB>(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion, newVersion, transaction) {
+        upgrade(db, _oldVersion, _newVersion, _transaction) {
             // Projects store
             if (!db.objectStoreNames.contains('projects')) {
                 const projectStore = db.createObjectStore('projects', { keyPath: 'id' });
@@ -187,13 +190,11 @@ export async function saveProject(project: Project): Promise<void> {
     // Delete removed tracks
     for (const track of deletedTracks) {
         await trackStore.delete(track.id);
-        console.log('[DB] Deleted track:', track.id);
     }
 
     // Delete removed clips
     for (const clip of deletedClips) {
         await clipStore.delete(clip.id);
-        console.log('[DB] Deleted clip:', clip.id);
     }
 
     // Save all current tracks
@@ -212,7 +213,7 @@ export async function saveProject(project: Project): Promise<void> {
     }
 
     await tx.done;
-    console.log('[DB] Project saved:', project.id);
+    logger.debug('Project saved', { id: project.id, tracks: project.tracks.length, clips: project.clips.length });
 }
 
 export async function loadProject(projectId: string): Promise<Project | null> {
@@ -224,7 +225,6 @@ export async function loadProject(projectId: string): Promise<Project | null> {
 
     // Load tracks
     const tracks = await db.getAllFromIndex('tracks', 'by-project', projectId);
-    console.log('[DB] Loaded tracks before sort:', tracks.map(t => ({ name: t.name, order: t.order })));
 
     // Sort tracks by order, preserving original array index for ties (maintains insertion order)
     const sortedTracks = tracks
@@ -254,7 +254,7 @@ export async function loadProject(projectId: string): Promise<Project | null> {
         clips,
     };
 
-    console.log('[DB] Project loaded:', projectId);
+    logger.debug('Project loaded', { id: projectId, tracks: sortedTracks.length, clips: clips.length });
     return project;
 }
 
@@ -292,7 +292,6 @@ export async function deleteProject(projectId: string): Promise<void> {
     await tx.objectStore('projects').delete(projectId);
 
     await tx.done;
-    console.log('[DB] Project deleted:', projectId);
 }
 
 export async function listProjects(): Promise<ProjectRecord[]> {
@@ -309,7 +308,6 @@ export async function renameProject(projectId: string, newName: string): Promise
         project.name = newName;
         project.updatedAt = Date.now();
         await db.put('projects', project);
-        console.log('[DB] Project renamed:', projectId, newName);
     }
 }
 
@@ -340,7 +338,6 @@ export async function saveAudioTake(take: AudioTake): Promise<void> {
     };
 
     await db.put('audioTakes', record);
-    console.log('[DB] Audio take saved:', take.id);
 }
 
 export async function loadAudioTake(takeId: string): Promise<AudioTake | null> {
@@ -380,7 +377,6 @@ export async function loadAudioTakesForClip(clipId: string): Promise<AudioTake[]
 export async function deleteAudioTake(takeId: string): Promise<void> {
     const db = await getDB();
     await db.delete('audioTakes', takeId);
-    console.log('[DB] Audio take deleted:', takeId);
 }
 
 // ============================================
@@ -439,7 +435,6 @@ export async function clearAllData(): Promise<void> {
     await tx.objectStore('audioTakes').clear();
     await tx.objectStore('settings').clear();
     await tx.done;
-    console.log('[DB] All data cleared');
 }
 
 export async function getStorageEstimate(): Promise<{ usage: number; quota: number }> {

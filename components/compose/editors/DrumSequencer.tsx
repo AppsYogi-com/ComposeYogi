@@ -1,10 +1,9 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { Play, Volume2, Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle } from 'lucide-react';
 import { useProjectStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import {
     Tooltip,
     TooltipContent,
@@ -73,7 +72,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
     const updateNote = useProjectStore((s) => s.updateNote);
     const project = useProjectStore((s) => s.project);
 
-    const [velocityEditing, setVelocityEditing] = useState<string | null>(null);
+    const [_velocityEditing, setVelocityEditing] = useState<string | null>(null);
     const [previewSynth, setPreviewSynth] = useState<Tone.MembraneSynth | null>(null);
     const [activePreset, setActivePreset] = useState<string | null>(null);
     const gridRef = useRef<HTMLDivElement>(null);
@@ -155,7 +154,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
     }, [clip.id, gridState, deleteNote, addNote, previewSynth]);
 
     // Handle velocity change via drag
-    const handleVelocityDrag = useCallback((noteId: string, deltaY: number) => {
+    const _handleVelocityDrag = useCallback((noteId: string, deltaY: number) => {
         const note = clip.notes?.find((n) => n.id === noteId);
         if (!note) return;
 

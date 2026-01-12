@@ -8,7 +8,6 @@ import {
     Sparkles,
     ChevronRight,
     ChevronDown,
-    ChevronLeft,
     Search,
     Plus,
     PlusCircle,

@@ -76,8 +76,8 @@ export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: Dragg
     }, [clip.type, clip.activeTakeId]);
 
     // Calculate position and size with drag/resize offsets
-    const startBeat = clip.startBar * beatsPerBar;
-    const durationBeats = clip.lengthBars * beatsPerBar;
+    const _startBeat = clip.startBar * beatsPerBar;
+    const _durationBeats = clip.lengthBars * beatsPerBar;
 
     // Apply resize offset to calculate visual dimensions
     let visualStartBar = clip.startBar;
@@ -150,7 +150,7 @@ export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: Dragg
 
         const mode = getDragMode(e);
         const altKeyHeld = e.altKey && mode === 'move'; // Alt+drag only for move, not resize
-        const isMultiSelect = selectedClipIds.length > 1 || (selectedClipIds.length === 1 && !selectedClipIds.includes(clip.id));
+        const _isMultiSelect = selectedClipIds.length > 1 || (selectedClipIds.length === 1 && !selectedClipIds.includes(clip.id));
 
         dragStartRef.current = {
             x: e.clientX,

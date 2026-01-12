@@ -139,8 +139,8 @@ const projectStoreBase = (
 
         if (template) {
             project.bpm = template.bpm;
-            project.key = template.key as any;
-            project.scale = template.scale as any;
+            project.key = template.key as MusicalKey;
+            project.scale = template.scale as MusicalScale;
 
             project.tracks = template.tracks.map((t, index) => ({
                 id: uuid(),

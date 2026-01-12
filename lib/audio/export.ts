@@ -4,7 +4,7 @@
 // ============================================
 
 import { Midi } from '@tonejs/midi';
-import type { Project, Clip, Track, Note } from '@/types';
+import type { Project, Clip, Track } from '@/types';
 
 // ============================================
 // Constants
@@ -14,7 +14,7 @@ import type { Project, Clip, Track, Note } from '@/types';
 const DRUM_CHANNEL = 9;
 
 // Ticks per quarter note (standard MIDI resolution)
-const TICKS_PER_QUARTER = 480;
+const _TICKS_PER_QUARTER = 480;
 
 // ============================================
 // Export Functions

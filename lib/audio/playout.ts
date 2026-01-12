@@ -4,7 +4,10 @@
 // ============================================
 
 import * as Tone from 'tone';
-import type { Clip, Project, Track, AudioTake, TrackEffect, TrackEffectType } from '@/types';
+import type { Clip, Project, Track, TrackEffect } from '@/types';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Playout');
 import { getAudioTake } from './recording-manager';
 import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
 
@@ -62,6 +65,7 @@ class PlayoutManager {
         this.analyser.toDestination();
 
         this.state.isLoaded = true;
+        logger.info('Initialized audio routing');
     }
 
     dispose(): void {
@@ -288,7 +292,7 @@ class PlayoutManager {
             events: [],
         };
 
-        const beatsPerBar = project.timeSignature[0];
+        const _beatsPerBar = project.timeSignature[0];
 
         if (clip.type === 'audio' && clip.activeTakeId) {
             // Schedule audio clip from AudioTake
@@ -323,12 +327,10 @@ class PlayoutManager {
             return;
         }
 
-        console.log('[PlayoutManager] Loading audio take:', take.id, 'size:', take.audioData.length, 'bytes');
 
         try {
             // Convert WAV Uint8Array back to AudioBuffer
             const audioBuffer = await this.uint8ArrayToAudioBuffer(take.audioData, take.sampleRate);
-            console.log('[PlayoutManager] Decoded audio buffer:', audioBuffer.duration, 'seconds,', audioBuffer.numberOfChannels, 'channels');
 
             // Create Tone.js buffer from AudioBuffer
             const toneBuffer = new Tone.ToneAudioBuffer(audioBuffer);
@@ -360,7 +362,6 @@ class PlayoutManager {
             }
 
             scheduled.player = player;
-            console.log('[PlayoutManager] Scheduled audio clip:', clip.id, 'with trim:', trimStart, '-', trimEnd);
         } catch (error) {
             console.error('[PlayoutManager] Failed to schedule audio clip:', error);
         }
@@ -369,7 +370,7 @@ class PlayoutManager {
     /**
      * Convert WAV Uint8Array back to AudioBuffer
      */
-    private async uint8ArrayToAudioBuffer(data: Uint8Array, sampleRate: number): Promise<AudioBuffer> {
+    private async uint8ArrayToAudioBuffer(data: Uint8Array, _sampleRate: number): Promise<AudioBuffer> {
         const audioContext = Tone.getContext().rawContext;
 
         // Create a proper ArrayBuffer copy from the Uint8Array
@@ -387,7 +388,6 @@ class PlayoutManager {
         project: Project
     ): Promise<void> {
         if (!clip.notes?.length) {
-            console.log('[PlayoutManager] Skipping MIDI clip with no notes:', clip.id);
             return;
         }
 
@@ -404,7 +404,6 @@ class PlayoutManager {
         // Convert clip start from bars to seconds
         const clipStartSeconds = this.barsToSeconds(clip.startBar, bpm, beatsPerBar);
 
-        console.log('[PlayoutManager] Scheduling MIDI clip:', clip.id, 'with', clip.notes.length, 'notes at bar', clip.startBar, '(', clipStartSeconds, 's)');
 
         // Check if synth is polyphonic (PolySynth and Sampler can handle multiple notes at same time)
         const isPolyphonic = synth instanceof Tone.PolySynth || synth instanceof Tone.Sampler;
@@ -433,7 +432,6 @@ class PlayoutManager {
 
                 // Use Transport.schedule for proper transport sync
                 const eventId = Tone.getTransport().schedule((time) => {
-                    console.log('[PlayoutManager] Triggering note:', note.pitch, 'at', time);
                     synth.triggerAttackRelease(
                         Tone.Frequency(note.pitch, 'midi').toFrequency(),
                         noteDurationSeconds,
@@ -527,7 +525,7 @@ class PlayoutManager {
     // ========================================
 
     async scheduleProject(project: Project): Promise<void> {
-        console.log('[PlayoutManager] Scheduling project with', project.clips.length, 'clips');
+        logger.debug('Scheduling project', { clips: project.clips.length, tracks: project.tracks.length });
 
         // Clear existing schedules
         this.clearAllScheduled();
@@ -535,7 +533,6 @@ class PlayoutManager {
         // Schedule all clips
         for (const clip of project.clips) {
             const track = project.tracks.find((t) => t.id === clip.trackId);
-            console.log('[PlayoutManager] Processing clip:', clip.id, 'type:', clip.type, 'track:', track?.name, 'muted:', track?.muted);
             if (track && !track.muted) {
                 await this.scheduleClip(clip, track, project);
             }
@@ -557,7 +554,7 @@ class PlayoutManager {
         const hasSoloedTrack = tracks.some((t) => t.solo);
 
         for (const track of tracks) {
-            const shouldPlay = !hasSoloedTrack || track.solo;
+            const _shouldPlay = !hasSoloedTrack || track.solo;
             this.updateTrackMute(track.id, track.muted || (hasSoloedTrack && !track.solo));
         }
     }

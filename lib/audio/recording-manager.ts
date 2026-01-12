@@ -5,6 +5,9 @@
 
 import * as Tone from 'tone';
 import { v4 as uuidv4 } from 'uuid';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Recording');
 import { audioRecorder, RecordedSegment, LoopBoundaries } from './recorder';
 import { audioEngine } from './engine';
 import { latencyCalibrator } from './latency-calibration';
@@ -50,7 +53,6 @@ export function deleteAudioTake(takeId: string): void {
  */
 export function registerAudioTake(take: AudioTake): void {
     audioTakesMap.set(take.id, take);
-    console.log('[RecordingManager] Registered audio take:', take.id);
 }
 
 /**
@@ -59,7 +61,6 @@ export function registerAudioTake(take: AudioTake): void {
  */
 export function clearAudioTakes(): void {
     audioTakesMap.clear();
-    console.log('[RecordingManager] Cleared all audio takes');
 }
 
 // ============================================
@@ -88,7 +89,6 @@ class RecordingManager {
             fadeOutDuration: 0.01,
         });
 
-        console.log('[RecordingManager] Initialized with latency offset:', latencyOffset);
     }
 
     // ========================================
@@ -182,12 +182,13 @@ class RecordingManager {
             isActive: true,
         };
 
+        logger.info('Recording started', { trackId, startBar, startTime });
+
         // Start the recorder with the ACTUAL transport time
         await audioRecorder.start(startTime, (segment) => {
             this.handleRecordingComplete(segment);
         });
 
-        console.log('[RecordingManager] Recording started on track', trackId, 'at time', startTime, 'bar', startBar);
     }
 
     /**
@@ -219,7 +220,7 @@ class RecordingManager {
         usePlaybackStore.getState().stopRecording();
         usePlaybackStore.getState().stop(); // Also reset playback state and playhead
 
-        console.log('[RecordingManager] Recording stopped');
+        logger.info('Recording stopped', { duration: segment?.duration });
 
         return segment;
     }
@@ -246,7 +247,6 @@ class RecordingManager {
         await audioRecorder.stop();
         usePlaybackStore.getState().stopRecording();
 
-        console.log('[RecordingManager] Recording cancelled');
     }
 
     // ========================================
@@ -254,7 +254,6 @@ class RecordingManager {
     // ========================================
 
     private handleRecordingComplete(segment: RecordedSegment): void {
-        console.log('[RecordingManager] handleRecordingComplete called');
 
         if (!this.session) {
             console.warn('[RecordingManager] No session when handling recording complete');
@@ -262,7 +261,6 @@ class RecordingManager {
         }
 
         const { trackId, startBar } = this.session;
-        console.log('[RecordingManager] Creating clip for track', trackId, 'at bar', startBar);
 
         const projectStore = useProjectStore.getState();
         const project = projectStore.project;
@@ -276,7 +274,6 @@ class RecordingManager {
         const durationInBars = audioEngine.secondsToBar(segment.duration);
         // Use exact fractional bars for audio clips so visual width matches audio duration
         const lengthBars = Math.max(0.25, durationInBars);
-        console.log('[RecordingManager] segment.duration:', segment.duration, 'durationInBars:', durationInBars, 'lengthBars:', lengthBars);
 
         // Create Clip via store method
         const clip = projectStore.addClip(trackId, 'audio', Math.max(0, Math.floor(startBar)), lengthBars);
@@ -316,7 +313,6 @@ class RecordingManager {
         this.session = null;
         this.onComplete = null;
 
-        console.log('[RecordingManager] Created clip', clip.id, 'with take', take.id);
     }
 
     // ========================================
@@ -341,7 +337,6 @@ class RecordingManager {
 
     updateLatencyOffset(offsetMs: number): void {
         audioRecorder.setLatencyOffset(offsetMs / 1000);
-        console.log('[RecordingManager] Updated latency offset:', offsetMs, 'ms');
     }
 
     // ========================================

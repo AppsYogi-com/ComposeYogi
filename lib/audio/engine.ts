@@ -5,12 +5,15 @@
 
 import * as Tone from 'tone';
 import { playbackRefs } from '@/lib/store/playback';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('AudioEngine');
 
 // ============================================
 // Types
 // ============================================
 
-interface AudioEngineConfig {
+interface _AudioEngineConfig {
     bpm: number;
     timeSignature: [number, number];
     loopStart: number;  // bars
@@ -65,7 +68,7 @@ class AudioEngine {
         this.metronome.volume.value = -10;
 
         this.isInitialized = true;
-        console.log('[AudioEngine] Initialized');
+        logger.info('Initialized successfully');
     }
 
     isReady(): boolean {
@@ -78,7 +81,7 @@ class AudioEngine {
 
     play(startTime?: number): void {
         if (!this.isInitialized) {
-            console.warn('[AudioEngine] Not initialized');
+            logger.warn('Cannot play - engine not initialized');
             return;
         }
 
@@ -102,7 +105,6 @@ class AudioEngine {
         transport.pause();
         playbackRefs.isPlayingRef.current = false;
         playbackRefs.currentTimeRef.current = transport.seconds;
-        console.log('[AudioEngine] Paused at', transport.seconds);
     }
 
     stop(): void {
@@ -111,7 +113,6 @@ class AudioEngine {
         transport.seconds = 0;
         playbackRefs.isPlayingRef.current = false;
         playbackRefs.currentTimeRef.current = 0;
-        console.log('[AudioEngine] Stopped');
     }
 
     seek(timeInSeconds: number): void {
@@ -127,7 +128,6 @@ class AudioEngine {
     }
 
     seekToBar(bar: number): void {
-        const transport = Tone.getTransport();
         const timeInSeconds = this.barToSeconds(bar);
         this.seek(timeInSeconds);
     }
@@ -139,7 +139,6 @@ class AudioEngine {
     setBpm(bpm: number): void {
         const clampedBpm = Math.max(20, Math.min(300, bpm));
         Tone.getTransport().bpm.value = clampedBpm;
-        console.log('[AudioEngine] BPM set to', clampedBpm);
     }
 
     getBpm(): number {
@@ -159,7 +158,6 @@ class AudioEngine {
             transport.loopEnd = this.barToSeconds(endBar);
         }
 
-        console.log('[AudioEngine] Loop', enabled ? 'enabled' : 'disabled');
     }
 
     // ============================================
@@ -196,7 +194,6 @@ class AudioEngine {
 
         this.metronomeLoop.start(0);
         this.metronomeRunning = true;
-        console.log('[AudioEngine] Metronome started');
     }
 
     stopMetronome(): void {
@@ -206,7 +203,6 @@ class AudioEngine {
             this.metronomeLoop = null;
         }
         this.metronomeRunning = false;
-        console.log('[AudioEngine] Metronome stopped');
     }
 
     setMetronomeVolume(volume: number): void {
@@ -334,7 +330,6 @@ class AudioEngine {
     clearAllScheduledEvents(): void {
         this.scheduledEvents.forEach((event) => event.dispose());
         this.scheduledEvents.clear();
-        console.log('[AudioEngine] Cleared all scheduled events');
     }
 
     // ============================================
@@ -352,7 +347,6 @@ class AudioEngine {
         }
 
         this.isInitialized = false;
-        console.log('[AudioEngine] Disposed');
     }
 }
 
