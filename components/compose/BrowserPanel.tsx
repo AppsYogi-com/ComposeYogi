@@ -11,6 +11,7 @@ import {
     ChevronLeft,
     Search,
     Plus,
+    PlusCircle,
     GripVertical,
     Play,
 } from 'lucide-react';
@@ -48,6 +49,22 @@ const TABS: { id: BrowserTab; label: string; icon: typeof LayoutTemplate }[] = [
 ];
 
 // ============================================
+// Helper Functions
+// ============================================
+
+const getTrackColorClass = (color: string): string => {
+    switch (color) {
+        case 'drums': return 'red-500';
+        case 'bass': return 'blue-500';
+        case 'keys': return 'orange-400';
+        case 'melody': return 'purple-500';
+        case 'vocals': return 'green-500';
+        case 'fx': return 'pink-500';
+        default: return 'gray-500';
+    }
+};
+
+// ============================================
 // BrowserPanel Component
 // ============================================
 
@@ -58,6 +75,7 @@ export function BrowserPanel() {
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['synth', 'reverb']));
 
     const toggleBrowser = useUIStore((s) => s.toggleBrowser);
+    const createProject = useProjectStore((s) => s.createProject);
     const addTrack = useProjectStore((s) => s.addTrack);
     const updateTrack = useProjectStore((s) => s.updateTrack);
 
@@ -105,6 +123,11 @@ export function BrowserPanel() {
         e.dataTransfer.effectAllowed = 'copy';
     }, []);
 
+    const handleSampleClick = useCallback((sample: SampleItem) => {
+        const audio = new Audio(sample.url);
+        audio.play().catch(err => console.error('Failed to play preview:', err));
+    }, []);
+
     const handleFXDrag = useCallback((e: React.DragEvent, fx: FXPreset) => {
         e.dataTransfer.setData('application/json', JSON.stringify({
             type: 'fx',
@@ -118,11 +141,9 @@ export function BrowserPanel() {
     // ========================================
 
     const handleTemplateClick = useCallback((template: TemplateItem) => {
-        // TODO: Load template project
-        console.log('[Browser] Load template:', template.name);
-        // For now, just create a starter project based on template
-        // This will be expanded in the Templates sprint
-    }, []);
+        // Create new project from template
+        createProject(template.name, template.id);
+    }, [createProject]);
 
     // ========================================
     // Instrument Double-Click (Add Track)
@@ -226,21 +247,47 @@ export function BrowserPanel() {
                                 </span>
                             </button>
                             {isExpanded && (
-                                <div className="ml-4">
+                                <div className="ml-4 space-y-1 mt-1">
                                     {categoryInstruments.map((instrument) => (
-                                        <div
-                                            key={instrument.id}
-                                            draggable
-                                            onDragStart={(e) => handleInstrumentDrag(e, instrument)}
-                                            onDoubleClick={() => handleInstrumentDoubleClick(instrument)}
-                                            className="flex items-center gap-2 rounded px-2 py-1.5 text-sm cursor-grab active:cursor-grabbing hover:bg-surface-elevated group"
-                                        >
-                                            <GripVertical className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
-                                            <Piano className="h-4 w-4 text-muted-foreground" />
-                                            <span className="flex-1 text-muted-foreground">
-                                                {instrument.name}
-                                            </span>
-                                        </div>
+                                        <Tooltip key={instrument.id}>
+                                            <TooltipTrigger asChild>
+                                                <div
+                                                    draggable
+                                                    onDragStart={(e) => handleInstrumentDrag(e, instrument)}
+                                                    onDoubleClick={() => handleInstrumentDoubleClick(instrument)}
+                                                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm cursor-grab active:cursor-grabbing hover:bg-surface-elevated group relative"
+                                                >
+                                                    <GripVertical className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-50" />
+
+                                                    {/* Color Indicator */}
+                                                    <div className={`w-1.5 h-1.5 rounded-full bg-${getTrackColorClass(instrument.trackColor)}`} />
+
+                                                    <Piano className="h-4 w-4 text-muted-foreground" />
+
+                                                    <span className="flex-1 text-foreground truncate">{instrument.name}</span>
+
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleInstrumentDoubleClick(instrument);
+                                                        }}
+                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-surface-active rounded transition-all"
+                                                        aria-label="Add Track"
+                                                    >
+                                                        <PlusCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                                                    </button>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right">
+                                                <p className="font-medium">{instrument.name}</p>
+                                                <p className="text-xs text-primary-foreground/80">{instrument.description}</p>
+                                                <div className="mt-1 flex gap-2">
+                                                    <span className="text-[10px] bg-background/20 text-primary-foreground px-1 py-0.5 rounded uppercase tracking-wider font-semibold backdrop-blur-sm">
+                                                        {instrument.trackType}
+                                                    </span>
+                                                </div>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     ))}
                                 </div>
                             )}
@@ -290,6 +337,7 @@ export function BrowserPanel() {
                                         <div
                                             key={sample.id}
                                             draggable
+                                            onClick={() => handleSampleClick(sample)}
                                             onDragStart={(e) => handleSampleDrag(e, sample, folder)}
                                             className="flex items-center gap-2 rounded px-2 py-1.5 text-sm cursor-grab active:cursor-grabbing hover:bg-surface-elevated group"
                                         >

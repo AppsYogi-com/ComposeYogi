@@ -4,6 +4,7 @@ import { useCallback, useRef, useEffect, useState } from 'react';
 import * as Tone from 'tone';
 import { useTheme } from 'next-themes';
 import { audioEngine } from '@/lib/audio';
+import { loadSampleAsAudioTake } from '@/lib/audio/sample-loader';
 import {
     DndContext,
     closestCenter,
@@ -806,10 +807,44 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
             const bar = Math.floor(beat / beatsPerBar);
 
             if (data.type === 'sample') {
-                // Create audio clip for sample
+                const sampleName = data.data.name;
+                const sampleUrl = data.data.url;
+
+                if (!sampleUrl) {
+                    console.error('[TrackLane] Dropped sample has no URL');
+                    return;
+                }
+
+                // 1. Create a "loading" audio clip first (placeholder)
+                // We default to 1 bar length, but will update when audio loads
                 const clip = addClip(track.id, 'audio', bar, 1);
+
+                // 2. Set name immediately
+                useProjectStore.getState().updateClip(clip.id, { name: sampleName });
                 selectClip(clip.id);
-                console.log('[TrackLane] Dropped sample:', data.data.name, 'at bar', bar);
+
+                console.log('[TrackLane] Dropped sample:', sampleName, 'loading from', sampleUrl);
+
+                // 3. Load the audio data
+                loadSampleAsAudioTake(sampleUrl, sampleName)
+                    .then((take) => {
+                        // 4. Update clip with correct duration and link to take
+                        const durationInBars = audioEngine.secondsToBar(take.duration);
+                        const lengthBars = Math.max(1, Math.ceil(durationInBars));
+
+                        useProjectStore.getState().updateClip(clip.id, {
+                            audioTakeIds: [take.id],
+                            activeTakeId: take.id,
+                            lengthBars: lengthBars, // Auto-size to fit sample
+                        });
+                        console.log('[TrackLane] Sample loaded and linked to clip:', clip.id);
+                    })
+                    .catch((err) => {
+                        console.error('[TrackLane] Failed to load sample audio:', err);
+                        // Optionally remove the placeholder clip on failure
+                        // useProjectStore.getState().deleteClip(clip.id);
+                    });
+
             } else if (data.type === 'instrument') {
                 // Update track's instrument preset
                 updateTrack(track.id, { instrumentPreset: data.data.id });

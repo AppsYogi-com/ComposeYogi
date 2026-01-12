@@ -20,6 +20,12 @@ export interface TemplateItem {
     bpm: number;
     key: string;
     scale: string;
+    tracks: {
+        name: string;
+        type: TrackType;
+        color: TrackColor;
+        instrumentId?: string;
+    }[];
 }
 
 export interface InstrumentItem {
@@ -41,6 +47,7 @@ export interface SampleFolder {
 export interface SampleItem {
     id: string;
     name: string;
+    url: string;
     duration: number; // in seconds
     bpm?: number; // for loops
     key?: string; // for melodic samples
@@ -67,6 +74,12 @@ export const TEMPLATES: TemplateItem[] = [
         bpm: 85,
         key: 'C',
         scale: 'minor',
+        tracks: [
+            { name: 'Drums', type: 'drum', color: 'drums' },
+            { name: 'E-Piano', type: 'midi', color: 'keys', instrumentId: 'electric-piano' },
+            { name: 'Sub Bass', type: 'midi', color: 'bass', instrumentId: 'sub-bass' },
+            { name: 'Vinyl Any', type: 'midi', color: 'fx', instrumentId: 'warm-pad' },
+        ]
     },
     {
         id: 'trap-beat',
@@ -77,6 +90,12 @@ export const TEMPLATES: TemplateItem[] = [
         bpm: 140,
         key: 'F',
         scale: 'minor',
+        tracks: [
+            { name: 'Trap Drums', type: 'drum', color: 'drums' },
+            { name: '808 Bass', type: 'midi', color: 'bass', instrumentId: 'sub-bass' },
+            { name: 'Pluck', type: 'midi', color: 'melody', instrumentId: 'basic-synth' },
+            { name: 'Dark Pad', type: 'midi', color: 'fx', instrumentId: 'string-pad' },
+        ]
     },
     {
         id: 'ambient',
@@ -87,6 +106,11 @@ export const TEMPLATES: TemplateItem[] = [
         bpm: 70,
         key: 'A',
         scale: 'major',
+        tracks: [
+            { name: 'Atmosphere', type: 'midi', color: 'fx', instrumentId: 'warm-pad' },
+            { name: 'Strings', type: 'midi', color: 'keys', instrumentId: 'string-pad' },
+            { name: 'Soft Keys', type: 'midi', color: 'keys', instrumentId: 'electric-piano' },
+        ]
     },
     {
         id: 'afro-groove',
@@ -97,6 +121,12 @@ export const TEMPLATES: TemplateItem[] = [
         bpm: 105,
         key: 'G',
         scale: 'major',
+        tracks: [
+            { name: 'Afro Perc', type: 'drum', color: 'drums' },
+            { name: 'Log Drum', type: 'midi', color: 'bass', instrumentId: 'synth-bass' },
+            { name: 'Chords', type: 'midi', color: 'keys', instrumentId: 'bright-piano' },
+            { name: 'Lead', type: 'midi', color: 'melody', instrumentId: 'saw-lead' },
+        ]
     },
     {
         id: 'pop-starter',
@@ -107,6 +137,12 @@ export const TEMPLATES: TemplateItem[] = [
         bpm: 120,
         key: 'C',
         scale: 'major',
+        tracks: [
+            { name: 'Pop Drums', type: 'drum', color: 'drums' },
+            { name: 'Bass Guitar', type: 'midi', color: 'bass', instrumentId: 'synth-bass' },
+            { name: 'Piano', type: 'midi', color: 'keys', instrumentId: 'bright-piano' },
+            { name: 'Top Line', type: 'midi', color: 'melody', instrumentId: 'basic-synth' },
+        ]
     },
     {
         id: 'edm-drop',
@@ -117,6 +153,12 @@ export const TEMPLATES: TemplateItem[] = [
         bpm: 128,
         key: 'A',
         scale: 'minor',
+        tracks: [
+            { name: 'Big Drums', type: 'drum', color: 'drums' },
+            { name: 'Super Saw', type: 'midi', color: 'melody', instrumentId: 'saw-lead' },
+            { name: 'Sub Bass', type: 'midi', color: 'bass', instrumentId: 'sub-bass' },
+            { name: 'Growl', type: 'midi', color: 'fx', instrumentId: 'square-lead' },
+        ]
     },
 ];
 
@@ -213,17 +255,17 @@ export const SAMPLE_FOLDERS: SampleFolder[] = [
         name: 'Drums',
         icon: '🥁',
         samples: [
-            { id: 'kick-deep', name: 'Kick - Deep', duration: 0.5 },
-            { id: 'kick-punchy', name: 'Kick - Punchy', duration: 0.4 },
-            { id: 'kick-808', name: 'Kick - 808', duration: 0.8 },
-            { id: 'snare-crisp', name: 'Snare - Crisp', duration: 0.3 },
-            { id: 'snare-lofi', name: 'Snare - Lo-Fi', duration: 0.35 },
-            { id: 'snare-clap', name: 'Snare - Clap', duration: 0.25 },
-            { id: 'hihat-closed', name: 'Hi-Hat - Closed', duration: 0.1 },
-            { id: 'hihat-open', name: 'Hi-Hat - Open', duration: 0.4 },
-            { id: 'hihat-pedal', name: 'Hi-Hat - Pedal', duration: 0.15 },
-            { id: 'perc-rim', name: 'Perc - Rim', duration: 0.2 },
-            { id: 'perc-shaker', name: 'Perc - Shaker', duration: 0.3 },
+            { id: 'kick-deep', name: 'Kick - Deep', url: '/samples/drums/kick-deep.wav', duration: 0.5 },
+            { id: 'kick-punchy', name: 'Kick - Punchy', url: '/samples/drums/kick-punchy.wav', duration: 0.4 },
+            { id: 'kick-808', name: 'Kick - 808', url: '/samples/drums/kick-808.wav', duration: 0.8 },
+            { id: 'snare-crisp', name: 'Snare - Crisp', url: '/samples/drums/snare-crisp.wav', duration: 0.3 },
+            { id: 'snare-lofi', name: 'Snare - Lo-Fi', url: '/samples/drums/snare-lofi.wav', duration: 0.35 },
+            { id: 'snare-clap', name: 'Snare - Clap', url: '/samples/drums/snare-clap.wav', duration: 0.25 },
+            { id: 'hihat-closed', name: 'Hi-Hat - Closed', url: '/samples/drums/hihat-closed.wav', duration: 0.1 },
+            { id: 'hihat-open', name: 'Hi-Hat - Open', url: '/samples/drums/hihat-open.wav', duration: 0.4 },
+            { id: 'hihat-pedal', name: 'Hi-Hat - Pedal', url: '/samples/drums/hihat-pedal.wav', duration: 0.15 },
+            { id: 'perc-rim', name: 'Perc - Rim', url: '/samples/drums/perc-rim.wav', duration: 0.2 },
+            { id: 'perc-shaker', name: 'Perc - Shaker', url: '/samples/drums/perc-shaker.wav', duration: 0.3 },
         ],
     },
     {
@@ -231,9 +273,9 @@ export const SAMPLE_FOLDERS: SampleFolder[] = [
         name: 'Bass',
         icon: '🎸',
         samples: [
-            { id: '808-sub-c', name: '808 Sub C', duration: 1.5, key: 'C' },
-            { id: '808-sub-f', name: '808 Sub F', duration: 1.5, key: 'F' },
-            { id: 'bass-hit', name: 'Bass Hit', duration: 0.8 },
+            { id: '808-sub-c', name: '808 Sub C', url: '/samples/bass/808-sub-c.wav', duration: 1.5, key: 'C' },
+            { id: '808-sub-f', name: '808 Sub F', url: '/samples/bass/808-sub-f.wav', duration: 1.5, key: 'F' },
+            { id: 'bass-hit', name: 'Bass Hit', url: '/samples/bass/bass-hit.wav', duration: 0.8 },
         ],
     },
     {
@@ -241,9 +283,9 @@ export const SAMPLE_FOLDERS: SampleFolder[] = [
         name: 'Melodic',
         icon: '🎹',
         samples: [
-            { id: 'piano-chord-c', name: 'Piano Chord C', duration: 2.0, key: 'C' },
-            { id: 'piano-chord-am', name: 'Piano Chord Am', duration: 2.0, key: 'A' },
-            { id: 'synth-stab', name: 'Synth Stab', duration: 0.5 },
+            { id: 'piano-chord-c', name: 'Piano Chord C', url: '/samples/melodic/piano-chord-c.wav', duration: 2.0, key: 'C' },
+            { id: 'piano-chord-am', name: 'Piano Chord Am', url: '/samples/melodic/piano-chord-am.wav', duration: 2.0, key: 'A' },
+            { id: 'synth-stab', name: 'Synth Stab', url: '/samples/melodic/synth-stab.wav', duration: 0.5 },
         ],
     },
     {
@@ -251,9 +293,9 @@ export const SAMPLE_FOLDERS: SampleFolder[] = [
         name: 'Loops',
         icon: '🔄',
         samples: [
-            { id: 'drum-loop-90', name: 'Drum Loop 90 BPM', duration: 2.67, bpm: 90 },
-            { id: 'drum-loop-120', name: 'Drum Loop 120 BPM', duration: 2.0, bpm: 120 },
-            { id: 'hats-loop-140', name: 'Hats Loop 140 BPM', duration: 1.71, bpm: 140 },
+            { id: 'drum-loop-90', name: 'Drum Loop 90 BPM', url: '/samples/loops/drum-loop-90.wav', duration: 2.67, bpm: 90 },
+            { id: 'drum-loop-120', name: 'Drum Loop 120 BPM', url: '/samples/loops/drum-loop-120.wav', duration: 2.0, bpm: 120 },
+            { id: 'hats-loop-140', name: 'Hats Loop 140 BPM', url: '/samples/loops/hats-loop-140.wav', duration: 1.71, bpm: 140 },
         ],
     },
 ];
