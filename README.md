@@ -4,14 +4,18 @@
 
 <img src="public/apple-touch-icon.svg" alt="ComposeYogi Logo" width="120" />
 
-### Make real music. Instantly. In your browser.
+### The open-source Ableton-style music composer for the web.
 
-A professional browser-based Digital Audio Workstation (DAW) with an Ableton-like interface.
+A free, open-source music composition tool for beat-making, loops, and arrangements — built with Web Audio, WASM, and modern web tech.
+
 
 [![GitHub Stars](https://img.shields.io/github/stars/AppsYogi-com/ComposeYogi?style=social)](https://github.com/AppsYogi-com/ComposeYogi)
 [![Docker Pulls](https://img.shields.io/docker/pulls/appsyogi/composeyogi)](https://hub.docker.com/r/appsyogi/composeyogi)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Patreon](https://img.shields.io/badge/Patreon-Support%20Us-f96854?logo=patreon&logoColor=white)](https://patreon.com/SuperZero11)
+
+![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
 
 [Live Demo](https://composeyogi.com) · [Report Bug](https://github.com/AppsYogi-com/ComposeYogi/issues) · [Request Feature](https://github.com/AppsYogi-com/ComposeYogi/issues)
 
@@ -19,7 +23,19 @@ A professional browser-based Digital Audio Workstation (DAW) with an Ableton-lik
 
 ---
 
-## ✨ Features
+## Why ComposeYogi?
+
+| ComposeYogi | Traditional DAWs |
+|------------|------------------|
+| Open source | Closed source |
+| Runs in browser | Heavy desktop installs |
+| Free forever | Paid subscriptions |
+| Community-driven | Vendor-controlled |
+| Hackable & extensible | Locked ecosystems |
+
+---
+
+## Features
 
 - 🎹 **Multi-track Timeline** — Audio, MIDI, and Drum tracks with drag-and-drop clips
 - 🎼 **Piano Roll Editor** — Full-featured MIDI note editor with scale lock
@@ -34,13 +50,13 @@ A professional browser-based Digital Audio Workstation (DAW) with an Ableton-lik
 - 🌙 **Dark/Light Theme** — Easy on the eyes
 - 🌍 **Internationalization** — English and Spanish supported
 
-## 🖼️ Screenshots
+## Screenshots
 
 <div align="center">
 <img src="public/og-image.png" alt="ComposeYogi Main Interface" width="800" />
 </div>
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -70,7 +86,7 @@ npm run build
 npm start
 ```
 
-## 🐳 Docker
+## Docker
 
 ### Using Docker Compose (Recommended)
 
@@ -102,7 +118,7 @@ docker pull appsyogi/composeyogi:latest
 docker run -p 3000:3000 appsyogi/composeyogi:latest
 ```
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Category | Technology |
 |----------|------------|
@@ -116,7 +132,7 @@ docker run -p 3000:3000 appsyogi/composeyogi:latest
 | **Persistence** | [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) via [idb](https://github.com/jakearchibald/idb) |
 | **i18n** | [next-intl](https://next-intl-docs.vercel.app/) |
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 composeyogi.com/
@@ -144,7 +160,7 @@ composeyogi.com/
 └── messages/               # i18n translation files
 ```
 
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Action | Shortcut |
 |--------|----------|
@@ -164,9 +180,9 @@ composeyogi.com/
 | Zoom In | `+` / `=` |
 | Zoom Out | `-` |
 
-## 🗺️ Development Roadmap
+## Development Roadmap
 
-### ✅ Phase 1.0 — MVP (Complete)
+### Phase 1.0 — MVP (Complete)
 
 - [x] Core DAW with multi-track timeline
 - [x] Audio engine with Tone.js (play, stop, seek, loop)
@@ -178,7 +194,7 @@ composeyogi.com/
 - [x] Dark/Light theme
 - [x] i18n (English, Spanish)
 
-### 🚧 Phase 1.5 — Cloud Sync (Planned)
+### Phase 1.5 — Cloud Sync (Planned)
 
 - [ ] User authentication (Firebase/supabase)
 - [ ] Cloud project sync
@@ -186,7 +202,7 @@ composeyogi.com/
 - [ ] WAV export
 - [ ] Additional templates
 
-### 🔮 Phase 2.0 — Pro Features (Future)
+### Phase 2.0 — Pro Features (Future)
 
 - [ ] Multi-take recording with comping
 - [ ] Automation lanes
@@ -194,7 +210,7 @@ composeyogi.com/
 - [ ] Remix/fork system
 - [ ] Time-stamped comments
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request.
 
@@ -208,20 +224,30 @@ npm run lint         # Run ESLint
 npm run type-check   # TypeScript type checking
 ```
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 💖 Support
+## Open Source First
+
+ComposeYogi is built on the belief that creative tools should be:
+- Open and inspectable
+- Free from lock-in
+- Community-driven
+- Accessible to everyone
+
+We welcome contributors, musicians, designers, and developers.
+
+## Support
 
 If you find ComposeYogi useful, please consider:
 
-- ⭐ Starring the repository
-- 🐛 Reporting bugs or requesting features
-- 💰 [Sponsoring on GitHub](https://github.com/sponsors/AppsYogi-com)
-- 🧡 [Supporting on Patreon](https://patreon.com/SuperZero11)
+- Starring the repository
+- Reporting bugs or requesting features
+- [Sponsoring on GitHub](https://github.com/sponsors/AppsYogi-com)
+- [Supporting on Patreon](https://patreon.com/SuperZero11)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Tone.js](https://tonejs.github.io/) for the amazing Web Audio framework
 - [Radix UI](https://www.radix-ui.com/) for accessible UI primitives
