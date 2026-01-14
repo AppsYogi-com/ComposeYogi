@@ -663,6 +663,579 @@ const EDM_TEMPLATE: DemoTemplate = {
 };
 
 // ============================================
+// Template 5: Bollywood Beats (105 BPM, D minor)
+// Dholak-inspired patterns with modern production
+// ============================================
+
+// Bollywood drum pattern - Dholak/Dhol style
+// Classic "dha-dhin-na" pattern with kicks mimicking the bass hits (Ghe/Dha)
+// and snares/rims for treble hits (Na/Tin)
+const bollywoodDrums = drumPattern(
+    {
+        // Dholak bass pattern - Ghe/Dha sounds on strong beats
+        kick: [0, 3, 4, 6, 8, 11, 12, 14],
+        // Na/Tin - treble hits creating the characteristic bounce
+        snare: [2, 10],
+        rim: [4, 6, 12, 14],           // Additional treble accents
+        // Shaker mimics the jhanjh/chimta - continuous groove
+        closedHat: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        openHat: [4, 12],              // Open accent on 2 and 4
+        clap: [4, 12],                 // Reinforcing the backbeat
+    },
+    16
+);
+
+// D minor chord progression - classic Bollywood feel
+// Dm - Gm - Am - Dm (i - iv - v - i)
+const bollywoodChords = chordProgression(
+    [
+        [2, 5, 9],      // Dm
+        [7, 10, 2],     // Gm
+        [9, 0, 4],      // Am
+        [2, 5, 9],      // Dm
+    ],
+    4,
+    4,
+    80
+);
+
+// Punchy bass following the kick pattern
+const bollywoodBass = bassLine([2, 7, 9, 2], 4, 'eighth', 2);
+
+// Catchy Bollywood-style melody - pentatonic with ornaments
+const bollywoodMelody = melody([
+    // Hook phrase - Bar 1-4
+    { pitch: 2, start: 0, dur: 0.5, vel: 95 },
+    { pitch: 5, start: 0.5, dur: 0.5, vel: 90 },
+    { pitch: 7, start: 1, dur: 1, vel: 100 },
+    { pitch: 5, start: 2.5, dur: 0.5, vel: 85 },
+    { pitch: 2, start: 3, dur: 1, vel: 90 },
+    // Answer phrase - Bar 5-8
+    { pitch: 9, start: 16, dur: 0.5, vel: 95 },
+    { pitch: 7, start: 16.5, dur: 0.5, vel: 90 },
+    { pitch: 5, start: 17, dur: 1.5, vel: 100 },
+    { pitch: 2, start: 19, dur: 1, vel: 90 },
+    // Development - Bar 9-12
+    { pitch: 10, start: 32, dur: 0.5, vel: 100 },
+    { pitch: 9, start: 32.5, dur: 0.5, vel: 95 },
+    { pitch: 7, start: 33, dur: 0.5, vel: 90 },
+    { pitch: 5, start: 33.5, dur: 0.5, vel: 85 },
+    { pitch: 7, start: 34, dur: 2, vel: 100 },
+    // Resolution - Bar 13-16
+    { pitch: 5, start: 48, dur: 0.5, vel: 95 },
+    { pitch: 7, start: 48.5, dur: 0.5, vel: 90 },
+    { pitch: 9, start: 49, dur: 1, vel: 100 },
+    { pitch: 7, start: 50.5, dur: 0.5, vel: 85 },
+    { pitch: 5, start: 51, dur: 0.5, vel: 90 },
+    { pitch: 2, start: 52, dur: 4, vel: 100 },
+], 5);
+
+const BOLLYWOOD_TEMPLATE: DemoTemplate = {
+    id: 'bollywood-beats',
+    name: 'Bollywood Beats',
+    emoji: '🪘',
+    genre: 'Bollywood',
+    description: 'Dholak-driven grooves with filmy vibes',
+    bpm: 105,
+    key: 'D',
+    scale: 'minor',
+    tracks: [
+        {
+            name: 'Dholak Kit',
+            type: 'drum',
+            color: 'drums',
+            instrumentPreset: 'drum-sampler',
+            volume: 0.85,
+            pan: 0,
+            effects: [
+                { type: 'compression', params: { threshold: -18, ratio: 4 } },
+            ],
+        },
+        {
+            name: 'Strings',
+            type: 'midi',
+            color: 'keys',
+            instrumentPreset: 'string-pad',
+            volume: 0.55,
+            pan: 0,
+            effects: [
+                { type: 'reverb', params: { decay: 2.5, wet: 0.4 } },
+            ],
+        },
+        {
+            name: 'Punchy Bass',
+            type: 'midi',
+            color: 'bass',
+            instrumentPreset: 'synth-bass',
+            volume: 0.8,
+            pan: 0,
+            effects: [
+                { type: 'compression', params: { threshold: -15, ratio: 5 } },
+            ],
+        },
+        {
+            name: 'Lead Melody',
+            type: 'midi',
+            color: 'melody',
+            instrumentPreset: 'saw-lead',
+            volume: 0.6,
+            pan: 0.1,
+            effects: [
+                { type: 'delay', params: { delayTime: 0.285, feedback: 0.3, wet: 0.25 } },
+                { type: 'reverb', params: { decay: 1.8, wet: 0.3 } },
+            ],
+        },
+    ],
+    clips: [
+        { name: 'Dholak Beat', trackIndex: 0, startBar: 0, lengthBars: 16, notes: bollywoodDrums },
+        { name: 'Filmi Strings', trackIndex: 1, startBar: 0, lengthBars: 16, notes: bollywoodChords },
+        { name: 'Groovy Bass', trackIndex: 2, startBar: 0, lengthBars: 16, notes: bollywoodBass },
+        { name: 'Bollywood Hook', trackIndex: 3, startBar: 0, lengthBars: 16, notes: bollywoodMelody },
+    ],
+};
+
+// ============================================
+// Template 6: Reggaeton/Dembow (95 BPM, G minor)
+// The iconic "dembow" riddim pattern
+// ============================================
+
+// Classic dembow pattern - the signature reggaeton rhythm
+// Kick on 1 and 3, snare syncopated on the "and" of 2 and on 4
+const reggaetonDrums = drumPattern(
+    {
+        kick: [0, 4, 8, 12],           // Four-on-the-floor foundation
+        snare: [3, 6, 11, 14],         // Syncopated snare - the dembow signature
+        clap: [4, 12],                 // Reinforce beats 2 and 4
+        closedHat: [0, 2, 4, 6, 8, 10, 12, 14], // Driving eighth-note hats
+        openHat: [3, 7, 11, 15],       // Open hats on off-beats for swing
+        rim: [1, 5, 9, 13],            // Rim shots add Latin flavor
+    },
+    16
+);
+
+// G minor progression - dark and moody
+// Gm - Cm - D - Gm (i - iv - V - i)
+const reggaetonChords = chordProgression(
+    [
+        [7, 10, 2],     // Gm
+        [0, 3, 7],      // Cm
+        [2, 6, 9],      // D
+        [7, 10, 2],     // Gm
+    ],
+    4,
+    4,
+    75
+);
+
+// Heavy 808 bass with slides
+const reggaetonBass = bassLine([7, 0, 2, 7], 4, 'syncopated', 1);
+
+// Reggaeton melody - brass-stab style with repetitive hooks
+const reggaetonMelody = melody([
+    // Brass stab hook - Bar 1-4
+    { pitch: 7, start: 0, dur: 0.25, vel: 100 },
+    { pitch: 10, start: 0.5, dur: 0.25, vel: 95 },
+    { pitch: 7, start: 1, dur: 0.25, vel: 100 },
+    { pitch: 7, start: 2, dur: 0.25, vel: 100 },
+    { pitch: 10, start: 2.5, dur: 0.25, vel: 95 },
+    { pitch: 2, start: 3, dur: 1, vel: 90 },
+    // Repeat with variation - Bar 5-8
+    { pitch: 7, start: 16, dur: 0.25, vel: 100 },
+    { pitch: 10, start: 16.5, dur: 0.25, vel: 95 },
+    { pitch: 0, start: 17, dur: 0.5, vel: 100 },
+    { pitch: 10, start: 18, dur: 0.25, vel: 95 },
+    { pitch: 7, start: 18.5, dur: 0.25, vel: 90 },
+    { pitch: 3, start: 19, dur: 1, vel: 95 },
+    // Build - Bar 9-12
+    { pitch: 2, start: 32, dur: 0.25, vel: 100 },
+    { pitch: 5, start: 32.5, dur: 0.25, vel: 100 },
+    { pitch: 7, start: 33, dur: 0.25, vel: 100 },
+    { pitch: 10, start: 33.5, dur: 0.25, vel: 100 },
+    { pitch: 2, start: 34, dur: 2, vel: 100 },
+    // Drop - Bar 13-16
+    { pitch: 7, start: 48, dur: 0.5, vel: 100 },
+    { pitch: 5, start: 49, dur: 0.5, vel: 95 },
+    { pitch: 3, start: 50, dur: 0.5, vel: 90 },
+    { pitch: 2, start: 51, dur: 1, vel: 100 },
+    { pitch: 7, start: 52, dur: 4, vel: 95 },
+], 5);
+
+const REGGAETON_TEMPLATE: DemoTemplate = {
+    id: 'reggaeton-dembow',
+    name: 'Reggaeton',
+    emoji: '🌴',
+    genre: 'Reggaeton',
+    description: 'Classic dembow riddim with Latin heat',
+    bpm: 95,
+    key: 'G',
+    scale: 'minor',
+    tracks: [
+        {
+            name: 'Dembow Kit',
+            type: 'drum',
+            color: 'drums',
+            instrumentPreset: 'drum-sampler',
+            volume: 0.85,
+            pan: 0,
+            effects: [
+                { type: 'compression', params: { threshold: -15, ratio: 5 } },
+            ],
+        },
+        {
+            name: 'Dark Pad',
+            type: 'midi',
+            color: 'fx',
+            instrumentPreset: 'string-pad',
+            volume: 0.45,
+            pan: 0,
+            effects: [
+                { type: 'reverb', params: { decay: 2, wet: 0.35 } },
+            ],
+        },
+        {
+            name: '808 Bass',
+            type: 'midi',
+            color: 'bass',
+            instrumentPreset: 'sub-bass',
+            volume: 0.9,
+            pan: 0,
+            effects: [
+                { type: 'distortion', params: { distortion: 0.15, wet: 0.25 } },
+            ],
+        },
+        {
+            name: 'Brass Stabs',
+            type: 'midi',
+            color: 'melody',
+            instrumentPreset: 'square-lead',
+            volume: 0.6,
+            pan: 0,
+            effects: [
+                { type: 'reverb', params: { decay: 1, wet: 0.2 } },
+            ],
+        },
+    ],
+    clips: [
+        { name: 'Dembow Beat', trackIndex: 0, startBar: 0, lengthBars: 16, notes: reggaetonDrums },
+        { name: 'Moody Pad', trackIndex: 1, startBar: 0, lengthBars: 16, notes: reggaetonChords },
+        { name: '808 Slide', trackIndex: 2, startBar: 0, lengthBars: 16, notes: reggaetonBass },
+        { name: 'Latin Hook', trackIndex: 3, startBar: 0, lengthBars: 16, notes: reggaetonMelody },
+    ],
+};
+
+// ============================================
+// Template 7: Synthwave/Retrowave (118 BPM, A minor)
+// 80s nostalgia with modern production
+// ============================================
+
+// Synthwave drums - punchy gated reverb style
+const synthwaveDrums = drumPattern(
+    {
+        kick: [0, 4, 8, 12],            // Four-on-the-floor
+        snare: [4, 12],                 // Big gated snare on 2 and 4
+        clap: [4, 12],                  // Layer clap for that 80s punch
+        closedHat: [0, 2, 4, 6, 8, 10, 12, 14], // Driving hats
+        openHat: [2, 6, 10, 14],        // Open hat accents
+    },
+    16
+);
+
+// A minor progression - nostalgic and driving
+// Am - F - C - G (i - VI - III - VII)
+const synthwaveChords = chordProgression(
+    [
+        [9, 0, 4],      // Am
+        [5, 9, 0],      // F
+        [0, 4, 7],      // C
+        [7, 11, 2],     // G
+    ],
+    4,
+    4,
+    80
+);
+
+// Arpeggiated synth pattern - classic 80s
+const synthwaveArp = melody([
+    // Am arpeggio - Bar 1-4
+    { pitch: 9, start: 0, dur: 0.25, vel: 85 },
+    { pitch: 0, start: 0.5, dur: 0.25, vel: 80 },
+    { pitch: 4, start: 1, dur: 0.25, vel: 85 },
+    { pitch: 0, start: 1.5, dur: 0.25, vel: 80 },
+    { pitch: 9, start: 2, dur: 0.25, vel: 85 },
+    { pitch: 0, start: 2.5, dur: 0.25, vel: 80 },
+    { pitch: 4, start: 3, dur: 0.25, vel: 85 },
+    { pitch: 0, start: 3.5, dur: 0.25, vel: 80 },
+    // F arpeggio - Bar 5-8
+    { pitch: 5, start: 16, dur: 0.25, vel: 85 },
+    { pitch: 9, start: 16.5, dur: 0.25, vel: 80 },
+    { pitch: 0, start: 17, dur: 0.25, vel: 85 },
+    { pitch: 9, start: 17.5, dur: 0.25, vel: 80 },
+    { pitch: 5, start: 18, dur: 0.25, vel: 85 },
+    { pitch: 9, start: 18.5, dur: 0.25, vel: 80 },
+    { pitch: 0, start: 19, dur: 0.25, vel: 85 },
+    { pitch: 9, start: 19.5, dur: 0.25, vel: 80 },
+    // C arpeggio - Bar 9-12
+    { pitch: 0, start: 32, dur: 0.25, vel: 85 },
+    { pitch: 4, start: 32.5, dur: 0.25, vel: 80 },
+    { pitch: 7, start: 33, dur: 0.25, vel: 85 },
+    { pitch: 4, start: 33.5, dur: 0.25, vel: 80 },
+    { pitch: 0, start: 34, dur: 0.25, vel: 85 },
+    { pitch: 4, start: 34.5, dur: 0.25, vel: 80 },
+    { pitch: 7, start: 35, dur: 0.25, vel: 85 },
+    { pitch: 4, start: 35.5, dur: 0.25, vel: 80 },
+    // G arpeggio - Bar 13-16
+    { pitch: 7, start: 48, dur: 0.25, vel: 85 },
+    { pitch: 11, start: 48.5, dur: 0.25, vel: 80 },
+    { pitch: 2, start: 49, dur: 0.25, vel: 85 },
+    { pitch: 11, start: 49.5, dur: 0.25, vel: 80 },
+    { pitch: 7, start: 50, dur: 0.25, vel: 85 },
+    { pitch: 11, start: 50.5, dur: 0.25, vel: 80 },
+    { pitch: 2, start: 51, dur: 0.25, vel: 85 },
+    { pitch: 11, start: 51.5, dur: 0.25, vel: 80 },
+], 5);
+
+// Pulsing saw bass
+const synthwaveBass = bassLine([9, 5, 0, 7], 4, 'eighth', 2);
+
+// Retro lead melody
+const synthwaveLead = melody([
+    // Soaring lead - Bar 1-4
+    { pitch: 4, start: 0, dur: 2, vel: 90 },
+    { pitch: 7, start: 2, dur: 1, vel: 85 },
+    { pitch: 4, start: 3.5, dur: 0.5, vel: 80 },
+    // Bar 5-8
+    { pitch: 5, start: 16, dur: 2, vel: 90 },
+    { pitch: 4, start: 18, dur: 1, vel: 85 },
+    { pitch: 0, start: 19.5, dur: 0.5, vel: 80 },
+    // Bar 9-12
+    { pitch: 7, start: 32, dur: 1.5, vel: 95 },
+    { pitch: 9, start: 34, dur: 1, vel: 90 },
+    { pitch: 7, start: 35.5, dur: 0.5, vel: 85 },
+    // Climax - Bar 13-16
+    { pitch: 12, start: 48, dur: 2, vel: 100 },
+    { pitch: 11, start: 50, dur: 1, vel: 95 },
+    { pitch: 9, start: 51, dur: 1, vel: 90 },
+    { pitch: 7, start: 52, dur: 4, vel: 85 },
+], 5);
+
+const SYNTHWAVE_TEMPLATE: DemoTemplate = {
+    id: 'synthwave-retro',
+    name: 'Synthwave',
+    emoji: '🌆',
+    genre: 'Synthwave',
+    description: '80s nostalgia with neon-soaked synths',
+    bpm: 118,
+    key: 'A',
+    scale: 'minor',
+    tracks: [
+        {
+            name: 'Retro Drums',
+            type: 'drum',
+            color: 'drums',
+            instrumentPreset: 'drum-sampler',
+            volume: 0.8,
+            pan: 0,
+            effects: [
+                { type: 'reverb', params: { decay: 1.5, wet: 0.3 } },
+                { type: 'compression', params: { threshold: -12, ratio: 4 } },
+            ],
+        },
+        {
+            name: 'Arp Synth',
+            type: 'midi',
+            color: 'keys',
+            instrumentPreset: 'basic-synth',
+            volume: 0.5,
+            pan: -0.2,
+            effects: [
+                { type: 'delay', params: { delayTime: 0.254, feedback: 0.4, wet: 0.35 } },
+                { type: 'reverb', params: { decay: 2, wet: 0.3 } },
+            ],
+        },
+        {
+            name: 'Saw Bass',
+            type: 'midi',
+            color: 'bass',
+            instrumentPreset: 'synth-bass',
+            volume: 0.75,
+            pan: 0,
+            effects: [
+                { type: 'distortion', params: { distortion: 0.1, wet: 0.15 } },
+            ],
+        },
+        {
+            name: 'Lead Synth',
+            type: 'midi',
+            color: 'melody',
+            instrumentPreset: 'saw-lead',
+            volume: 0.6,
+            pan: 0.15,
+            effects: [
+                { type: 'delay', params: { delayTime: 0.375, feedback: 0.35, wet: 0.3 } },
+                { type: 'reverb', params: { decay: 2.5, wet: 0.4 } },
+            ],
+        },
+    ],
+    clips: [
+        { name: '80s Beat', trackIndex: 0, startBar: 0, lengthBars: 16, notes: synthwaveDrums },
+        { name: 'Retro Arp', trackIndex: 1, startBar: 0, lengthBars: 16, notes: synthwaveArp },
+        { name: 'Pulsing Bass', trackIndex: 2, startBar: 0, lengthBars: 16, notes: synthwaveBass },
+        { name: 'Neon Lead', trackIndex: 3, startBar: 4, lengthBars: 12, notes: synthwaveLead },
+    ],
+};
+
+// ============================================
+// Template 8: Afrobeats (105 BPM, E minor)
+// West African-inspired grooves
+// ============================================
+
+// Afrobeats drum pattern - log drum style with shaker
+// Signature bouncy kick pattern with clave-inspired rhythm
+const afrobeatsDrums = drumPattern(
+    {
+        kick: [0, 5, 8, 10, 14],        // Bouncy, syncopated kick
+        snare: [4, 12],                 // Snare on 2 and 4
+        rim: [2, 6, 10, 14],            // Rim for log drum feel
+        closedHat: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], // Shaker-like continuous
+        openHat: [4, 12],               // Open hat accents
+        perc: [3, 7, 11, 15],           // Percussion - clave pattern
+    },
+    16
+);
+
+// E minor progression - uplifting African feel
+// Em - Am - D - G (i - iv - VII - III)
+const afrobeatsChords = chordProgression(
+    [
+        [4, 7, 11],     // Em
+        [9, 0, 4],      // Am
+        [2, 6, 9],      // D
+        [7, 11, 2],     // G
+    ],
+    4,
+    4,
+    75
+);
+
+// Bouncy melodic bassline - characteristic of Afrobeats
+const afrobeatsBass = melody([
+    // Em bass - Bar 1-4
+    { pitch: 4, start: 0, dur: 0.5, vel: 100 },
+    { pitch: 4, start: 1, dur: 0.25, vel: 85 },
+    { pitch: 7, start: 1.5, dur: 0.5, vel: 90 },
+    { pitch: 4, start: 2.5, dur: 0.5, vel: 95 },
+    { pitch: 4, start: 3.5, dur: 0.5, vel: 85 },
+    // Am bass - Bar 5-8  
+    { pitch: 9, start: 16, dur: 0.5, vel: 100 },
+    { pitch: 9, start: 17, dur: 0.25, vel: 85 },
+    { pitch: 0, start: 17.5, dur: 0.5, vel: 90 },
+    { pitch: 9, start: 18.5, dur: 0.5, vel: 95 },
+    { pitch: 9, start: 19.5, dur: 0.5, vel: 85 },
+    // D bass - Bar 9-12
+    { pitch: 2, start: 32, dur: 0.5, vel: 100 },
+    { pitch: 2, start: 33, dur: 0.25, vel: 85 },
+    { pitch: 6, start: 33.5, dur: 0.5, vel: 90 },
+    { pitch: 2, start: 34.5, dur: 0.5, vel: 95 },
+    { pitch: 2, start: 35.5, dur: 0.5, vel: 85 },
+    // G bass - Bar 13-16
+    { pitch: 7, start: 48, dur: 0.5, vel: 100 },
+    { pitch: 7, start: 49, dur: 0.25, vel: 85 },
+    { pitch: 11, start: 49.5, dur: 0.5, vel: 90 },
+    { pitch: 7, start: 50.5, dur: 0.5, vel: 95 },
+    { pitch: 7, start: 51.5, dur: 0.5, vel: 85 },
+], 2);
+
+// Call-and-response style melody
+const afrobeatsMelody = melody([
+    // Call phrase - Bar 1-4
+    { pitch: 4, start: 0, dur: 0.5, vel: 95 },
+    { pitch: 7, start: 0.5, dur: 0.5, vel: 90 },
+    { pitch: 11, start: 1, dur: 1, vel: 100 },
+    { pitch: 7, start: 2.5, dur: 0.5, vel: 85 },
+    { pitch: 4, start: 3, dur: 1, vel: 90 },
+    // Response - Bar 5-8
+    { pitch: 9, start: 16, dur: 0.5, vel: 95 },
+    { pitch: 0, start: 16.5, dur: 0.5, vel: 90 },
+    { pitch: 4, start: 17, dur: 1.5, vel: 100 },
+    { pitch: 0, start: 19, dur: 0.5, vel: 85 },
+    { pitch: 9, start: 19.5, dur: 0.5, vel: 90 },
+    // Development - Bar 9-12
+    { pitch: 2, start: 32, dur: 0.5, vel: 100 },
+    { pitch: 6, start: 32.5, dur: 0.5, vel: 95 },
+    { pitch: 9, start: 33, dur: 0.5, vel: 90 },
+    { pitch: 11, start: 33.5, dur: 1.5, vel: 100 },
+    { pitch: 9, start: 35.5, dur: 0.5, vel: 85 },
+    // Resolution - Bar 13-16
+    { pitch: 7, start: 48, dur: 1, vel: 100 },
+    { pitch: 11, start: 49.5, dur: 0.5, vel: 95 },
+    { pitch: 7, start: 50, dur: 0.5, vel: 90 },
+    { pitch: 4, start: 51, dur: 1, vel: 95 },
+    { pitch: 4, start: 52, dur: 4, vel: 85 },
+], 5);
+
+const AFROBEATS_TEMPLATE: DemoTemplate = {
+    id: 'afrobeats-groove',
+    name: 'Afrobeats',
+    emoji: '🌍',
+    genre: 'Afrobeats',
+    description: 'West African rhythms with infectious energy',
+    bpm: 105,
+    key: 'E',
+    scale: 'minor',
+    tracks: [
+        {
+            name: 'Log Drums',
+            type: 'drum',
+            color: 'drums',
+            instrumentPreset: 'drum-sampler',
+            volume: 0.85,
+            pan: 0,
+            effects: [
+                { type: 'compression', params: { threshold: -15, ratio: 4 } },
+            ],
+        },
+        {
+            name: 'Warm Keys',
+            type: 'midi',
+            color: 'keys',
+            instrumentPreset: 'electric-piano',
+            volume: 0.55,
+            pan: -0.15,
+            effects: [
+                { type: 'reverb', params: { decay: 1.5, wet: 0.25 } },
+            ],
+        },
+        {
+            name: 'Bouncy Bass',
+            type: 'midi',
+            color: 'bass',
+            instrumentPreset: 'synth-bass',
+            volume: 0.8,
+            pan: 0,
+            effects: [],
+        },
+        {
+            name: 'Lead Hook',
+            type: 'midi',
+            color: 'melody',
+            instrumentPreset: 'basic-synth',
+            volume: 0.6,
+            pan: 0.1,
+            effects: [
+                { type: 'delay', params: { delayTime: 0.285, feedback: 0.25, wet: 0.2 } },
+                { type: 'reverb', params: { decay: 1.5, wet: 0.25 } },
+            ],
+        },
+    ],
+    clips: [
+        { name: 'Afro Beat', trackIndex: 0, startBar: 0, lengthBars: 16, notes: afrobeatsDrums },
+        { name: 'Island Keys', trackIndex: 1, startBar: 0, lengthBars: 16, notes: afrobeatsChords },
+        { name: 'Groove Bass', trackIndex: 2, startBar: 0, lengthBars: 16, notes: afrobeatsBass },
+        { name: 'Afro Hook', trackIndex: 3, startBar: 0, lengthBars: 16, notes: afrobeatsMelody },
+    ],
+};
+
+// ============================================
 // Export all templates
 // ============================================
 
@@ -671,6 +1244,10 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
     TRAP_TEMPLATE,
     AMBIENT_TEMPLATE,
     EDM_TEMPLATE,
+    BOLLYWOOD_TEMPLATE,
+    REGGAETON_TEMPLATE,
+    SYNTHWAVE_TEMPLATE,
+    AFROBEATS_TEMPLATE,
 ];
 
 export function getDemoTemplate(id: string): DemoTemplate | undefined {

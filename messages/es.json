@@ -60,6 +60,22 @@
             "name": "Pop Starter",
             "description": "Base pop lista para radio"
         },
+        "bollywood": {
+            "name": "Bollywood Beats",
+            "description": "Ritmos de dholak con vibras de cine indio"
+        },
+        "reggaeton": {
+            "name": "Reggaeton",
+            "description": "El clásico dembow con calor latino"
+        },
+        "synthwave": {
+            "name": "Synthwave",
+            "description": "Nostalgia de los 80s con sintetizadores retro"
+        },
+        "afrobeats": {
+            "name": "Afrobeats",
+            "description": "Ritmos africanos con energía contagiosa"
+        },
         "empty": {
             "name": "Proyecto Vacío",
             "description": "Empieza desde cero"
