@@ -21,6 +21,10 @@ A free, open-source music composition tool for beat-making, loops, and arrangeme
 
 </div>
 
+<div align="center">
+<img src="public/screenshots/EDM-Drop-ComposeYogi.gif" alt="ComposeYogi in Action" width="400" />
+</div>
+
 ---
 
 ## Why ComposeYogi?
@@ -181,6 +185,8 @@ composeyogi.com/
 | Zoom Out | `-` |
 
 ## Development Roadmap
+
+> 📍 **See our [detailed roadmap](ROADMAP.md)** for the full picture of what's coming next!
 
 ### Phase 1.0 — MVP (Complete)
 
