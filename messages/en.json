@@ -139,10 +139,35 @@
         "title": "Export Project",
         "format": "Format",
         "wav": "WAV Audio",
+        "wavDescription": "Lossless audio file ready for any DAW",
         "midi": "MIDI File",
+        "midiDescription": "Universal format for notes and automation",
+        "json": "Project File",
+        "jsonDescription": "Full project backup with all data",
         "rendering": "Rendering...",
         "download": "Download",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "selectFormat": "Choose an export format"
+    },
+    "import": {
+        "title": "Import Project",
+        "description": "Import a ComposeYogi project (.cyp.json) or MIDI file (.mid)",
+        "dropzone": "Drop a file here or click to browse",
+        "supported": "Supports .cyp.json (ComposeYogi) and .mid (MIDI) files",
+        "unsupported": "Unsupported file type. Please select a .mid, .midi, or .cyp.json file.",
+        "importing": "Importing project...",
+        "complete": "Import Complete!",
+        "failed": "Import Failed",
+        "tryAgain": "Try Again",
+        "midiPreview": {
+            "name": "Name",
+            "bpm": "BPM",
+            "tracks": "Tracks",
+            "notes": "Notes",
+            "tracksToImport": "Tracks to import:"
+        },
+        "warnings": "Warnings",
+        "ready": "Ready to import. This will create a new project with all tracks and clips."
     },
     "calibration": {
         "title": "Audio Latency Calibration",

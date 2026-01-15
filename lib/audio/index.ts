@@ -21,3 +21,16 @@ export {
 } from './recording-manager';
 export { exportProjectToMidi, downloadProjectAsMidi } from './export';
 export { exportProjectToWav, downloadProjectAsWav } from './offline-renderer';
+export {
+    exportProjectToJSON,
+    downloadProjectAsJSON,
+    importProjectFromJSON,
+    importProjectFromFile,
+    previewMidiFile,
+    importMidiFile,
+    FILE_EXTENSION as PROJECT_FILE_EXTENSION,
+    SCHEMA_VERSION as PROJECT_SCHEMA_VERSION,
+    type ExportedProject as ProjectFileFormat,
+    type ImportResult,
+    type MidiImportPreview,
+} from './project-io';

@@ -1,12 +1,12 @@
 // ============================================
 // ComposeYogi — Export Modal
-// Progress UI for audio export
+// Progress UI for audio export + JSON export
 // ============================================
 
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Download, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, CheckCircle, AlertCircle, Loader2, FileJson, Music, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { useProjectStore } from '@/lib/store';
 import { downloadProjectAsWav } from '@/lib/audio/offline-renderer';
+import { downloadProjectAsMidi } from '@/lib/audio/export';
+import { downloadProjectAsJSON } from '@/lib/audio/project-io';
 
 // ============================================
 // Types
@@ -39,6 +41,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
     const [exportState, setExportState] = useState<ExportState>('idle');
     const [progress, setProgress] = useState(0);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [exportType, setExportType] = useState<'wav' | 'midi' | 'json'>('wav');
 
     // Reset state when modal opens
     useEffect(() => {
@@ -46,13 +49,15 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
             setExportState('idle');
             setProgress(0);
             setErrorMessage(null);
+            setExportType('wav');
         }
     }, [isOpen]);
 
-    const handleExport = useCallback(async () => {
+    const handleExportWav = useCallback(async () => {
         if (!project) return;
 
         setExportState('exporting');
+        setExportType('wav');
         setProgress(0);
         setErrorMessage(null);
 
@@ -62,7 +67,33 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
             });
             setExportState('complete');
         } catch (error) {
-            console.error('[ExportModal] Export failed:', error);
+            console.error('[ExportModal] WAV export failed:', error);
+            setErrorMessage(error instanceof Error ? error.message : 'Export failed');
+            setExportState('error');
+        }
+    }, [project]);
+
+    const handleExportMidi = useCallback(() => {
+        if (!project) return;
+        try {
+            downloadProjectAsMidi(project);
+            setExportState('complete');
+            setExportType('midi');
+        } catch (error) {
+            console.error('[ExportModal] MIDI export failed:', error);
+            setErrorMessage(error instanceof Error ? error.message : 'Export failed');
+            setExportState('error');
+        }
+    }, [project]);
+
+    const handleExportJSON = useCallback(() => {
+        if (!project) return;
+        try {
+            downloadProjectAsJSON(project, undefined, false);
+            setExportState('complete');
+            setExportType('json');
+        } catch (error) {
+            console.error('[ExportModal] JSON export failed:', error);
             setErrorMessage(error instanceof Error ? error.message : 'Export failed');
             setExportState('error');
         }
@@ -82,46 +113,69 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Download className="h-5 w-5" />
-                        Export Audio
+                        Export Project
                     </DialogTitle>
                     <DialogDescription>
-                        Export &quot;{project.name}&quot; as a WAV file
+                        Export &quot;{project.name}&quot; in your preferred format
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="py-4 space-y-4">
                     {/* Idle State */}
                     {exportState === 'idle' && (
-                        <div className="space-y-4">
-                            <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Format</span>
-                                    <span className="font-medium">WAV (16-bit PCM)</span>
+                        <div className="space-y-3">
+                            {/* WAV Export */}
+                            <button
+                                onClick={handleExportWav}
+                                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+                            >
+                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                                    <FileAudio className="h-5 w-5 text-green-500" />
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Sample Rate</span>
-                                    <span className="font-medium">44.1 kHz</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium">WAV Audio</div>
+                                    <div className="text-sm text-muted-foreground">High-quality 16-bit PCM, 44.1 kHz stereo</div>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Channels</span>
-                                    <span className="font-medium">Stereo</span>
-                                </div>
-                            </div>
+                            </button>
 
-                            <div className="flex justify-end gap-2">
+                            {/* MIDI Export */}
+                            <button
+                                onClick={handleExportMidi}
+                                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+                            >
+                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                    <Music className="h-5 w-5 text-blue-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium">MIDI File</div>
+                                    <div className="text-sm text-muted-foreground">Standard MIDI for use in other DAWs</div>
+                                </div>
+                            </button>
+
+                            {/* JSON Export */}
+                            <button
+                                onClick={handleExportJSON}
+                                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+                            >
+                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                                    <FileJson className="h-5 w-5 text-purple-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium">Project File (.cyp)</div>
+                                    <div className="text-sm text-muted-foreground">Full project backup, can be re-imported</div>
+                                </div>
+                            </button>
+
+                            <div className="flex justify-end pt-2">
                                 <Button variant="outline" onClick={handleClose}>
                                     Cancel
-                                </Button>
-                                <Button onClick={handleExport}>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Export WAV
                                 </Button>
                             </div>
                         </div>
                     )}
 
-                    {/* Exporting State */}
-                    {exportState === 'exporting' && (
+                    {/* Exporting State (WAV only) */}
+                    {exportState === 'exporting' && exportType === 'wav' && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
                                 <Loader2 className="h-5 w-5 animate-spin text-accent" />
@@ -177,7 +231,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                 <Button variant="outline" onClick={handleClose}>
                                     Close
                                 </Button>
-                                <Button onClick={handleExport}>
+                                <Button onClick={() => setExportState('idle')}>
                                     Try Again
                                 </Button>
                             </div>

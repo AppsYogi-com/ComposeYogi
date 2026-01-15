@@ -139,10 +139,35 @@
         "title": "Exportar Proyecto",
         "format": "Formato",
         "wav": "Audio WAV",
+        "wavDescription": "Archivo de audio sin pérdida listo para cualquier DAW",
         "midi": "Archivo MIDI",
+        "midiDescription": "Formato universal para notas y automatización",
+        "json": "Archivo de Proyecto",
+        "jsonDescription": "Respaldo completo del proyecto con todos los datos",
         "rendering": "Renderizando...",
         "download": "Descargar",
-        "cancel": "Cancelar"
+        "cancel": "Cancelar",
+        "selectFormat": "Elige un formato de exportación"
+    },
+    "import": {
+        "title": "Importar Proyecto",
+        "description": "Importa un proyecto de ComposeYogi (.cyp.json) o archivo MIDI (.mid)",
+        "dropzone": "Arrastra un archivo aquí o haz clic para buscar",
+        "supported": "Soporta archivos .cyp.json (ComposeYogi) y .mid (MIDI)",
+        "unsupported": "Tipo de archivo no soportado. Por favor selecciona un archivo .mid, .midi o .cyp.json.",
+        "importing": "Importando proyecto...",
+        "complete": "¡Importación Completada!",
+        "failed": "Importación Fallida",
+        "tryAgain": "Intentar de Nuevo",
+        "midiPreview": {
+            "name": "Nombre",
+            "bpm": "BPM",
+            "tracks": "Pistas",
+            "notes": "Notas",
+            "tracksToImport": "Pistas a importar:"
+        },
+        "warnings": "Advertencias",
+        "ready": "Listo para importar. Esto creará un nuevo proyecto con todas las pistas y clips."
     },
     "calibration": {
         "title": "Calibración de Latencia de Audio",

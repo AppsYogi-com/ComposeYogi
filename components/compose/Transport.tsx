@@ -19,19 +19,19 @@ import {
     Loader2,
     Check,
     Download,
+    Upload,
     Moon,
     Sun,
     Keyboard,
-    FileAudio,
-    Music,
 } from 'lucide-react';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { ExportModal } from './ExportModal';
+import { ImportModal } from './ImportModal';
 import { useTheme } from 'next-themes';
 import { MusicWave } from '@/components/MusicWave';
 import { useProjectStore, usePlaybackStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
-import { audioEngine, recordingManager, downloadProjectAsMidi } from '@/lib/audio';
+import { audioEngine, recordingManager } from '@/lib/audio';
 import { formatTime, formatBarsBeats } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -48,12 +48,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import type { SaveStatus } from '@/lib/persistence/autosave';
 
@@ -95,6 +89,7 @@ export function Transport({
     const [recorderError, setRecorderError] = useState<string | null>(null);
     const [showShortcutsModal, setShowShortcutsModal] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // / or ? key to toggle keyboard shortcuts
     useHotkeys('slash', () => setShowShortcutsModal(prev => !prev), { enableOnFormTags: false });
@@ -368,35 +363,39 @@ export function Transport({
 
                     <Separator orientation="vertical" className="h-5 mx-1" />
 
+                    {/* Import button */}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="transport"
+                                size="icon-sm"
+                                onClick={() => setShowImportModal(true)}
+                            >
+                                <Upload className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            <p>Import Project/MIDI</p>
+                        </TooltipContent>
+                    </Tooltip>
+
                     {/* Export dropdown */}
-                    <DropdownMenu>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="transport"
-                                        size="icon-sm"
-                                        disabled={!project}
-                                    >
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                <p>Export</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <DropdownMenuContent align="center">
-                            <DropdownMenuItem onClick={() => setShowExportModal(true)}>
-                                <FileAudio className="mr-2 h-4 w-4" />
-                                Export as WAV
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => project && downloadProjectAsMidi(project)}>
-                                <Music className="mr-2 h-4 w-4" />
-                                Export as MIDI
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    {/* Export button */}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="transport"
+                                size="icon-sm"
+                                disabled={!project}
+                                onClick={() => setShowExportModal(true)}
+                            >
+                                <Download className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            <p>Export</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
 
                 <Separator orientation="vertical" className="h-6 mx-4" />
@@ -565,6 +564,11 @@ export function Transport({
                 <ExportModal
                     isOpen={showExportModal}
                     onClose={() => setShowExportModal(false)}
+                />
+
+                <ImportModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
                 />
             </div>
         </header>
