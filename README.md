@@ -16,6 +16,7 @@ A free, open-source music composition tool for beat-making, loops, and arrangeme
 
 ![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/M5qBX4Fz)
 
 [Live Demo](https://composeyogi.com) · [Report Bug](https://github.com/AppsYogi-com/ComposeYogi/issues) · [Request Feature](https://github.com/AppsYogi-com/ComposeYogi/issues)
 
@@ -23,6 +24,7 @@ A free, open-source music composition tool for beat-making, loops, and arrangeme
 
 <div align="center">
 <img src="public/screenshots/EDM-Drop-ComposeYogi.gif" alt="ComposeYogi in Action" width="400" />
+
 </div>
 
 ---

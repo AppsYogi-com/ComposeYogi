@@ -229,6 +229,7 @@ Use the [Feature Request template](https://github.com/AppsYogi-com/ComposeYogi/i
 
 If you have questions, feel free to:
 
+- Join our [Discord Community](https://discord.gg/M5qBX4Fz)
 - Open a [Discussion](https://github.com/AppsYogi-com/ComposeYogi/discussions)
 - Ask in the issue you're working on
 
