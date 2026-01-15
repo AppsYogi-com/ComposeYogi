@@ -60,6 +60,13 @@ A free, open-source music composition tool for beat-making, loops, and arrangeme
 <img src="public/og-image.png" alt="ComposeYogi Main Interface" width="800" />
 </div>
 
+## One-Click Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/AppsYogi-com/ComposeYogi)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/AppsYogi-com/ComposeYogi)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template?template=https://github.com/AppsYogi-com/ComposeYogi)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/AppsYogi-com/ComposeYogi)
+
 ## Quick Start
 
 ### Prerequisites

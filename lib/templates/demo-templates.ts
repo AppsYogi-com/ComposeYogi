@@ -942,7 +942,7 @@ const synthwaveDrums = drumPattern(
 
 // A minor progression - nostalgic and driving
 // Am - F - C - G (i - VI - III - VII)
-const synthwaveChords = chordProgression(
+const _synthwaveChords = chordProgression(
     [
         [9, 0, 4],      // Am
         [5, 9, 0],      // F
