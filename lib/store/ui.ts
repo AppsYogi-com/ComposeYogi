@@ -24,6 +24,7 @@ interface UIState {
     // Active editor context
     activeEditorClipId: string | null;
     editorScope: EditorScope;
+    editorFocused: boolean; // Whether editor panel has keyboard focus
 
     // Viewport
     zoom: number;          // pixels per bar
@@ -60,6 +61,7 @@ interface UIActions {
 
     // Editor scope
     setEditorScope: (scope: EditorScope) => void;
+    setEditorFocused: (focused: boolean) => void;
 
     // Viewport
     setZoom: (zoom: number) => void;
@@ -116,6 +118,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
     selectedClipIds: [],
     activeEditorClipId: null,
     editorScope: 'arrangement',
+    editorFocused: false,
     zoom: DEFAULT_ZOOM,
     scrollX: 0,
     scrollY: 0,
@@ -226,6 +229,10 @@ export const useUIStore = create<UIStore>((set, get) => ({
     // Editor scope
     setEditorScope: (scope) => {
         set({ editorScope: scope });
+    },
+
+    setEditorFocused: (focused) => {
+        set({ editorFocused: focused });
     },
 
     // Viewport

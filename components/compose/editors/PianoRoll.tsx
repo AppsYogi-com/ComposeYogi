@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
-import { ZoomIn, ZoomOut, MousePointer2, Pencil, Eraser, AlertCircle } from 'lucide-react';
-import { useProjectStore } from '@/lib/store';
+import { ZoomIn, ZoomOut, AlertCircle } from 'lucide-react';
+import { useProjectStore, useUIStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -44,7 +44,6 @@ const SCALE_INTERVALS: Record<MusicalScale, number[]> = {
     blues: [0, 3, 5, 6, 7, 10],
 };
 
-type Tool = 'select' | 'draw' | 'erase';
 type SnapValue = '1' | '1/2' | '1/4' | '1/8' | '1/16' | '1/32';
 
 interface PianoRollProps {
@@ -54,16 +53,18 @@ interface PianoRollProps {
 export function PianoRoll({ clip }: PianoRollProps) {
     const addNote = useProjectStore((s) => s.addNote);
     const deleteNote = useProjectStore((s) => s.deleteNote);
-    const _updateNote = useProjectStore((s) => s.updateNote);
+    const updateNote = useProjectStore((s) => s.updateNote);
     const project = useProjectStore((s) => s.project);
+    const setEditorFocused = useUIStore((s) => s.setEditorFocused);
 
-    const [tool, setTool] = useState<Tool>('draw');
     const [snap, setSnap] = useState<SnapValue>('1/16');
     const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
     const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
     const [previewSynth, setPreviewSynth] = useState<Tone.PolySynth | null>(null);
-    const [isDragging, _setIsDragging] = useState(false);
-    const [_dragStart, _setDragStart] = useState<{ x: number; y: number; noteId?: string } | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Resize state
+    const [resizingNote, setResizingNote] = useState<{ id: string; startDuration: number; startX: number } | null>(null);
 
     const gridRef = useRef<HTMLDivElement>(null);
     const keysRef = useRef<HTMLDivElement>(null);
@@ -148,7 +149,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
         return Math.round(value / snapBeats) * snapBeats;
     }, [snapBeats]);
 
-    // Handle click on grid
+    // Handle click on grid - toggle notes (like Drum Sequencer)
     const handleGridClick = useCallback((e: React.MouseEvent) => {
         if (!gridRef.current || isDragging) return;
 
@@ -168,79 +169,43 @@ export function PianoRoll({ clip }: PianoRollProps) {
         // Bounds check: don't allow notes beyond clip length
         if (beat >= totalBeats) return;
 
-        if (tool === 'draw') {
-            // Check if clicking on existing note
-            const existingNote = clip.notes?.find((n) => {
-                const noteRow = pitchToRow(n.pitch);
-                const noteStartX = n.startBeat * pixelsPerBeat;
-                const noteEndX = (n.startBeat + n.duration) * pixelsPerBeat;
-                return row === noteRow && x >= noteStartX && x < noteEndX;
+        // Check if clicking on existing note
+        const existingNote = clip.notes?.find((n) => {
+            const noteRow = pitchToRow(n.pitch);
+            const noteStartX = n.startBeat * pixelsPerBeat;
+            const noteEndX = (n.startBeat + n.duration) * pixelsPerBeat;
+            return row === noteRow && x >= noteStartX && x < noteEndX;
+        });
+
+        if (existingNote) {
+            // Delete existing note (toggle off)
+            deleteNote(clip.id, existingNote.id);
+            setSelectedNoteIds((prev) => {
+                const next = new Set(prev);
+                next.delete(existingNote.id);
+                return next;
+            });
+        } else {
+            // Add new note (toggle on)
+            const maxDuration = totalBeats - beat;
+            const noteDuration = Math.min(snapBeats, maxDuration);
+
+            const newNote = addNote(clip.id, {
+                pitch,
+                startBeat: beat,
+                duration: noteDuration,
+                velocity: 100,
             });
 
-            if (existingNote) {
-                // Select existing note
-                setSelectedNoteIds(new Set([existingNote.id]));
-            } else {
-                // Clamp note duration to not exceed clip length
-                const maxDuration = totalBeats - beat;
-                const noteDuration = Math.min(snapBeats, maxDuration);
-
-                // Add new note
-                const newNote = addNote(clip.id, {
-                    pitch,
-                    startBeat: beat,
-                    duration: noteDuration,
-                    velocity: 100,
-                });
-
-                if (newNote && previewSynth) {
-                    previewSynth.triggerAttackRelease(
-                        Tone.Frequency(pitch, 'midi').toNote(),
-                        snapBeats * (60 / (project?.bpm || 120))
-                    );
-                }
-            }
-        } else if (tool === 'erase') {
-            // Find and delete note at position
-            const noteToDelete = clip.notes?.find((n) => {
-                const noteRow = pitchToRow(n.pitch);
-                const noteStartX = n.startBeat * pixelsPerBeat;
-                const noteEndX = (n.startBeat + n.duration) * pixelsPerBeat;
-                return row === noteRow && x >= noteStartX && x < noteEndX;
-            });
-
-            if (noteToDelete) {
-                deleteNote(clip.id, noteToDelete.id);
-            }
-        } else if (tool === 'select') {
-            const clickedNote = clip.notes?.find((n) => {
-                const noteRow = pitchToRow(n.pitch);
-                const noteStartX = n.startBeat * pixelsPerBeat;
-                const noteEndX = (n.startBeat + n.duration) * pixelsPerBeat;
-                return row === noteRow && x >= noteStartX && x < noteEndX;
-            });
-
-            if (clickedNote) {
-                if (e.shiftKey) {
-                    // Toggle selection
-                    setSelectedNoteIds((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(clickedNote.id)) {
-                            next.delete(clickedNote.id);
-                        } else {
-                            next.add(clickedNote.id);
-                        }
-                        return next;
-                    });
-                } else {
-                    setSelectedNoteIds(new Set([clickedNote.id]));
-                }
-            } else {
-                setSelectedNoteIds(new Set());
+            if (newNote && previewSynth) {
+                previewSynth.triggerAttackRelease(
+                    Tone.Frequency(pitch, 'midi').toNote(),
+                    snapBeats * (60 / (project?.bpm || 120))
+                );
             }
         }
     }, [
-        tool, snapBeats, pixelsPerBeat, clip.id, clip.notes, totalBeats,
+        snapBeats, pixelsPerBeat, clip.id, clip.notes, totalBeats,
         pitchToRow, rowToPitch, snapToGrid, addNote, deleteNote,
         previewSynth, project?.bpm, isDragging
     ]);
@@ -257,22 +222,70 @@ export function PianoRoll({ clip }: PianoRollProps) {
 
     // Delete selected notes
     const handleDeleteSelected = useCallback(() => {
+        if (selectedNoteIds.size === 0) return;
         selectedNoteIds.forEach((id) => {
             deleteNote(clip.id, id);
         });
         setSelectedNoteIds(new Set());
     }, [clip.id, selectedNoteIds, deleteNote]);
 
-    // Keyboard shortcuts
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Delete' || e.key === 'Backspace') {
+    // Keyboard shortcuts - only when piano roll container is focused
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        // Delete selected notes
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            if (selectedNoteIds.size > 0) {
+                e.preventDefault();
+                e.stopPropagation();
                 handleDeleteSelected();
             }
+        }
+    }, [handleDeleteSelected, selectedNoteIds.size]);
+
+    // Handle note resize start
+    const handleResizeStart = useCallback((noteId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const note = clip.notes?.find(n => n.id === noteId);
+        if (!note) return;
+
+        setResizingNote({
+            id: noteId,
+            startDuration: note.duration,
+            startX: e.clientX,
+        });
+        setIsDragging(true);
+    }, [clip.notes]);
+
+    // Handle mouse move for resizing
+    useEffect(() => {
+        if (!resizingNote) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const deltaX = e.clientX - resizingNote.startX;
+            const deltaDuration = deltaX / pixelsPerBeat;
+            const newDuration = Math.max(snapBeats, snapToGrid(resizingNote.startDuration + deltaDuration));
+
+            // Don't allow resizing beyond clip length
+            const note = clip.notes?.find(n => n.id === resizingNote.id);
+            if (note) {
+                const maxDuration = totalBeats - note.startBeat;
+                const clampedDuration = Math.min(newDuration, maxDuration);
+                updateNote(clip.id, resizingNote.id, { duration: clampedDuration });
+            }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleDeleteSelected]);
+
+        const handleMouseUp = () => {
+            setResizingNote(null);
+            setIsDragging(false);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [resizingNote, pixelsPerBeat, snapBeats, snapToGrid, clip.id, clip.notes, totalBeats, updateNote]);
 
     // Zoom controls
     const zoomIn = () => setPixelsPerBeat((p) => Math.min(p * 1.25, MAX_PIXELS_PER_BEAT));
@@ -296,7 +309,13 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const isCompatible = clip.type === 'midi';
 
     return (
-        <div className="flex h-full flex-col">
+        <div
+            className="flex h-full flex-col outline-none"
+            tabIndex={0}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setEditorFocused(true)}
+            onBlur={() => setEditorFocused(false)}
+        >
             {/* Incompatible clip warning */}
             {!isCompatible && (
                 <div className="flex items-center gap-2 border-b border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
@@ -309,48 +328,6 @@ export function PianoRoll({ clip }: PianoRollProps) {
 
             {/* Toolbar */}
             <div className="flex items-center gap-3 border-b border-border bg-surface px-3 py-1.5">
-                {/* Tool selection */}
-                <div className="flex items-center gap-0.5 rounded-md bg-background p-0.5">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={tool === 'select' ? 'default' : 'ghost'}
-                                size="icon-sm"
-                                onClick={() => setTool('select')}
-                            >
-                                <MousePointer2 className="h-3.5 w-3.5" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Select (V)</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={tool === 'draw' ? 'default' : 'ghost'}
-                                size="icon-sm"
-                                onClick={() => setTool('draw')}
-                                disabled={!isCompatible}
-                            >
-                                <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Draw (B)</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={tool === 'erase' ? 'default' : 'ghost'}
-                                size="icon-sm"
-                                onClick={() => setTool('erase')}
-                                disabled={!isCompatible}
-                            >
-                                <Eraser className="h-3.5 w-3.5" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Erase (E)</TooltipContent>
-                    </Tooltip>
-                </div>
-
                 {/* Snap selector */}
                 <div className="flex items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">Snap:</span>
@@ -509,6 +486,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                                     height={NOTE_HEIGHT - 1}
                                     isSelected={isSelected}
                                     isInScale={isInScale(note.pitch)}
+                                    onResizeStart={(e) => handleResizeStart(note.id, e)}
                                 />
                             );
                         })}
@@ -556,6 +534,7 @@ interface NoteBlockProps {
     height: number;
     isSelected: boolean;
     isInScale: boolean;
+    onResizeStart: (e: React.MouseEvent) => void;
 }
 
 const NoteBlock = memo(function NoteBlock({
@@ -566,11 +545,12 @@ const NoteBlock = memo(function NoteBlock({
     height,
     isSelected,
     isInScale,
+    onResizeStart,
 }: NoteBlockProps) {
     return (
         <div
             className={`
-                absolute rounded-sm border transition-all cursor-pointer
+                absolute rounded-sm border transition-colors cursor-pointer
                 ${isSelected
                     ? 'bg-accent border-accent-foreground ring-1 ring-accent-foreground'
                     : isInScale
@@ -587,7 +567,10 @@ const NoteBlock = memo(function NoteBlock({
             }}
         >
             {/* Resize handle (right edge) */}
-            <div className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-white/30" />
+            <div
+                className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/50 active:bg-white/70"
+                onMouseDown={onResizeStart}
+            />
         </div>
     );
 });

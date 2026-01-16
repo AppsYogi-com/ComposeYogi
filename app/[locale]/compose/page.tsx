@@ -62,6 +62,7 @@ function ComposePageContent() {
     const browserOpen = useUIStore((s) => s.browserOpen);
     const inspectorOpen = useUIStore((s) => s.inspectorOpen);
     const editorOpen = useUIStore((s) => s.editorOpen);
+    const editorFocused = useUIStore((s) => s.editorFocused);
     const visualizerOpen = useUIStore((s) => s.visualizerOpen);
     const toggleBrowser = useUIStore((s) => s.toggleBrowser);
     const toggleInspector = useUIStore((s) => s.toggleInspector);
@@ -280,14 +281,17 @@ function ComposePageContent() {
         useUIStore.getState().setZoom(80); // Default zoom
     }, { enableOnFormTags: false });
 
-    // Delete/Backspace: Delete selected clips
+    // Delete/Backspace: Delete selected clips (skip if editor has focus - editor handles its own delete)
     useHotkeys('delete, backspace', (e) => {
+        // Don't delete clips if the editor is focused - let the editor handle note deletion
+        if (editorFocused) return;
+
         e.preventDefault();
         if (selectedClipIds.length > 0) {
             deleteClips(selectedClipIds);
             clearSelection();
         }
-    }, { enableOnFormTags: false }, [selectedClipIds, deleteClips, clearSelection]);
+    }, { enableOnFormTags: false }, [selectedClipIds, deleteClips, clearSelection, editorFocused]);
 
     // Handle latency calibration result
     const handleCalibrationComplete = useCallback((result: LatencyCalibrationResult) => {

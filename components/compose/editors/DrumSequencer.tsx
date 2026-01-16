@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { Check, AlertCircle } from 'lucide-react';
-import { useProjectStore } from '@/lib/store';
+import { useProjectStore, useUIStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -13,7 +13,8 @@ import type { Clip, Note } from '@/types';
 import * as Tone from 'tone';
 
 // ============================================
-// Drum Sound Definitions
+// Drum Sound Definitions (General MIDI Percussion)
+// Full GM percussion set: MIDI notes 35-81
 // ============================================
 
 interface DrumSound {
@@ -23,19 +24,73 @@ interface DrumSound {
     color: string;
 }
 
+// Full General MIDI Percussion Map (organized by category)
 const DRUM_SOUNDS: DrumSound[] = [
-    { name: 'Kick', shortName: 'KCK', pitch: 36, color: 'bg-red-500' },
-    { name: 'Snare', shortName: 'SNR', pitch: 38, color: 'bg-orange-500' },
+    // Kicks (35-36)
+    { name: 'Acoustic Bass Drum', shortName: 'BD1', pitch: 35, color: 'bg-red-600' },
+    { name: 'Bass Drum 1', shortName: 'BD2', pitch: 36, color: 'bg-red-500' },
+
+    // Snares & Rim (37-40)
+    { name: 'Side Stick', shortName: 'STK', pitch: 37, color: 'bg-orange-600' },
+    { name: 'Acoustic Snare', shortName: 'SN1', pitch: 38, color: 'bg-orange-500' },
+    { name: 'Hand Clap', shortName: 'CLP', pitch: 39, color: 'bg-pink-500' },
+    { name: 'Electric Snare', shortName: 'SN2', pitch: 40, color: 'bg-orange-400' },
+
+    // Toms (41, 43, 45, 47, 48, 50)
+    { name: 'Low Floor Tom', shortName: 'LFT', pitch: 41, color: 'bg-purple-600' },
+    { name: 'High Floor Tom', shortName: 'HFT', pitch: 43, color: 'bg-purple-500' },
+    { name: 'Low Tom', shortName: 'LTM', pitch: 45, color: 'bg-purple-400' },
+    { name: 'Low-Mid Tom', shortName: 'LMT', pitch: 47, color: 'bg-purple-300' },
+    { name: 'Hi-Mid Tom', shortName: 'HMT', pitch: 48, color: 'bg-violet-400' },
+    { name: 'High Tom', shortName: 'HTM', pitch: 50, color: 'bg-violet-300' },
+
+    // Hi-Hats (42, 44, 46)
     { name: 'Closed Hi-Hat', shortName: 'CHH', pitch: 42, color: 'bg-yellow-500' },
+    { name: 'Pedal Hi-Hat', shortName: 'PHH', pitch: 44, color: 'bg-yellow-400' },
     { name: 'Open Hi-Hat', shortName: 'OHH', pitch: 46, color: 'bg-yellow-600' },
-    { name: 'Clap', shortName: 'CLP', pitch: 39, color: 'bg-pink-500' },
-    { name: 'Low Tom', shortName: 'LTM', pitch: 45, color: 'bg-purple-500' },
-    { name: 'Mid Tom', shortName: 'MTM', pitch: 47, color: 'bg-purple-400' },
-    { name: 'High Tom', shortName: 'HTM', pitch: 50, color: 'bg-purple-300' },
-    { name: 'Ride', shortName: 'RDE', pitch: 51, color: 'bg-cyan-500' },
-    { name: 'Crash', shortName: 'CRS', pitch: 49, color: 'bg-cyan-400' },
-    { name: 'Rim', shortName: 'RIM', pitch: 37, color: 'bg-green-500' },
-    { name: 'Perc', shortName: 'PRC', pitch: 56, color: 'bg-emerald-500' },
+
+    // Cymbals (49, 51, 52, 53, 55, 57, 59)
+    { name: 'Crash Cymbal 1', shortName: 'CR1', pitch: 49, color: 'bg-cyan-500' },
+    { name: 'Ride Cymbal 1', shortName: 'RD1', pitch: 51, color: 'bg-cyan-400' },
+    { name: 'Chinese Cymbal', shortName: 'CHN', pitch: 52, color: 'bg-cyan-600' },
+    { name: 'Ride Bell', shortName: 'RBL', pitch: 53, color: 'bg-sky-400' },
+    { name: 'Splash Cymbal', shortName: 'SPL', pitch: 55, color: 'bg-sky-500' },
+    { name: 'Crash Cymbal 2', shortName: 'CR2', pitch: 57, color: 'bg-cyan-300' },
+    { name: 'Ride Cymbal 2', shortName: 'RD2', pitch: 59, color: 'bg-sky-300' },
+
+    // Latin - Bongos & Congas (60-64)
+    { name: 'Hi Bongo', shortName: 'HBG', pitch: 60, color: 'bg-amber-500' },
+    { name: 'Low Bongo', shortName: 'LBG', pitch: 61, color: 'bg-amber-600' },
+    { name: 'Mute Hi Conga', shortName: 'MHC', pitch: 62, color: 'bg-orange-700' },
+    { name: 'Open Hi Conga', shortName: 'OHC', pitch: 63, color: 'bg-amber-700' },
+    { name: 'Low Conga', shortName: 'LCG', pitch: 64, color: 'bg-amber-800' },
+
+    // Latin - Timbales (65-66)
+    { name: 'High Timbale', shortName: 'HTB', pitch: 65, color: 'bg-rose-400' },
+    { name: 'Low Timbale', shortName: 'LTB', pitch: 66, color: 'bg-rose-500' },
+
+    // Latin - Agogo & Bells (67-68, 56)
+    { name: 'High Agogo', shortName: 'HAG', pitch: 67, color: 'bg-emerald-400' },
+    { name: 'Low Agogo', shortName: 'LAG', pitch: 68, color: 'bg-emerald-500' },
+    { name: 'Cowbell', shortName: 'COW', pitch: 56, color: 'bg-lime-500' },
+
+    // Shakers & Tambourine (54, 69-71)
+    { name: 'Tambourine', shortName: 'TMB', pitch: 54, color: 'bg-yellow-300' },
+    { name: 'Cabasa', shortName: 'CAB', pitch: 69, color: 'bg-green-400' },
+    { name: 'Maracas', shortName: 'MRC', pitch: 70, color: 'bg-green-500' },
+    { name: 'Short Whistle', shortName: 'SWH', pitch: 71, color: 'bg-blue-300' },
+
+    // More Percussion (72-81)
+    { name: 'Long Whistle', shortName: 'LWH', pitch: 72, color: 'bg-blue-400' },
+    { name: 'Short Guiro', shortName: 'SGU', pitch: 73, color: 'bg-lime-400' },
+    { name: 'Long Guiro', shortName: 'LGU', pitch: 74, color: 'bg-lime-600' },
+    { name: 'Claves', shortName: 'CLV', pitch: 75, color: 'bg-red-400' },
+    { name: 'Hi Wood Block', shortName: 'HWB', pitch: 76, color: 'bg-amber-300' },
+    { name: 'Low Wood Block', shortName: 'LWB', pitch: 77, color: 'bg-amber-400' },
+    { name: 'Mute Cuica', shortName: 'MCU', pitch: 78, color: 'bg-fuchsia-400' },
+    { name: 'Open Cuica', shortName: 'OCU', pitch: 79, color: 'bg-fuchsia-500' },
+    { name: 'Mute Triangle', shortName: 'MTR', pitch: 80, color: 'bg-indigo-300' },
+    { name: 'Open Triangle', shortName: 'OTR', pitch: 81, color: 'bg-indigo-400' },
 ];
 
 // Pattern presets
@@ -71,6 +126,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
     const deleteNote = useProjectStore((s) => s.deleteNote);
     const updateNote = useProjectStore((s) => s.updateNote);
     const project = useProjectStore((s) => s.project);
+    const setEditorFocused = useUIStore((s) => s.setEditorFocused);
 
     const [_velocityEditing, setVelocityEditing] = useState<string | null>(null);
     const [previewSynth, setPreviewSynth] = useState<Tone.MembraneSynth | null>(null);
@@ -226,7 +282,12 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
     const ROW_HEIGHT = 28;
 
     return (
-        <div className="flex h-full flex-col">
+        <div
+            className="flex h-full flex-col outline-none"
+            tabIndex={0}
+            onFocus={() => setEditorFocused(true)}
+            onBlur={() => setEditorFocused(false)}
+        >
             {/* Incompatible clip warning */}
             {!isCompatible && (
                 <div className="flex items-center gap-2 border-b border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
@@ -267,95 +328,129 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                 </Button>
             </div>
 
-            {/* Grid + Beat numbers in same scroll container */}
-            <div className="flex flex-1 overflow-hidden">
-                {/* Row labels - aligned to grid */}
-                <div className="flex w-16 flex-shrink-0 flex-col border-r border-border bg-surface">
-                    {DRUM_SOUNDS.map((sound, rowIndex) => (
-                        <Tooltip key={sound.name}>
-                            <TooltipTrigger asChild>
-                                <button
-                                    className="flex items-center gap-1 px-1.5 text-2xs text-muted-foreground hover:bg-accent/10 hover:text-foreground transition-colors border-b border-border"
-                                    style={{ height: ROW_HEIGHT }}
-                                    onClick={() => previewSound(rowIndex)}
-                                >
-                                    <div className={`h-2 w-2 rounded-full ${sound.color}`} />
-                                    <span className="truncate">{sound.shortName}</span>
-                                </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                                <p>{sound.name}</p>
-                                <p className="text-2xs text-muted-foreground">Click to preview</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    ))}
-                    {/* Beat label at bottom of row labels */}
-                    <div className="flex h-6 items-center justify-center border-t border-border">
-                        <span className="text-2xs text-muted-foreground">Beat</span>
-                    </div>
-                </div>
-
-                {/* Step grid + beat numbers in same scrollable container */}
-                <div
-                    ref={gridRef}
-                    className="flex-1 overflow-x-auto overflow-y-hidden"
-                >
-                    <div style={{ minWidth: steps * 28 }}>
-                        {/* Grid */}
-                        <div
-                            className="grid"
-                            style={{
-                                gridTemplateColumns: `repeat(${steps}, 1fr)`,
-                                gridTemplateRows: `repeat(${DRUM_SOUNDS.length}, ${ROW_HEIGHT}px)`,
-                            }}
-                        >
-                            {DRUM_SOUNDS.map((sound, rowIndex) =>
-                                Array.from({ length: steps }).map((_, stepIndex) => {
-                                    const key = `${rowIndex}-${stepIndex}`;
-                                    const note = gridState.get(key);
-                                    const isActive = !!note;
-                                    const isDownbeat = stepIndex % (stepsPerBeat * beatsPerBar) === 0;
-                                    const isBeat = stepIndex % stepsPerBeat === 0;
-                                    const velocity = note?.velocity ?? 100;
-
-                                    return (
+            {/* Main content area */}
+            <div className="flex flex-col flex-1 overflow-hidden">
+                {/* Scrollable grid area */}
+                <div className="flex flex-1 overflow-hidden">
+                    {/* Row labels - synced vertical scroll with grid */}
+                    <div
+                        className="w-16 flex-shrink-0 border-r border-border bg-surface overflow-y-auto overflow-x-hidden scrollbar-hide"
+                        onScroll={(e) => {
+                            // Sync scroll with grid
+                            if (gridRef.current) {
+                                gridRef.current.scrollTop = e.currentTarget.scrollTop;
+                            }
+                        }}
+                    >
+                        <div className="flex flex-col">
+                            {DRUM_SOUNDS.map((sound, rowIndex) => (
+                                <Tooltip key={sound.name}>
+                                    <TooltipTrigger asChild>
                                         <button
-                                            key={key}
-                                            className={`
+                                            className="flex items-center gap-1 px-1.5 text-2xs text-muted-foreground hover:bg-accent/10 hover:text-foreground transition-colors border-b border-border flex-shrink-0"
+                                            style={{ height: ROW_HEIGHT }}
+                                            onClick={() => previewSound(rowIndex)}
+                                        >
+                                            <div className={`h-2 w-2 rounded-full ${sound.color}`} />
+                                            <span className="truncate">{sound.shortName}</span>
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        <p>{sound.name}</p>
+                                        <p className="text-2xs text-muted-foreground">Click to preview</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Step grid - scrollable */}
+                    <div
+                        ref={gridRef}
+                        className="flex-1 overflow-auto"
+                        onScroll={(e) => {
+                            // Sync vertical scroll with row labels
+                            const labelContainer = e.currentTarget.previousElementSibling;
+                            if (labelContainer) {
+                                labelContainer.scrollTop = e.currentTarget.scrollTop;
+                            }
+                            // Sync horizontal scroll with beat numbers
+                            const beatRow = document.getElementById('drum-beat-numbers');
+                            if (beatRow) {
+                                beatRow.scrollLeft = e.currentTarget.scrollLeft;
+                            }
+                        }}
+                    >
+                        <div style={{ minWidth: steps * 28 }}>
+                            {/* Grid */}
+                            <div
+                                className="grid"
+                                style={{
+                                    gridTemplateColumns: `repeat(${steps}, 1fr)`,
+                                    gridTemplateRows: `repeat(${DRUM_SOUNDS.length}, ${ROW_HEIGHT}px)`,
+                                }}
+                            >
+                                {DRUM_SOUNDS.map((sound, rowIndex) =>
+                                    Array.from({ length: steps }).map((_, stepIndex) => {
+                                        const key = `${rowIndex}-${stepIndex}`;
+                                        const note = gridState.get(key);
+                                        const isActive = !!note;
+                                        const isDownbeat = stepIndex % (stepsPerBeat * beatsPerBar) === 0;
+                                        const isBeat = stepIndex % stepsPerBeat === 0;
+                                        const velocity = note?.velocity ?? 100;
+
+                                        return (
+                                            <button
+                                                key={key}
+                                                className={`
                                                 relative transition-all duration-75 border-b border-r border-border
                                                 ${isDownbeat ? 'bg-surface border-l-2 border-l-accent/50' : isBeat ? 'bg-surface/80 border-l border-l-border' : 'bg-background/60'}
                                                 hover:bg-accent/20
                                             `}
-                                            onClick={() => toggleStep(rowIndex, stepIndex)}
-                                            onContextMenu={(e) => {
-                                                e.preventDefault();
-                                                if (note) {
-                                                    setVelocityEditing(note.id);
-                                                }
-                                            }}
-                                        >
-                                            {isActive && (
-                                                <div
-                                                    className={`
+                                                onClick={() => toggleStep(rowIndex, stepIndex)}
+                                                onContextMenu={(e) => {
+                                                    e.preventDefault();
+                                                    if (note) {
+                                                        setVelocityEditing(note.id);
+                                                    }
+                                                }}
+                                            >
+                                                {isActive && (
+                                                    <div
+                                                        className={`
                                                         absolute inset-1 rounded-sm ${sound.color}
                                                         transition-opacity
                                                     `}
-                                                    style={{
-                                                        opacity: 0.5 + (velocity / 127) * 0.5,
-                                                    }}
-                                                />
-                                            )}
-                                        </button>
-                                    );
-                                })
-                            )}
+                                                        style={{
+                                                            opacity: 0.5 + (velocity / 127) * 0.5,
+                                                        }}
+                                                    />
+                                                )}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Beat numbers - inside same scroll container */}
+                {/* Beat numbers row - fixed at bottom, synced horizontal scroll */}
+                <div className="flex border-t border-border bg-surface flex-shrink-0">
+                    {/* Beat label */}
+                    <div className="w-16 flex-shrink-0 flex items-center justify-center border-r border-border h-6">
+                        <span className="text-2xs text-muted-foreground">Beat</span>
+                    </div>
+                    {/* Beat numbers - horizontal scroll synced with grid */}
+                    <div
+                        id="drum-beat-numbers"
+                        className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-hide"
+                    >
                         <div
-                            className="grid border-t border-border bg-surface"
+                            className="grid"
                             style={{
                                 gridTemplateColumns: `repeat(${steps}, 1fr)`,
+                                minWidth: steps * 28,
                             }}
                         >
                             {Array.from({ length: steps }).map((_, i) => {
@@ -375,9 +470,9 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                     <div
                                         key={i}
                                         className={`
-                                            flex h-6 items-center justify-center text-2xs border-r border-border
-                                            ${isDownbeat ? 'text-foreground font-medium bg-accent/10' : isBeat ? 'text-foreground' : 'text-muted-foreground/30'}
-                                        `}
+                                        flex h-6 items-center justify-center text-2xs border-r border-border
+                                        ${isDownbeat ? 'text-foreground font-medium bg-accent/10' : isBeat ? 'text-foreground' : 'text-muted-foreground/30'}
+                                    `}
                                         title={`Beat ${beatNumber}.${subBeat} (Step ${i + 1})`}
                                     >
                                         {label}
