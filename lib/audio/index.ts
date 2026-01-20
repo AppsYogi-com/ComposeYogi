@@ -20,8 +20,8 @@ export {
     clearAudioTakes,
 } from './recording-manager';
 export { exportProjectToMidi, downloadProjectAsMidi } from './export';
-export { 
-    exportProjectToWav, 
+export {
+    exportProjectToWav,
     downloadProjectAsWav,
     downloadProjectAsMp3,
     renderProjectToAudioBuffer,

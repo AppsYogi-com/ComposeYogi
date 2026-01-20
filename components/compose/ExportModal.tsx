@@ -246,8 +246,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                     {exportType === 'mp3' && progress < 50
                                         ? 'Rendering audio...'
                                         : exportType === 'mp3' && progress >= 50
-                                          ? 'Encoding MP3...'
-                                          : 'Rendering audio...'}
+                                            ? 'Encoding MP3...'
+                                            : 'Rendering audio...'}
                                 </span>
                             </div>
 

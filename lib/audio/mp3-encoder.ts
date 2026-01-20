@@ -3,7 +3,9 @@
 // Encode AudioBuffer to MP3 using lamejs
 // ============================================
 
-import lamejs from 'lamejs';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Mp3Encoder');
 
 // ============================================
 // Types
@@ -14,6 +16,57 @@ export type Mp3Quality = 128 | 192 | 320;
 export interface Mp3EncoderOptions {
     quality?: Mp3Quality;
     onProgress?: (progress: number) => void;
+}
+
+// Type for the lamejs global that gets attached to window
+interface LamejsGlobal {
+    Mp3Encoder: new (channels: number, sampleRate: number, kbps: number) => {
+        encodeBuffer: (left: Int16Array, right?: Int16Array) => Int8Array;
+        flush: () => Int8Array;
+    };
+}
+
+// Global lamejs reference once loaded
+let lamejsLoaded = false;
+
+/**
+ * Load the pre-bundled lamejs library via script tag
+ * This bypasses webpack bundling issues with lamejs's CommonJS internals
+ */
+async function loadLamejs(): Promise<LamejsGlobal> {
+    // Check if already loaded
+    if (lamejsLoaded && 'lamejs' in window) {
+        return (window as unknown as { lamejs: LamejsGlobal }).lamejs;
+    }
+
+    // Check if script already exists
+    const existingScript = document.querySelector('script[src="/workers/lame.min.js"]');
+    if (existingScript && 'lamejs' in window) {
+        lamejsLoaded = true;
+        return (window as unknown as { lamejs: LamejsGlobal }).lamejs;
+    }
+
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = '/workers/lame.min.js';
+        script.async = true;
+
+        script.onload = () => {
+            if ('lamejs' in window) {
+                lamejsLoaded = true;
+                log.info('lamejs library loaded successfully');
+                resolve((window as unknown as { lamejs: LamejsGlobal }).lamejs);
+            } else {
+                reject(new Error('lamejs loaded but not found on window'));
+            }
+        };
+
+        script.onerror = () => {
+            reject(new Error('Failed to load lamejs library'));
+        };
+
+        document.head.appendChild(script);
+    });
 }
 
 // ============================================
@@ -30,9 +83,16 @@ export async function encodeAudioBufferToMp3(
 ): Promise<Blob> {
     const { quality = 192, onProgress } = options;
 
+    // Load lamejs dynamically via script tag (avoids webpack bundling issues)
+    const lamejs = await loadLamejs();
+
     const numChannels = audioBuffer.numberOfChannels;
     const sampleRate = audioBuffer.sampleRate;
     const samples = audioBuffer.length;
+
+    log.info(
+        `Encoding MP3: ${numChannels}ch, ${sampleRate}Hz, ${samples} samples, ${quality}kbps`
+    );
 
     // Create MP3 encoder
     const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, quality);
@@ -74,7 +134,7 @@ export async function encodeAudioBufferToMp3(
 
         // Yield to event loop every 100 chunks to keep UI responsive
         if ((i / chunkSize) % 100 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
     }
 
@@ -85,6 +145,8 @@ export async function encodeAudioBufferToMp3(
     }
 
     onProgress?.(100);
+
+    log.info(`MP3 encoding complete: ${mp3Data.length} chunks`);
 
     // Combine all chunks into single Blob
     // Cast to BlobPart[] for TypeScript compatibility
@@ -100,7 +162,7 @@ function floatTo16BitPCM(float32Array: Float32Array): Int16Array {
         // Clamp to -1 to 1 range
         const sample = Math.max(-1, Math.min(1, float32Array[i]));
         // Convert to 16-bit integer
-        int16Array[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+        int16Array[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
     }
     return int16Array;
 }
