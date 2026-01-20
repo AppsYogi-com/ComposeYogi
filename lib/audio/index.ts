@@ -40,3 +40,18 @@ export {
     type ImportResult,
     type MidiImportPreview,
 } from './project-io';
+export {
+    importAudioFile,
+    importAudioFiles,
+    getUserSamples,
+    getUserSample,
+    removeUserSample,
+    getUserSampleAudioBuffer,
+    createSamplePreviewUrl,
+    validateAudioFile,
+    MAX_FILE_SIZE,
+    SUPPORTED_EXTENSIONS,
+    type ImportProgress,
+    type ImportOptions,
+    type ValidationResult,
+} from './sample-import';

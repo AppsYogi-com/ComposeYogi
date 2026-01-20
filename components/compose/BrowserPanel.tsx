@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
     LayoutTemplate,
     Piano,
@@ -9,10 +9,13 @@ import {
     ChevronRight,
     ChevronDown,
     Search,
-    Plus,
     PlusCircle,
     GripVertical,
     Play,
+    Trash2,
+    Upload,
+    Loader2,
+    FolderOpen,
 } from 'lucide-react';
 import { useUIStore, useProjectStore } from '@/lib/store';
 import { Button } from '@/components/ui';
@@ -35,6 +38,18 @@ import {
     type SampleItem,
     type FXPreset,
 } from '@/lib/browser';
+import {
+    importAudioFile,
+    getUserSamples,
+    removeUserSample,
+    createSamplePreviewUrl,
+    SUPPORTED_EXTENSIONS,
+} from '@/lib/audio';
+import type { UserSample } from '@/types';
+import { createLogger } from '@/lib/logger';
+import { toast } from 'sonner';
+
+const log = createLogger('BrowserPanel');
 
 // ============================================
 // Tab Configuration
@@ -70,13 +85,34 @@ const getTrackColorClass = (color: string): string => {
 export function BrowserPanel() {
     const [activeTab, setActiveTab] = useState<BrowserTab>('templates');
     const [searchQuery, setSearchQuery] = useState('');
-    const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['drums']));
+    const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['drums', 'user-samples']));
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['synth', 'reverb']));
+
+    // User samples state
+    const [userSamples, setUserSamples] = useState<UserSample[]>([]);
+    const [isImporting, setIsImporting] = useState(false);
+    const [previewingId, setPreviewingId] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
     const toggleBrowser = useUIStore((s) => s.toggleBrowser);
     const createProject = useProjectStore((s) => s.createProject);
     const addTrack = useProjectStore((s) => s.addTrack);
     const updateTrack = useProjectStore((s) => s.updateTrack);
+
+    const loadUserSamples = useCallback(async () => {
+        try {
+            const samples = await getUserSamples();
+            setUserSamples(samples);
+        } catch (error) {
+            log.error('Failed to load user samples', error);
+        }
+    }, []);
+
+    // Load user samples on mount
+    useEffect(() => {
+        loadUserSamples();
+    }, [loadUserSamples]);
 
     const toggleFolder = useCallback((folderId: string) => {
         setExpandedFolders((prev) => {
@@ -134,6 +170,115 @@ export function BrowserPanel() {
         }));
         e.dataTransfer.effectAllowed = 'copy';
     }, []);
+
+    // ========================================
+    // User Sample Handlers
+    // ========================================
+
+    const handleImportClick = useCallback(() => {
+        fileInputRef.current?.click();
+    }, []);
+
+    const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        setIsImporting(true);
+
+        try {
+            for (const file of Array.from(files)) {
+                try {
+                    await importAudioFile(file, {
+                        onProgress: (progress) => {
+                            log.debug('Import progress', { stage: progress.stage, progress: progress.progress });
+                        },
+                    });
+                    toast.success(`Imported "${file.name}"`);
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : 'Unknown error';
+                    toast.error(`Failed to import "${file.name}": ${message}`);
+                    log.error('Import failed', { file: file.name, error });
+                }
+            }
+            // Reload samples list
+            await loadUserSamples();
+        } finally {
+            setIsImporting(false);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    }, [loadUserSamples]);
+
+    const handleUserSampleDrag = useCallback((e: React.DragEvent, sample: UserSample) => {
+        e.dataTransfer.setData('application/json', JSON.stringify({
+            type: 'user-sample',
+            data: {
+                id: sample.id,
+                name: sample.name,
+                duration: sample.duration,
+                sampleRate: sample.sampleRate,
+            },
+        }));
+        e.dataTransfer.effectAllowed = 'copy';
+    }, []);
+
+    const handleUserSampleClick = useCallback((sample: UserSample) => {
+        // Stop any currently playing preview
+        if (previewAudioRef.current) {
+            previewAudioRef.current.pause();
+            previewAudioRef.current = null;
+        }
+
+        // If clicking the same sample that's playing, just stop it
+        if (previewingId === sample.id) {
+            setPreviewingId(null);
+            return;
+        }
+
+        // Create and play preview
+        const url = createSamplePreviewUrl(sample);
+        const audio = new Audio(url);
+        previewAudioRef.current = audio;
+        setPreviewingId(sample.id);
+
+        audio.onended = () => {
+            URL.revokeObjectURL(url);
+            setPreviewingId(null);
+            previewAudioRef.current = null;
+        };
+
+        audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            setPreviewingId(null);
+            previewAudioRef.current = null;
+            toast.error('Failed to play sample');
+        };
+
+        audio.play().catch((err) => {
+            log.error('Failed to play preview', err);
+            URL.revokeObjectURL(url);
+            setPreviewingId(null);
+        });
+    }, [previewingId]);
+
+    const handleDeleteUserSample = useCallback(async (e: React.MouseEvent, sample: UserSample) => {
+        e.stopPropagation();
+
+        if (!confirm(`Delete "${sample.name}"? This cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await removeUserSample(sample.id);
+            toast.success(`Deleted "${sample.name}"`);
+            await loadUserSamples();
+        } catch (error) {
+            toast.error('Failed to delete sample');
+            log.error('Delete failed', error);
+        }
+    }, [loadUserSamples]);
 
     // ========================================
     // Template Click Handler
@@ -301,9 +446,87 @@ export function BrowserPanel() {
     // Render Samples Tab
     // ========================================
 
+    const formatDuration = (seconds: number): string => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     const renderSamples = () => {
+        // Filter user samples by search
+        const filteredUserSamples = userSamples.filter((s) =>
+            s.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+        const showUserSamplesFolder = !searchQuery || filteredUserSamples.length > 0;
+        const isUserSamplesExpanded = expandedFolders.has('user-samples');
+
         return (
             <div className="p-2">
+                {/* User Samples Folder */}
+                {showUserSamplesFolder && (
+                    <div className="mb-1">
+                        <button
+                            onClick={() => toggleFolder('user-samples')}
+                            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-elevated"
+                        >
+                            <span className="text-muted-foreground">
+                                {isUserSamplesExpanded ? (
+                                    <ChevronDown className="h-3 w-3" />
+                                ) : (
+                                    <ChevronRight className="h-3 w-3" />
+                                )}
+                            </span>
+                            <FolderOpen className="h-4 w-4 text-accent" />
+                            <span className="font-medium text-accent">My Samples</span>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                                {userSamples.length}
+                            </span>
+                        </button>
+                        {isUserSamplesExpanded && (
+                            <div className="ml-4">
+                                {filteredUserSamples.length === 0 ? (
+                                    <p className="py-2 px-2 text-xs text-muted-foreground italic">
+                                        No imported samples yet
+                                    </p>
+                                ) : (
+                                    filteredUserSamples.map((sample) => (
+                                        <div
+                                            key={sample.id}
+                                            draggable
+                                            onClick={() => handleUserSampleClick(sample)}
+                                            onDragStart={(e) => handleUserSampleDrag(e, sample)}
+                                            className={`flex items-center gap-2 rounded px-2 py-1.5 text-sm cursor-grab active:cursor-grabbing hover:bg-surface-elevated group ${previewingId === sample.id ? 'bg-accent/10' : ''
+                                                }`}
+                                        >
+                                            <GripVertical className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                                            {previewingId === sample.id ? (
+                                                <Play className="h-4 w-4 text-accent animate-pulse" />
+                                            ) : (
+                                                <Music className="h-4 w-4 text-accent/70" />
+                                            )}
+                                            <span className="flex-1 text-foreground truncate">
+                                                {sample.name}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground">
+                                                {formatDuration(sample.duration)}
+                                            </span>
+                                            <button
+                                                onClick={(e) => handleDeleteUserSample(e, sample)}
+                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-all"
+                                                aria-label="Delete sample"
+                                            >
+                                                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Built-in Sample Folders */}
                 {SAMPLE_FOLDERS.map((folder) => {
                     const isExpanded = expandedFolders.has(folder.id);
                     const filteredSamples = filterBySearch(folder.samples);
@@ -510,14 +733,36 @@ export function BrowserPanel() {
             {/* Footer: Import (only show for samples tab) */}
             {activeTab === 'samples' && (
                 <div className="border-t border-border p-2">
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={SUPPORTED_EXTENSIONS.join(',')}
+                        multiple
+                        onChange={handleFileSelect}
+                        className="hidden"
+                    />
                     <Button
                         variant="outline"
                         size="sm"
                         className="w-full justify-start gap-2"
+                        onClick={handleImportClick}
+                        disabled={isImporting}
                     >
-                        <Plus className="h-4 w-4" />
-                        Import Audio
+                        {isImporting ? (
+                            <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Importing...
+                            </>
+                        ) : (
+                            <>
+                                <Upload className="h-4 w-4" />
+                                Import Audio
+                            </>
+                        )}
                     </Button>
+                    <p className="mt-1 text-[10px] text-muted-foreground text-center">
+                        WAV, MP3, OGG, FLAC, M4A (max 50MB)
+                    </p>
                 </div>
             )}
         </aside>

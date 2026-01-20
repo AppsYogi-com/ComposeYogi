@@ -125,6 +125,21 @@ export interface PeaksCache {
     };
 }
 
+export interface UserSample {
+    id: string;
+    name: string;
+    fileName: string;
+    mimeType: string;
+    fileSize: number;
+    audioData: Uint8Array; // Raw audio bytes
+    sampleRate: number;
+    duration: number;      // seconds
+    peaks: PeaksCache;
+    bpm?: number;
+    key?: string;
+    createdAt: number;
+}
+
 // ============================================
 // MIDI Types
 // ============================================

@@ -4,6 +4,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { registerAudioTake } from './recording-manager';
+import { loadUserSample } from '@/lib/persistence/db';
 import type { AudioTake, PeaksCache } from '@/types';
 import { autosaveManager } from '@/lib/persistence';
 
@@ -56,6 +57,45 @@ export async function loadSampleAsAudioTake(url: string, name: string, clipId: s
         return take;
     } catch (error) {
         console.error(`[AudioUtils] Error loading sample ${name}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Loads a user-imported sample from IndexedDB and registers it as an AudioTake
+ * for use on the timeline.
+ */
+export async function loadUserSampleAsAudioTake(
+    userSampleId: string,
+    clipId: string = ''
+): Promise<AudioTake> {
+    try {
+        // 1. Load user sample from IndexedDB
+        const userSample = await loadUserSample(userSampleId);
+        if (!userSample) {
+            throw new Error(`User sample not found: ${userSampleId}`);
+        }
+
+        // 2. Create AudioTake from user sample data
+        const take: AudioTake = {
+            id: uuidv4(),
+            clipId: clipId,
+            audioData: userSample.audioData,
+            sampleRate: userSample.sampleRate,
+            duration: userSample.duration,
+            peaks: userSample.peaks, // Reuse pre-generated peaks
+            createdAt: Date.now(),
+        };
+
+        // 3. Register in memory
+        registerAudioTake(take);
+
+        // 4. Persist to IndexedDB
+        await autosaveManager.saveAudioTakeImmediate(take);
+
+        return take;
+    } catch (error) {
+        console.error(`[AudioUtils] Error loading user sample ${userSampleId}:`, error);
         throw error;
     }
 }

@@ -6,11 +6,12 @@
  * - tracks: Track data (separate for efficient updates)
  * - clips: Clip data (separate for efficient updates)
  * - audioTakes: Audio binary data (large, stored separately)
+ * - userSamples: User-imported audio samples
  * - settings: App-level settings (latency, preferences)
  */
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import type { Project, Track, Clip, AudioTake, PeaksCache } from '@/types';
+import type { Project, Track, Clip, AudioTake, PeaksCache, UserSample } from '@/types';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('DB');
@@ -53,6 +54,13 @@ interface ComposeYogiDB extends DBSchema {
         key: string;
         value: SettingRecord;
     };
+    userSamples: {
+        key: string;
+        value: UserSampleRecord;
+        indexes: {
+            'by-created': number;
+        };
+    };
 }
 
 // Stored versions (some fields stored differently for IndexedDB)
@@ -89,12 +97,27 @@ interface SettingRecord {
     value: unknown;
 }
 
+interface UserSampleRecord {
+    id: string;
+    name: string;
+    fileName: string;
+    mimeType: string;
+    fileSize: number;
+    audioData: ArrayBuffer;
+    sampleRate: number;
+    duration: number;
+    peaks: string; // JSON stringified PeaksCache
+    bpm?: number;
+    key?: string;
+    createdAt: number;
+}
+
 // ============================================
 // Database Instance
 // ============================================
 
 const DB_NAME = 'composeyogi';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBPDatabase<ComposeYogiDB> | null = null;
 
@@ -131,6 +154,12 @@ export async function getDB(): Promise<IDBPDatabase<ComposeYogiDB>> {
             // Settings store
             if (!db.objectStoreNames.contains('settings')) {
                 db.createObjectStore('settings', { keyPath: 'key' });
+            }
+
+            // User samples store (added in v2)
+            if (!db.objectStoreNames.contains('userSamples')) {
+                const sampleStore = db.createObjectStore('userSamples', { keyPath: 'id' });
+                sampleStore.createIndex('by-created', 'createdAt');
             }
         },
         blocked() {
@@ -377,6 +406,88 @@ export async function loadAudioTakesForClip(clipId: string): Promise<AudioTake[]
 export async function deleteAudioTake(takeId: string): Promise<void> {
     const db = await getDB();
     await db.delete('audioTakes', takeId);
+}
+
+// ============================================
+// User Sample Operations
+// ============================================
+
+export async function saveUserSample(sample: UserSample): Promise<void> {
+    const db = await getDB();
+
+    // Convert Uint8Array to ArrayBuffer
+    let audioBuffer: ArrayBuffer;
+    if (sample.audioData instanceof ArrayBuffer) {
+        audioBuffer = sample.audioData;
+    } else {
+        audioBuffer = sample.audioData.slice().buffer;
+    }
+
+    const record: UserSampleRecord = {
+        id: sample.id,
+        name: sample.name,
+        fileName: sample.fileName,
+        mimeType: sample.mimeType,
+        fileSize: sample.fileSize,
+        audioData: audioBuffer,
+        sampleRate: sample.sampleRate,
+        duration: sample.duration,
+        peaks: JSON.stringify(serializePeaks(sample.peaks)),
+        bpm: sample.bpm,
+        key: sample.key,
+        createdAt: sample.createdAt,
+    };
+
+    await db.put('userSamples', record);
+    logger.debug('User sample saved', { id: sample.id, name: sample.name });
+}
+
+export async function loadUserSample(sampleId: string): Promise<UserSample | null> {
+    const db = await getDB();
+    const record = await db.get('userSamples', sampleId);
+    if (!record) return null;
+
+    return {
+        id: record.id,
+        name: record.name,
+        fileName: record.fileName,
+        mimeType: record.mimeType,
+        fileSize: record.fileSize,
+        audioData: new Uint8Array(record.audioData),
+        sampleRate: record.sampleRate,
+        duration: record.duration,
+        peaks: deserializePeaks(JSON.parse(record.peaks)),
+        bpm: record.bpm,
+        key: record.key,
+        createdAt: record.createdAt,
+    };
+}
+
+export async function listUserSamples(): Promise<UserSample[]> {
+    const db = await getDB();
+    const records = await db.getAllFromIndex('userSamples', 'by-created');
+
+    // Return sorted by most recently created first
+    return records.reverse().map((record) => ({
+        id: record.id,
+        name: record.name,
+        fileName: record.fileName,
+        mimeType: record.mimeType,
+        fileSize: record.fileSize,
+        audioData: new Uint8Array(record.audioData),
+        sampleRate: record.sampleRate,
+        duration: record.duration,
+        peaks: deserializePeaks(JSON.parse(record.peaks)),
+        bpm: record.bpm,
+        key: record.key,
+        createdAt: record.createdAt,
+    }));
+}
+
+export async function deleteUserSample(sampleId: string): Promise<void> {
+    const db = await getDB();
+    await db.delete('userSamples', sampleId);
+    logger.debug('User sample deleted', { id: sampleId });
 }
 
 // ============================================

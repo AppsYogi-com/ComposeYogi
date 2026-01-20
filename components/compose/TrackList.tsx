@@ -4,7 +4,7 @@ import { useCallback, useRef, useEffect, useState } from 'react';
 import * as Tone from 'tone';
 import { useTheme } from 'next-themes';
 import { audioEngine } from '@/lib/audio';
-import { loadSampleAsAudioTake } from '@/lib/audio/sample-loader';
+import { loadSampleAsAudioTake, loadUserSampleAsAudioTake } from '@/lib/audio/sample-loader';
 import {
     DndContext,
     closestCenter,
@@ -924,6 +924,41 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                 // Add effect to track
                 const preset = data.data;
                 addTrackEffect(track.id, preset.category, preset.id);
+            } else if (data.type === 'user-sample') {
+                // Handle user-imported samples from IndexedDB
+                const sampleId = data.data.id;
+                const sampleName = data.data.name;
+                const sampleDuration = data.data.duration;
+
+                if (!sampleId) {
+                    console.error('[TrackLane] Dropped user sample has no ID');
+                    return;
+                }
+
+                // 1. Create audio clip with estimated duration
+                const estimatedBars = audioEngine.secondsToBar(sampleDuration || 2);
+                const clip = addClip(track.id, 'audio', bar, Math.max(0.25, estimatedBars));
+
+                // 2. Set name immediately
+                useProjectStore.getState().updateClip(clip.id, { name: sampleName });
+                selectClip(clip.id);
+
+                // 3. Load user sample from IndexedDB as AudioTake
+                loadUserSampleAsAudioTake(sampleId, clip.id)
+                    .then((take) => {
+                        // 4. Update clip with correct duration and link to take
+                        const durationInBars = audioEngine.secondsToBar(take.duration);
+                        const lengthBars = Math.max(0.25, durationInBars);
+
+                        useProjectStore.getState().updateClip(clip.id, {
+                            audioTakeIds: [take.id],
+                            activeTakeId: take.id,
+                            lengthBars: lengthBars,
+                        });
+                    })
+                    .catch((err) => {
+                        console.error('[TrackLane] Failed to load user sample:', err);
+                    });
             }
         } catch (err) {
             console.error('[TrackLane] Failed to parse drop data:', err);
