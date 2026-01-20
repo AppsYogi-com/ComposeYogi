@@ -1,12 +1,13 @@
 // ============================================
 // ComposeYogi — Offline Audio Renderer
-// Export project to WAV with real-time progress
+// Export project to WAV/MP3 with real-time progress
 // ============================================
 
 import * as Tone from 'tone';
 import type { Project, Track, Clip, TrackEffect } from '@/types';
 import { getAudioTake } from './recording-manager';
 import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
+import { encodeAudioBufferToMp3, type Mp3Quality } from './mp3-encoder';
 
 // ============================================
 // Types
@@ -399,7 +400,7 @@ async function scheduleMidiClipForOffline(
 // ============================================
 
 /**
- * Export project and trigger browser download
+ * Export project and trigger browser download as WAV
  */
 export async function downloadProjectAsWav(
     project: Project,
@@ -418,6 +419,143 @@ export async function downloadProjectAsWav(
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
+}
+
+/**
+ * Export project and trigger browser download as MP3
+ */
+export async function downloadProjectAsMp3(
+    project: Project,
+    quality: Mp3Quality = 192,
+    onProgress?: ProgressCallback
+): Promise<void> {
+    // Step 1: Render audio (0-50% progress)
+    const renderProgress = (p: number) => onProgress?.(Math.round(p * 0.5));
+    const audioBuffer = await renderProjectToAudioBuffer(project, renderProgress);
+
+    // Step 2: Encode to MP3 (50-100% progress)
+    const encodeProgress = (p: number) => onProgress?.(50 + Math.round(p * 0.5));
+    const blob = await encodeAudioBufferToMp3(audioBuffer, {
+        quality,
+        onProgress: encodeProgress,
+    });
+
+    // Trigger download
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${sanitizeFilename(project.name)}.mp3`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Render project to AudioBuffer (reusable for WAV and MP3)
+ */
+export async function renderProjectToAudioBuffer(
+    project: Project,
+    onProgress?: ProgressCallback,
+    options: ExportOptions = {}
+): Promise<AudioBuffer> {
+    const { tailSeconds = 2 } = options;
+
+    // Calculate total duration
+    const maxBar = project.clips.reduce((max, clip) => {
+        return Math.max(max, clip.startBar + clip.lengthBars);
+    }, 0);
+
+    const beatsPerBar = project.timeSignature[0];
+    const duration = barsToSeconds(maxBar, project.bpm, beatsPerBar) + tailSeconds;
+
+    if (duration <= tailSeconds) {
+        throw new Error('Project has no clips to export');
+    }
+
+    onProgress?.(0);
+
+    // Use Tone.Offline for proper offline rendering
+    const renderedBuffer = await Tone.Offline(async ({ transport }) => {
+        // Set up transport
+        transport.bpm.value = project.bpm;
+        transport.timeSignature = project.timeSignature;
+
+        // Create master chain: masterGain -> limiter -> destination
+        const masterLimiter = new Tone.Limiter(-1);
+        masterLimiter.toDestination();
+
+        const masterGain = new Tone.Gain(0.8);
+        masterGain.connect(masterLimiter);
+
+        // Process each track
+        for (const track of project.tracks) {
+            if (track.muted) continue;
+
+            const panner = new Tone.Panner(track.pan);
+            panner.connect(masterGain);
+
+            const gain = new Tone.Gain(track.volume);
+            gain.connect(panner);
+
+            let chainInput: Tone.ToneAudioNode = gain;
+            if (track.effects && track.effects.length > 0) {
+                const activeEffects = track.effects.filter(e => e.active);
+
+                const effectNodes: Tone.ToneAudioNode[] = [];
+                for (const effect of activeEffects) {
+                    const node = await createEffectNode(effect);
+                    if (node) {
+                        effectNodes.push(node);
+                    }
+                }
+
+                if (effectNodes.length > 0) {
+                    const entryGain = new Tone.Gain(1);
+                    let current: Tone.ToneAudioNode = entryGain;
+                    for (const effectNode of effectNodes) {
+                        current.connect(effectNode);
+                        current = effectNode;
+                    }
+                    current.connect(gain);
+                    chainInput = entryGain;
+                }
+            }
+
+            const trackClips = project.clips.filter(c => c.trackId === track.id);
+
+            for (const clip of trackClips) {
+                const clipStartSeconds = barsToSeconds(clip.startBar, project.bpm, beatsPerBar);
+
+                if (clip.type === 'audio' && clip.activeTakeId) {
+                    await scheduleAudioClipForOffline(
+                        clip,
+                        chainInput,
+                        clipStartSeconds,
+                        project,
+                        transport
+                    );
+                } else if ((clip.type === 'midi' || clip.type === 'drum') && clip.notes) {
+                    await scheduleMidiClipForOffline(
+                        clip,
+                        track,
+                        chainInput,
+                        clipStartSeconds,
+                        project,
+                        transport
+                    );
+                }
+            }
+        }
+
+        transport.start(0);
+    }, duration);
+
+    onProgress?.(100);
+
+    return renderedBuffer.get() as AudioBuffer;
 }
 
 /**

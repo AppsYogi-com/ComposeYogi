@@ -20,7 +20,13 @@ export {
     clearAudioTakes,
 } from './recording-manager';
 export { exportProjectToMidi, downloadProjectAsMidi } from './export';
-export { exportProjectToWav, downloadProjectAsWav } from './offline-renderer';
+export { 
+    exportProjectToWav, 
+    downloadProjectAsWav,
+    downloadProjectAsMp3,
+    renderProjectToAudioBuffer,
+} from './offline-renderer';
+export { encodeAudioBufferToMp3, MP3_QUALITY_PRESETS, type Mp3Quality } from './mp3-encoder';
 export {
     exportProjectToJSON,
     downloadProjectAsJSON,

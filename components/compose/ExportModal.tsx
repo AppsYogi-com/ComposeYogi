@@ -16,16 +16,25 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useProjectStore } from '@/lib/store';
-import { downloadProjectAsWav } from '@/lib/audio/offline-renderer';
+import { downloadProjectAsWav, downloadProjectAsMp3 } from '@/lib/audio/offline-renderer';
 import { downloadProjectAsMidi } from '@/lib/audio/export';
 import { downloadProjectAsJSON } from '@/lib/audio/project-io';
+import { MP3_QUALITY_PRESETS, type Mp3Quality } from '@/lib/audio/mp3-encoder';
 
 // ============================================
 // Types
 // ============================================
 
 type ExportState = 'idle' | 'exporting' | 'complete' | 'error';
+type ExportType = 'wav' | 'mp3' | 'midi' | 'json';
 
 interface ExportModalProps {
     isOpen: boolean;
@@ -41,7 +50,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
     const [exportState, setExportState] = useState<ExportState>('idle');
     const [progress, setProgress] = useState(0);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [exportType, setExportType] = useState<'wav' | 'midi' | 'json'>('wav');
+    const [exportType, setExportType] = useState<ExportType>('wav');
+    const [mp3Quality, setMp3Quality] = useState<Mp3Quality>(192);
 
     // Reset state when modal opens
     useEffect(() => {
@@ -72,6 +82,26 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
             setExportState('error');
         }
     }, [project]);
+
+    const handleExportMp3 = useCallback(async () => {
+        if (!project) return;
+
+        setExportState('exporting');
+        setExportType('mp3');
+        setProgress(0);
+        setErrorMessage(null);
+
+        try {
+            await downloadProjectAsMp3(project, mp3Quality, (p) => {
+                setProgress(p);
+            });
+            setExportState('complete');
+        } catch (error) {
+            console.error('[ExportModal] MP3 export failed:', error);
+            setErrorMessage(error instanceof Error ? error.message : 'Export failed');
+            setExportState('error');
+        }
+    }, [project, mp3Quality]);
 
     const handleExportMidi = useCallback(() => {
         if (!project) return;
@@ -138,6 +168,39 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                 </div>
                             </button>
 
+                            {/* MP3 Export */}
+                            <div className="rounded-lg border border-border p-4 space-y-3">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
+                                        <FileAudio className="h-5 w-5 text-orange-500" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium">MP3 Audio</div>
+                                        <div className="text-sm text-muted-foreground">Compressed, smaller file size</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 pl-14">
+                                    <Select
+                                        value={mp3Quality.toString()}
+                                        onValueChange={(v) => setMp3Quality(parseInt(v) as Mp3Quality)}
+                                    >
+                                        <SelectTrigger className="w-[180px] h-8 text-sm">
+                                            <SelectValue placeholder="Quality" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(MP3_QUALITY_PRESETS).map(([kbps, preset]) => (
+                                                <SelectItem key={kbps} value={kbps}>
+                                                    {preset.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Button size="sm" onClick={handleExportMp3}>
+                                        Export MP3
+                                    </Button>
+                                </div>
+                            </div>
+
                             {/* MIDI Export */}
                             <button
                                 onClick={handleExportMidi}
@@ -174,12 +237,18 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                         </div>
                     )}
 
-                    {/* Exporting State (WAV only) */}
-                    {exportState === 'exporting' && exportType === 'wav' && (
+                    {/* Exporting State (WAV/MP3) */}
+                    {exportState === 'exporting' && (exportType === 'wav' || exportType === 'mp3') && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
                                 <Loader2 className="h-5 w-5 animate-spin text-accent" />
-                                <span className="text-sm">Rendering audio...</span>
+                                <span className="text-sm">
+                                    {exportType === 'mp3' && progress < 50
+                                        ? 'Rendering audio...'
+                                        : exportType === 'mp3' && progress >= 50
+                                          ? 'Encoding MP3...'
+                                          : 'Rendering audio...'}
+                                </span>
                             </div>
 
                             <div className="space-y-2">
@@ -190,7 +259,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                             </div>
 
                             <p className="text-xs text-muted-foreground">
-                                Please wait while your project is being rendered. This may take a moment.
+                                Please wait while your project is being {exportType === 'mp3' ? 'rendered and encoded' : 'rendered'}. This may take a moment.
                             </p>
                         </div>
                     )}
