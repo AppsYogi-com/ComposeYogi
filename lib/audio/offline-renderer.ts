@@ -170,8 +170,8 @@ function createSynthForTrack(track: Track): SynthType {
 // ============================================
 
 /**
- * Export project to WAV with real-time progress updates
- * Uses OfflineAudioContext with suspend/resume for accurate progress
+ * Export project to WAV using Tone.Offline for proper offline rendering
+ * Tone.Offline handles context switching and transport synchronization correctly
  */
 export async function exportProjectToWav(
     project: Project,
@@ -179,90 +179,63 @@ export async function exportProjectToWav(
     options: ExportOptions = {}
 ): Promise<Blob> {
     const {
-        sampleRate = 44100,
         tailSeconds = 2,
     } = options;
 
-    // Store original context to restore later
-    const originalContext = Tone.getContext();
+    // 1. Calculate total duration
+    const maxBar = project.clips.reduce((max, clip) => {
+        return Math.max(max, clip.startBar + clip.lengthBars);
+    }, 0);
 
-    try {
-        // 1. Calculate total duration
-        const maxBar = project.clips.reduce((max, clip) => {
-            return Math.max(max, clip.startBar + clip.lengthBars);
-        }, 0);
+    const beatsPerBar = project.timeSignature[0];
+    const duration = barsToSeconds(maxBar, project.bpm, beatsPerBar) + tailSeconds;
 
-        const beatsPerBar = project.timeSignature[0];
-        const duration = barsToSeconds(maxBar, project.bpm, beatsPerBar) + tailSeconds;
+    if (duration <= tailSeconds) {
+        throw new Error('Project has no clips to export');
+    }
 
-        if (duration <= tailSeconds) {
-            throw new Error('Project has no clips to export');
-        }
+    onProgress?.(0);
 
-
-        // 2. Create offline context
-        const offlineCtx = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
-
-        // 3. Set up progress checkpoints via suspend/resume
-        const checkpointInterval = 1; // seconds
-        const checkpoints: number[] = [];
-        for (let t = checkpointInterval; t < duration; t += checkpointInterval) {
-            checkpoints.push(t);
-        }
-
-        // Schedule suspend points for progress tracking
-        checkpoints.forEach(time => {
-            offlineCtx.suspend(time).then(() => {
-                const progress = Math.round((time / duration) * 100);
-                onProgress?.(progress);
-                offlineCtx.resume();
-            });
-        });
-
-        // 4. Switch Tone.js to offline context
-        const toneOfflineCtx = new Tone.Context(offlineCtx);
-        Tone.setContext(toneOfflineCtx);
-
-        // Set up transport for offline context
-        const transport = Tone.getTransport();
+    // 2. Use Tone.Offline for proper offline rendering
+    // This handles context switching and transport sync correctly
+    const renderedBuffer = await Tone.Offline(async ({ transport }) => {
+        // Set up transport
         transport.bpm.value = project.bpm;
         transport.timeSignature = project.timeSignature;
 
-        // 5. Build audio graph and schedule clips
-        const nodesToDispose: Tone.ToneAudioNode[] = [];
+        // Create master chain: masterGain -> limiter -> destination
+        const masterLimiter = new Tone.Limiter(-1);
+        masterLimiter.toDestination();
 
+        const masterGain = new Tone.Gain(0.8);
+        masterGain.connect(masterLimiter);
+
+        // Process each track
         for (const track of project.tracks) {
             if (track.muted) continue;
 
-            // Build track chain: input -> effects -> gain -> pan -> destination
+            // Build track chain: input -> effects -> gain -> pan -> masterGain
             const panner = new Tone.Panner(track.pan);
-            panner.toDestination();
-            nodesToDispose.push(panner);
+            panner.connect(masterGain);
 
             const gain = new Tone.Gain(track.volume);
             gain.connect(panner);
-            nodesToDispose.push(gain);
 
             // Build effects chain
             let chainInput: Tone.ToneAudioNode = gain;
             if (track.effects && track.effects.length > 0) {
                 const activeEffects = track.effects.filter(e => e.active);
 
-                // Effects connect in reverse (last effect -> gain)
                 const effectNodes: Tone.ToneAudioNode[] = [];
                 for (const effect of activeEffects) {
                     const node = await createEffectNode(effect);
                     if (node) {
                         effectNodes.push(node);
-                        nodesToDispose.push(node);
                     }
                 }
 
-                // Connect: entry -> effect1 -> effect2 -> ... -> gain
                 if (effectNodes.length > 0) {
                     const entryGain = new Tone.Gain(1);
-                    nodesToDispose.push(entryGain);
-
                     let current: Tone.ToneAudioNode = entryGain;
                     for (const effectNode of effectNodes) {
                         current.connect(effectNode);
@@ -280,70 +253,48 @@ export async function exportProjectToWav(
                 const clipStartSeconds = barsToSeconds(clip.startBar, project.bpm, beatsPerBar);
 
                 if (clip.type === 'audio' && clip.activeTakeId) {
-                    // Schedule audio clip
-                    await scheduleAudioClipOffline(
+                    await scheduleAudioClipForOffline(
                         clip,
                         chainInput,
                         clipStartSeconds,
                         project,
-                        offlineCtx,
-                        nodesToDispose
+                        transport
                     );
                 } else if ((clip.type === 'midi' || clip.type === 'drum') && clip.notes) {
-                    // Schedule MIDI/Drum clip
-                    await scheduleMidiClipOffline(
+                    await scheduleMidiClipForOffline(
                         clip,
                         track,
                         chainInput,
                         clipStartSeconds,
                         project,
-                        nodesToDispose
+                        transport
                     );
                 }
             }
         }
 
-        // 6. Start transport and render
+        // Start transport - Tone.Offline will handle the rendering
         transport.start(0);
 
-        onProgress?.(0); // Initial progress
-        const renderedBuffer = await offlineCtx.startRendering();
-        onProgress?.(100); // Complete
+    }, duration);
 
+    onProgress?.(100);
 
-        // 7. Cleanup offline nodes
-        transport.stop();
-        transport.cancel();
-        nodesToDispose.forEach(node => {
-            try {
-                node.dispose();
-            } catch (_e) {
-                // Ignore disposal errors
-            }
-        });
-
-        // 8. Convert to WAV
-        const wavBlob = audioBufferToWav(renderedBuffer);
-
-        return wavBlob;
-
-    } finally {
-        // 9. ALWAYS restore original context
-        Tone.setContext(originalContext);
-    }
+    // 3. Convert to WAV (get the underlying AudioBuffer from ToneAudioBuffer)
+    const wavBlob = audioBufferToWav(renderedBuffer.get() as AudioBuffer);
+    return wavBlob;
 }
 
 // ============================================
-// Audio Clip Scheduling (Offline)
+// Audio Clip Scheduling (for Tone.Offline)
 // ============================================
 
-async function scheduleAudioClipOffline(
+async function scheduleAudioClipForOffline(
     clip: Clip,
     destination: Tone.ToneAudioNode,
     startTime: number,
-    project: Project,
-    offlineCtx: OfflineAudioContext,
-    nodesToDispose: Tone.ToneAudioNode[]
+    _project: Project,
+    _transport: typeof Tone.Transport
 ): Promise<void> {
     if (!clip.activeTakeId) return;
 
@@ -354,16 +305,18 @@ async function scheduleAudioClipOffline(
     }
 
     try {
-        // Decode audio in offline context - create a proper ArrayBuffer copy
+        // Create a proper ArrayBuffer copy from Uint8Array
         const arrayBuffer = new ArrayBuffer(take.audioData.byteLength);
         new Uint8Array(arrayBuffer).set(take.audioData);
-        const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer);
 
-        // Create Tone buffer and player
-        const toneBuffer = new Tone.ToneAudioBuffer(audioBuffer);
-        const player = new Tone.Player(toneBuffer);
+        // Decode using the Tone.js context (works in offline context)
+        const audioCtx = Tone.getContext().rawContext;
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        const buffer = new Tone.ToneAudioBuffer(audioBuffer);
+
+        // Create player
+        const player = new Tone.Player(buffer);
         player.connect(destination);
-        nodesToDispose.push(player);
 
         // Apply fades
         player.fadeIn = clip.fadeIn || 0;
@@ -372,7 +325,7 @@ async function scheduleAudioClipOffline(
         // Calculate trim/duration
         const trimStart = clip.trimStart || 0;
         const trimEnd = clip.trimEnd || 0;
-        const sourceDuration = toneBuffer.duration;
+        const sourceDuration = buffer.duration;
         const playDuration = Math.max(0, sourceDuration - trimStart - trimEnd);
 
         if (playDuration > 0) {
@@ -387,29 +340,26 @@ async function scheduleAudioClipOffline(
 }
 
 // ============================================
-// MIDI Clip Scheduling (Offline)
+// MIDI Clip Scheduling (for Tone.Offline)
 // ============================================
 
-async function scheduleMidiClipOffline(
+async function scheduleMidiClipForOffline(
     clip: Clip,
     track: Track,
     destination: Tone.ToneAudioNode,
     startTime: number,
     project: Project,
-    nodesToDispose: Tone.ToneAudioNode[]
+    transport: typeof Tone.Transport
 ): Promise<void> {
     if (!clip.notes?.length) return;
 
     const synth = createSynthForTrack(track);
     synth.connect(destination);
-    nodesToDispose.push(synth);
 
     // Wait for synth to be ready (important for Sampler which loads async)
     await waitForSynthReady(synth);
 
-    const transport = Tone.getTransport();
-
-    // Check if synth is polyphonic (PolySynth and Sampler can handle multiple notes at same time)
+    // Check if synth is polyphonic
     const isPolyphonic = synth instanceof Tone.PolySynth || synth instanceof Tone.Sampler;
 
     // Group notes by start time to handle concurrent notes for monophonic synths
@@ -417,7 +367,6 @@ async function scheduleMidiClipOffline(
     for (const note of clip.notes) {
         const noteOffsetSeconds = beatsToSeconds(note.startBeat, project.bpm);
         const absoluteTime = startTime + noteOffsetSeconds;
-        // Round to avoid floating point issues
         const timeKey = Math.round(absoluteTime * 10000) / 10000;
 
         if (!notesByTime.has(timeKey)) {
@@ -426,11 +375,10 @@ async function scheduleMidiClipOffline(
         notesByTime.get(timeKey)!.push(note);
     }
 
-    // Schedule notes, adding tiny offsets for monophonic synths with concurrent notes
+    // Schedule notes using the provided transport
     for (const [timeKey, notes] of notesByTime) {
         notes.forEach((note, index) => {
             const noteDurationSeconds = beatsToSeconds(note.duration, project.bpm);
-            // For monophonic synths, add 1ms offset for each concurrent note
             const offset = isPolyphonic ? 0 : index * 0.001;
             const scheduledTime = timeKey + offset;
 
@@ -444,7 +392,6 @@ async function scheduleMidiClipOffline(
             }, scheduledTime);
         });
     }
-
 }
 
 // ============================================

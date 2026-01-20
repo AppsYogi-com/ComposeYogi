@@ -5,11 +5,6 @@ import { ZoomIn, ZoomOut, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
     Select,
     SelectContent,
     SelectItem,
