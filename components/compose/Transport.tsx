@@ -51,6 +51,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
 import Link from 'next/link';
 import type { SaveStatus } from '@/lib/persistence/autosave';
@@ -103,6 +108,9 @@ export function Transport({
     const [showShortcutsModal, setShowShortcutsModal] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showCustomTimeSignature, setShowCustomTimeSignature] = useState(false);
+    const [customNumerator, setCustomNumerator] = useState(4);
+    const [customDenominator, setCustomDenominator] = useState(4);
 
     // / or ? key to toggle keyboard shortcuts
     useHotkeys('slash', () => setShowShortcutsModal(prev => !prev), { enableOnFormTags: false });
@@ -473,34 +481,93 @@ export function Transport({
                     </Tooltip>
 
                     {/* Time signature */}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
+                    <Popover open={showCustomTimeSignature} onOpenChange={setShowCustomTimeSignature}>
+                        <PopoverTrigger asChild>
                             <div>
-                                <Select
-                                    value={`${project.timeSignature[0]}/${project.timeSignature[1]}`}
-                                    onValueChange={(value) => {
-                                        const [num, denom] = value.split('/').map(Number);
-                                        useProjectStore.getState().setTimeSignature([num, denom] as [number, number]);
-                                    }}
-                                >
-                                    <SelectTrigger className="w-16 h-8 bg-background border-border/50 font-mono text-sm">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="4/4">4/4</SelectItem>
-                                        <SelectItem value="3/4">3/4</SelectItem>
-                                        <SelectItem value="6/8">6/8</SelectItem>
-                                        <SelectItem value="2/4">2/4</SelectItem>
-                                        <SelectItem value="5/4">5/4</SelectItem>
-                                        <SelectItem value="7/8">7/8</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            className="h-8 px-2 bg-background border border-border/50 font-mono text-sm hover:bg-accent/50"
+                                        >
+                                            {project.timeSignature[0]}/{project.timeSignature[1]}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom">
+                                        <p>Time Signature (click to change)</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            <p>Time Signature</p>
-                        </TooltipContent>
-                    </Tooltip>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-4" align="center">
+                            <div className="space-y-4">
+                                <h4 className="font-medium text-sm">Time Signature</h4>
+
+                                {/* Common presets */}
+                                <div className="grid grid-cols-4 gap-1">
+                                    {['4/4', '3/4', '6/8', '2/4', '5/4', '7/8', '9/8', '12/8'].map((ts) => {
+                                        const [num, denom] = ts.split('/').map(Number);
+                                        const isActive = project.timeSignature[0] === num && project.timeSignature[1] === denom;
+                                        return (
+                                            <Button
+                                                key={ts}
+                                                variant={isActive ? "default" : "outline"}
+                                                size="sm"
+                                                className="font-mono text-xs"
+                                                onClick={() => {
+                                                    useProjectStore.getState().setTimeSignature([num, denom] as [number, number]);
+                                                    setShowCustomTimeSignature(false);
+                                                }}
+                                            >
+                                                {ts}
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+
+                                <Separator />
+
+                                {/* Custom input */}
+                                <div>
+                                    <label className="text-xs text-muted-foreground mb-2 block">Custom</label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            value={customNumerator}
+                                            onChange={(e) => setCustomNumerator(Math.max(1, Math.min(32, Number(e.target.value) || 1)))}
+                                            className="h-8 text-center font-mono flex-1"
+                                            min={1}
+                                            max={32}
+                                        />
+                                        <span className="text-xl text-muted-foreground">/</span>
+                                        <Select
+                                            value={String(customDenominator)}
+                                            onValueChange={(v) => setCustomDenominator(Number(v))}
+                                        >
+                                            <SelectTrigger className="h-8 font-mono flex-1">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="2">2</SelectItem>
+                                                <SelectItem value="4">4</SelectItem>
+                                                <SelectItem value="8">8</SelectItem>
+                                                <SelectItem value="16">16</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            size="sm"
+                                            onClick={() => {
+                                                useProjectStore.getState().setTimeSignature([customNumerator, customDenominator] as [number, number]);
+                                                setShowCustomTimeSignature(false);
+                                            }}
+                                        >
+                                            Apply
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
 
                     {/* Metronome */}
                     <Tooltip>
