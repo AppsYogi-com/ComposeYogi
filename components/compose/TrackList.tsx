@@ -155,6 +155,9 @@ export function TrackList() {
     const selectTrack = useUIStore((s) => s.selectTrack);
     const selectedTrackId = useUIStore((s) => s.selectedTrackId);
     const zoom = useUIStore((s) => s.zoom);
+    const zoomIn = useUIStore((s) => s.zoomIn);
+    const zoomOut = useUIStore((s) => s.zoomOut);
+    const setZoom = useUIStore((s) => s.setZoom);
     const scrollX = useUIStore((s) => s.scrollX);
     const setScrollX = useUIStore((s) => s.setScrollX);
     const setScrollY = useUIStore((s) => s.setScrollY);
@@ -358,6 +361,47 @@ export function TrackList() {
         setScrollY(target.scrollTop);
     }, [setScrollX, setScrollY]);
 
+    // Handle mouse wheel zoom (Ctrl/Cmd + scroll)
+    const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+        // Only zoom when Ctrl (Windows/Linux) or Cmd (Mac) is held
+        if (!e.ctrlKey && !e.metaKey) return;
+
+        e.preventDefault();
+
+        // Get cursor position relative to scroll container
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        const cursorX = e.clientX - rect.left + container.scrollLeft;
+
+        // Calculate the beat position under cursor before zoom
+        const beatUnderCursor = cursorX / pixelsPerBeat;
+
+        // Determine zoom direction and apply
+        const MIN_ZOOM = 20;
+        const MAX_ZOOM = 200;
+        const ZOOM_STEP = 1.15;
+
+        const newZoom = e.deltaY < 0
+            ? Math.min(MAX_ZOOM, zoom * ZOOM_STEP)  // Scroll up = zoom in
+            : Math.max(MIN_ZOOM, zoom / ZOOM_STEP); // Scroll down = zoom out
+
+        if (newZoom === zoom) return;
+
+        // Calculate new pixelsPerBeat
+        const newPixelsPerBeat = newZoom / beatsPerBar;
+
+        // Calculate new scroll position to keep cursor at same beat position
+        const newCursorX = beatUnderCursor * newPixelsPerBeat;
+        const cursorOffsetFromLeft = e.clientX - rect.left;
+        const newScrollX = Math.max(0, newCursorX - cursorOffsetFromLeft);
+
+        // Apply zoom and scroll
+        setZoom(newZoom);
+        setScrollX(newScrollX);
+    }, [zoom, pixelsPerBeat, beatsPerBar, setZoom, setScrollX]);
+
     const handleAddTrack = useCallback(() => {
         addTrack('midi', `Track ${(project?.tracks.length || 0) + 1}`);
     }, [addTrack, project?.tracks.length]);
@@ -443,6 +487,7 @@ export function TrackList() {
                 ref={scrollContainerRef}
                 className="relative flex-1 overflow-auto bg-background"
                 onScroll={handleScroll}
+                onWheel={handleWheel}
             >
                 {/* Content wrapper with full width */}
                 <div

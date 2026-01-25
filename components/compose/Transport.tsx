@@ -23,13 +23,16 @@ import {
     Moon,
     Sun,
     Keyboard,
+    ZoomIn,
+    ZoomOut,
+    Minus,
 } from 'lucide-react';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { ExportModal } from './ExportModal';
 import { ImportModal } from './ImportModal';
 import { useTheme } from 'next-themes';
 import { MusicWave } from '@/components/MusicWave';
-import { useProjectStore, usePlaybackStore } from '@/lib/store';
+import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
 import { audioEngine, recordingManager } from '@/lib/audio';
 import { formatTime, formatBarsBeats } from '@/lib/utils';
@@ -48,6 +51,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import Link from 'next/link';
 import type { SaveStatus } from '@/lib/persistence/autosave';
 
@@ -81,6 +85,15 @@ export function Transport({
         countInBars,
         toggleLoop,
     } = usePlaybackStore();
+
+    // Zoom controls
+    const zoom = useUIStore((s) => s.zoom);
+    const zoomIn = useUIStore((s) => s.zoomIn);
+    const zoomOut = useUIStore((s) => s.zoomOut);
+    const setZoom = useUIStore((s) => s.setZoom);
+
+    // Calculate zoom percentage (MIN_ZOOM=20, MAX_ZOOM=200, DEFAULT=80)
+    const zoomPercentage = Math.round((zoom / 80) * 100);
 
     const [displayTime, setDisplayTime] = useState(0);
     const [metronomeEnabled, setMetronomeEnabled] = useState(false);
@@ -509,6 +522,66 @@ export function Transport({
                             <p>Metronome <kbd className="ml-1 text-xs opacity-60">M</kbd></p>
                         </TooltipContent>
                     </Tooltip>
+
+                    <Separator orientation="vertical" className="h-5 mx-1" />
+
+                    {/* Zoom controls */}
+                    <div className="flex items-center gap-1">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="transport"
+                                    size="icon-sm"
+                                    onClick={zoomOut}
+                                >
+                                    <Minus className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                <p>Zoom Out <kbd className="ml-1 text-xs opacity-60">-</kbd></p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={() => setZoom(80)}
+                                    className="w-10 text-center text-xs font-mono tabular-nums text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                >
+                                    {zoomPercentage}%
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                <p>Reset Zoom <kbd className="ml-1 text-xs opacity-60">⌘0</kbd></p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="transport"
+                                    size="icon-sm"
+                                    onClick={zoomIn}
+                                >
+                                    <ZoomIn className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                <p>Zoom In <kbd className="ml-1 text-xs opacity-60">+</kbd></p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <div className="w-20 px-1">
+                            <Slider
+                                value={[zoom]}
+                                onValueChange={([value]) => setZoom(value)}
+                                min={20}
+                                max={200}
+                                step={5}
+                                className="cursor-pointer"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
