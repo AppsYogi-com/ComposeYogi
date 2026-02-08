@@ -391,8 +391,10 @@ class PlayoutManager {
             return;
         }
 
-        // Create synth based on track type
-        const synth = this.createSynthForTrack(track);
+        // Create synth: prefer clip-level instrument, fall back to track
+        const synth = clip.instrumentPreset
+            ? createSynthFromPreset(clip.instrumentPreset)
+            : this.createSynthForTrack(track);
         synth.connect(destination);
 
         // Wait for synth to be ready (important for Sampler which loads async)

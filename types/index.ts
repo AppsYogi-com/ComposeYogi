@@ -93,6 +93,8 @@ export interface Clip {
     fadeOut?: number;      // seconds
     // MIDI/Drum-specific
     notes?: Note[];
+    // Instrument
+    instrumentPreset?: string; // Synth preset ID (overrides track default)
     // Common
     transpose?: number;
     humanize?: number;     // 0-100

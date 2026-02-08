@@ -354,7 +354,10 @@ async function scheduleMidiClipForOffline(
 ): Promise<void> {
     if (!clip.notes?.length) return;
 
-    const synth = createSynthForTrack(track);
+    // Prefer clip-level instrument preset, fall back to track
+    const synth = clip.instrumentPreset
+        ? createSynthFromPreset(clip.instrumentPreset)
+        : createSynthForTrack(track);
     synth.connect(destination);
 
     // Wait for synth to be ready (important for Sampler which loads async)

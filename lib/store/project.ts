@@ -256,18 +256,31 @@ const projectStoreBase = (
         const tracks = state.project.tracks;
         // Calculate next order as max existing order + 1 (handles gaps from deleted tracks)
         const maxOrder = tracks.length > 0 ? Math.max(...tracks.map(t => t.order)) : -1;
+        const trackColor = color || getNextTrackColor(tracks);
+
+        // Assign a default instrument preset based on track color
+        const defaultPresetForColor: Record<string, string> = {
+            drums: 'drum-sampler',
+            bass: 'synth-bass',
+            keys: 'electric-piano',
+            melody: 'saw-lead',
+            fx: 'warm-pad',
+            vocals: 'basic-synth',
+        };
+
         const newTrack: Track = {
             id: uuid(),
             projectId: state.project.id,
             name: name || `${type.charAt(0).toUpperCase() + type.slice(1)} ${tracks.length + 1}`,
             type,
-            color: color || getNextTrackColor(tracks),
+            color: trackColor,
             volume: 0.8,
             pan: 0,
             muted: false,
             solo: false,
             armed: false,
             order: maxOrder + 1,
+            instrumentPreset: defaultPresetForColor[trackColor] || 'basic-synth',
         };
 
         set((s) => ({

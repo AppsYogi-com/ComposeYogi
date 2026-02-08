@@ -139,6 +139,204 @@ const createStringPad = (): Tone.PolySynth => {
     });
 };
 
+// Keys - Organ (sustained drawbar harmonics)
+const createOrgan = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'custom', partials: [1, 0.8, 0.6, 0.4, 0.3, 0.2] },
+        envelope: {
+            attack: 0.01,
+            decay: 0.01,
+            sustain: 1.0,
+            release: 0.15,
+        },
+    });
+};
+
+// Keys - Clavinet (percussive, funky bite)
+const createClavinet = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.MonoSynth, {
+        oscillator: { type: 'pulse' },
+        envelope: {
+            attack: 0.002,
+            decay: 0.3,
+            sustain: 0.1,
+            release: 0.15,
+        },
+        filterEnvelope: {
+            attack: 0.001,
+            decay: 0.15,
+            sustain: 0.1,
+            release: 0.1,
+            baseFrequency: 800,
+            octaves: 2,
+        },
+    });
+};
+
+// Bass - FM Bass (metallic, growly)
+const createFMBass = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 1,
+        modulationIndex: 8,
+        oscillator: { type: 'sine' },
+        modulation: { type: 'square' },
+        envelope: {
+            attack: 0.01,
+            decay: 0.4,
+            sustain: 0.3,
+            release: 0.2,
+        },
+        modulationEnvelope: {
+            attack: 0.01,
+            decay: 0.2,
+            sustain: 0.1,
+            release: 0.2,
+        },
+    });
+};
+
+// Bass - Pluck Bass (short pizzicato)
+const createPluckBass = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.MonoSynth, {
+        oscillator: { type: 'triangle' },
+        envelope: {
+            attack: 0.005,
+            decay: 0.25,
+            sustain: 0.05,
+            release: 0.1,
+        },
+        filterEnvelope: {
+            attack: 0.002,
+            decay: 0.15,
+            sustain: 0.05,
+            release: 0.1,
+            baseFrequency: 300,
+            octaves: 3,
+        },
+    });
+};
+
+// Leads - FM Lead (bell-like, metallic)
+const createFMLead = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 3,
+        modulationIndex: 10,
+        oscillator: { type: 'sine' },
+        modulation: { type: 'sine' },
+        envelope: {
+            attack: 0.01,
+            decay: 0.3,
+            sustain: 0.5,
+            release: 0.5,
+        },
+        modulationEnvelope: {
+            attack: 0.02,
+            decay: 0.4,
+            sustain: 0.2,
+            release: 0.3,
+        },
+    });
+};
+
+// Leads - Pulse Lead (PWM feel)
+const createPulseLead = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'pulse', width: 0.3 },
+        envelope: {
+            attack: 0.02,
+            decay: 0.15,
+            sustain: 0.7,
+            release: 0.3,
+        },
+    });
+};
+
+// Pads - Choir Pad (detuned voices, vocal-like)
+const createChoirPad = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.AMSynth, {
+        harmonicity: 2,
+        oscillator: { type: 'fatsine', spread: 30, count: 3 },
+        modulation: { type: 'sine' },
+        envelope: {
+            attack: 1.2,
+            decay: 0.5,
+            sustain: 0.85,
+            release: 3.0,
+        },
+        modulationEnvelope: {
+            attack: 0.8,
+            decay: 0.3,
+            sustain: 0.7,
+            release: 2.0,
+        },
+    });
+};
+
+// Pads - Glass Pad (crystalline shimmer)
+const createGlassPad = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 5,
+        modulationIndex: 4,
+        oscillator: { type: 'sine' },
+        modulation: { type: 'triangle' },
+        envelope: {
+            attack: 0.6,
+            decay: 0.8,
+            sustain: 0.7,
+            release: 2.5,
+        },
+        modulationEnvelope: {
+            attack: 0.5,
+            decay: 0.6,
+            sustain: 0.3,
+            release: 2.0,
+        },
+    });
+};
+
+// Synth - Pluck (short, harp/guitar-like)
+const createPluckSynth = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.MonoSynth, {
+        oscillator: { type: 'sawtooth' },
+        envelope: {
+            attack: 0.001,
+            decay: 0.4,
+            sustain: 0.0,
+            release: 0.2,
+        },
+        filterEnvelope: {
+            attack: 0.001,
+            decay: 0.25,
+            sustain: 0.0,
+            release: 0.15,
+            baseFrequency: 600,
+            octaves: 4,
+        },
+    });
+};
+
+// Synth - Bell (FM bell harmonics)
+const createBellSynth = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 5.07,
+        modulationIndex: 14,
+        oscillator: { type: 'sine' },
+        modulation: { type: 'sine' },
+        envelope: {
+            attack: 0.001,
+            decay: 2.0,
+            sustain: 0.0,
+            release: 1.5,
+        },
+        modulationEnvelope: {
+            attack: 0.001,
+            decay: 1.5,
+            sustain: 0.0,
+            release: 1.0,
+        },
+    });
+};
+
 // Basic Synth
 const createBasicSynth = (): Tone.PolySynth => {
     return new Tone.PolySynth(Tone.Synth, {
@@ -222,6 +420,18 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         category: 'keys',
         createSynth: createBrightPiano,
     },
+    'organ': {
+        id: 'organ',
+        name: 'Organ',
+        category: 'keys',
+        createSynth: createOrgan,
+    },
+    'clavinet': {
+        id: 'clavinet',
+        name: 'Clavinet',
+        category: 'keys',
+        createSynth: createClavinet,
+    },
 
     // Bass
     'sub-bass': {
@@ -235,6 +445,18 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         name: 'Synth Bass',
         category: 'bass',
         createSynth: createSynthBass,
+    },
+    'fm-bass': {
+        id: 'fm-bass',
+        name: 'FM Bass',
+        category: 'bass',
+        createSynth: createFMBass,
+    },
+    'pluck-bass': {
+        id: 'pluck-bass',
+        name: 'Pluck Bass',
+        category: 'bass',
+        createSynth: createPluckBass,
     },
 
     // Leads
@@ -250,6 +472,18 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         category: 'lead',
         createSynth: createSquareLead,
     },
+    'fm-lead': {
+        id: 'fm-lead',
+        name: 'FM Lead',
+        category: 'lead',
+        createSynth: createFMLead,
+    },
+    'pulse-lead': {
+        id: 'pulse-lead',
+        name: 'Pulse Lead',
+        category: 'lead',
+        createSynth: createPulseLead,
+    },
 
     // Pads
     'warm-pad': {
@@ -264,13 +498,37 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         category: 'pad',
         createSynth: createStringPad,
     },
+    'choir-pad': {
+        id: 'choir-pad',
+        name: 'Choir Pad',
+        category: 'pad',
+        createSynth: createChoirPad,
+    },
+    'glass-pad': {
+        id: 'glass-pad',
+        name: 'Glass Pad',
+        category: 'pad',
+        createSynth: createGlassPad,
+    },
 
-    // Basic
+    // Synths
     'basic-synth': {
         id: 'basic-synth',
         name: 'Basic Synth',
         category: 'synth',
         createSynth: createBasicSynth,
+    },
+    'pluck-synth': {
+        id: 'pluck-synth',
+        name: 'Pluck',
+        category: 'synth',
+        createSynth: createPluckSynth,
+    },
+    'bell-synth': {
+        id: 'bell-synth',
+        name: 'Bell',
+        category: 'synth',
+        createSynth: createBellSynth,
     },
 
     // Drums (special case)

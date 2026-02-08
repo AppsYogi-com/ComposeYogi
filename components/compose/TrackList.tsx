@@ -73,6 +73,8 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
         // Piano/Keys - C major chord progression
         case 'electric-piano':
         case 'bright-piano':
+        case 'organ':
+        case 'clavinet':
             return [
                 // C major chord (beat 0)
                 { pitch: 60, startBeat: 0, duration: 2, velocity: 100 },
@@ -95,6 +97,8 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
         // Bass - simple bass line
         case 'sub-bass':
         case 'synth-bass':
+        case 'fm-bass':
+        case 'pluck-bass':
             return [
                 { pitch: 36, startBeat: 0, duration: 1, velocity: 110 },
                 { pitch: 36, startBeat: 1.5, duration: 0.5, velocity: 90 },
@@ -109,6 +113,8 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
         // Lead - melody line
         case 'saw-lead':
         case 'square-lead':
+        case 'fm-lead':
+        case 'pulse-lead':
             return [
                 { pitch: 72, startBeat: 0, duration: 0.5, velocity: 100 },
                 { pitch: 74, startBeat: 0.5, duration: 0.5, velocity: 95 },
@@ -123,11 +129,42 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
         // Pads - long sustained chords
         case 'warm-pad':
         case 'string-pad':
+        case 'choir-pad':
+        case 'glass-pad':
             return [
                 // C major sustained
                 { pitch: 60, startBeat: 0, duration: 8, velocity: 80 },
                 { pitch: 64, startBeat: 0, duration: 8, velocity: 75 },
                 { pitch: 67, startBeat: 0, duration: 8, velocity: 70 },
+            ];
+
+        // Pluck - staccato arpeggio to showcase short decay
+        case 'pluck-synth':
+            return [
+                { pitch: 60, startBeat: 0, duration: 0.25, velocity: 100 },
+                { pitch: 64, startBeat: 0.5, duration: 0.25, velocity: 90 },
+                { pitch: 67, startBeat: 1, duration: 0.25, velocity: 100 },
+                { pitch: 72, startBeat: 1.5, duration: 0.25, velocity: 95 },
+                { pitch: 76, startBeat: 2, duration: 0.25, velocity: 100 },
+                { pitch: 72, startBeat: 2.5, duration: 0.25, velocity: 90 },
+                { pitch: 67, startBeat: 3, duration: 0.25, velocity: 95 },
+                { pitch: 64, startBeat: 3.5, duration: 0.25, velocity: 90 },
+                { pitch: 60, startBeat: 4, duration: 0.25, velocity: 100 },
+                { pitch: 55, startBeat: 4.5, duration: 0.25, velocity: 85 },
+                { pitch: 60, startBeat: 5, duration: 0.25, velocity: 95 },
+                { pitch: 64, startBeat: 5.5, duration: 0.25, velocity: 90 },
+                { pitch: 67, startBeat: 6, duration: 0.25, velocity: 100 },
+                { pitch: 72, startBeat: 6.5, duration: 0.25, velocity: 95 },
+                { pitch: 76, startBeat: 7, duration: 0.5, velocity: 100 },
+            ];
+
+        // Bell - spaced hits to let the long decay ring
+        case 'bell-synth':
+            return [
+                { pitch: 84, startBeat: 0, duration: 0.5, velocity: 90 },
+                { pitch: 79, startBeat: 2, duration: 0.5, velocity: 85 },
+                { pitch: 76, startBeat: 4, duration: 0.5, velocity: 80 },
+                { pitch: 72, startBeat: 6, duration: 0.5, velocity: 85 },
             ];
 
         // Default synth - simple arpeggio
@@ -849,6 +886,7 @@ interface TrackLaneProps {
 function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSelect }: TrackLaneProps) {
     const project = useProjectStore((s) => s.project);
     const addClip = useProjectStore((s) => s.addClip);
+    const updateClip = useProjectStore((s) => s.updateClip);
     const addNote = useProjectStore((s) => s.addNote);
     const updateTrack = useProjectStore((s) => s.updateTrack);
     const addTrackEffect = useProjectStore((s) => s.addTrackEffect);
@@ -951,15 +989,22 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                     });
 
             } else if (data.type === 'instrument') {
-                // Update track's instrument preset
-                updateTrack(track.id, { instrumentPreset: data.data.id });
-
                 // Create MIDI clip for instrument
                 const clipType = track.color === 'drums' ? 'drum' : 'midi';
                 const clip = addClip(track.id, clipType, bar, 2); // 2 bar default
 
-                // Add demo notes so user hears something immediately
+                // Store instrument preset on the clip (not the track)
+                // so each clip can have its own instrument sound
                 const instrumentId = data.data.id as string;
+                updateClip(clip.id, {
+                    instrumentPreset: instrumentId,
+                    name: data.data.name || clip.name,
+                });
+
+                // Also update track preset (used as fallback for new clips without preset)
+                updateTrack(track.id, { instrumentPreset: instrumentId });
+
+                // Add demo notes so user hears something immediately
                 const demoNotes = getDemoNotesForInstrument(instrumentId);
                 demoNotes.forEach(note => addNote(clip.id, note));
 
@@ -1008,7 +1053,7 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
         } catch (err) {
             console.error('[TrackLane] Failed to parse drop data:', err);
         }
-    }, [track.id, track.color, pixelsPerBeat, beatsPerBar, addClip, addNote, selectClip, openEditor, updateTrack, addTrackEffect]);
+    }, [track.id, track.color, pixelsPerBeat, beatsPerBar, addClip, updateClip, addNote, selectClip, openEditor, updateTrack, addTrackEffect]);
 
     if (!project) return null;
 

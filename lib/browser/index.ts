@@ -192,6 +192,22 @@ export const INSTRUMENTS: InstrumentItem[] = [
         trackType: 'midi',
         trackColor: 'melody',
     },
+    {
+        id: 'fm-lead',
+        name: 'FM Lead',
+        category: 'lead',
+        description: 'Bell-like metallic FM lead',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'pulse-lead',
+        name: 'Pulse Lead',
+        category: 'lead',
+        description: 'Warm pulse width modulation lead',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
     // Keys
     {
         id: 'electric-piano',
@@ -206,6 +222,22 @@ export const INSTRUMENTS: InstrumentItem[] = [
         name: 'Bright Piano',
         category: 'keys',
         description: 'Clear acoustic piano',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'organ',
+        name: 'Organ',
+        category: 'keys',
+        description: 'Sustained drawbar organ with harmonics',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'clavinet',
+        name: 'Clavinet',
+        category: 'keys',
+        description: 'Percussive funky keys with bite',
         trackType: 'midi',
         trackColor: 'keys',
     },
@@ -226,6 +258,22 @@ export const INSTRUMENTS: InstrumentItem[] = [
         trackType: 'midi',
         trackColor: 'bass',
     },
+    {
+        id: 'fm-bass',
+        name: 'FM Bass',
+        category: 'bass',
+        description: 'Metallic growly FM synthesis bass',
+        trackType: 'midi',
+        trackColor: 'bass',
+    },
+    {
+        id: 'pluck-bass',
+        name: 'Pluck Bass',
+        category: 'bass',
+        description: 'Short pizzicato-style bass',
+        trackType: 'midi',
+        trackColor: 'bass',
+    },
     // Pads
     {
         id: 'warm-pad',
@@ -242,6 +290,39 @@ export const INSTRUMENTS: InstrumentItem[] = [
         description: 'Orchestral string texture',
         trackType: 'midi',
         trackColor: 'fx',
+    },
+    {
+        id: 'choir-pad',
+        name: 'Choir Pad',
+        category: 'pad',
+        description: 'Detuned vocal-like choral pad',
+        trackType: 'midi',
+        trackColor: 'fx',
+    },
+    {
+        id: 'glass-pad',
+        name: 'Glass Pad',
+        category: 'pad',
+        description: 'Crystalline FM shimmer pad',
+        trackType: 'midi',
+        trackColor: 'fx',
+    },
+    // Synths - Additional
+    {
+        id: 'pluck-synth',
+        name: 'Pluck',
+        category: 'synth',
+        description: 'Short harp/guitar-like pluck',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'bell-synth',
+        name: 'Bell',
+        category: 'synth',
+        description: 'FM bell with metallic harmonics',
+        trackType: 'midi',
+        trackColor: 'melody',
     },
 ];
 
