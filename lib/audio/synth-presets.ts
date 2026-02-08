@@ -48,9 +48,9 @@ const createBrightPiano = (): Tone.PolySynth => {
     });
 };
 
-// Bass - Use MonoSynth directly (not wrapped in PolySynth)
-const createSubBass = (): Tone.MonoSynth => {
-    return new Tone.MonoSynth({
+// Bass - Use PolySynth wrapping MonoSynth for polyphony with filter envelope
+const createSubBass = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.MonoSynth, {
         oscillator: { type: 'sine' },
         envelope: {
             attack: 0.005,
@@ -69,8 +69,8 @@ const createSubBass = (): Tone.MonoSynth => {
     });
 };
 
-const createSynthBass = (): Tone.MonoSynth => {
-    return new Tone.MonoSynth({
+const createSynthBass = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.MonoSynth, {
         oscillator: { type: 'sawtooth' },
         envelope: {
             attack: 0.01,
