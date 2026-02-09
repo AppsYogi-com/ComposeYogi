@@ -70,6 +70,101 @@ const FX_ABBR: Record<string, string> = {
 // MIDI pitch: C4 = 60, C3 = 48, etc.
 function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number; startBeat: number; duration: number; velocity: number }> {
     switch (instrumentId) {
+        // Drum kits - basic rock/pop beat (kick=36, snare=38, hat=42)
+        case 'drum-sampler':
+        case 'acoustic-kit':
+            return [
+                // Kick on 1 and 3
+                { pitch: 36, startBeat: 0, duration: 0.5, velocity: 110 },
+                { pitch: 36, startBeat: 4, duration: 0.5, velocity: 100 },
+                // Snare on 2 and 4
+                { pitch: 38, startBeat: 2, duration: 0.5, velocity: 100 },
+                { pitch: 38, startBeat: 6, duration: 0.5, velocity: 100 },
+                // Hi-hat 8ths
+                { pitch: 42, startBeat: 0, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 1, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 2, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 3, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 4, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 5, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 6, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 7, duration: 0.25, velocity: 70 },
+            ];
+
+        // 808 Kit - trap-style beat
+        case '808-kit':
+            return [
+                // 808 kick pattern
+                { pitch: 36, startBeat: 0, duration: 0.5, velocity: 120 },
+                { pitch: 36, startBeat: 3.5, duration: 0.5, velocity: 100 },
+                { pitch: 36, startBeat: 7, duration: 0.5, velocity: 110 },
+                // Clap on 2 and 4
+                { pitch: 38, startBeat: 2, duration: 0.5, velocity: 100 },
+                { pitch: 38, startBeat: 6, duration: 0.5, velocity: 100 },
+                // Hi-hat 16ths (rapid)
+                { pitch: 42, startBeat: 0, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 0.5, duration: 0.125, velocity: 60 },
+                { pitch: 42, startBeat: 1, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 1.5, duration: 0.125, velocity: 60 },
+                { pitch: 42, startBeat: 2, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 2.5, duration: 0.125, velocity: 60 },
+                { pitch: 42, startBeat: 3, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 3.5, duration: 0.125, velocity: 60 },
+                { pitch: 42, startBeat: 4, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 4.5, duration: 0.125, velocity: 60 },
+                { pitch: 42, startBeat: 5, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 5.5, duration: 0.125, velocity: 60 },
+                { pitch: 42, startBeat: 6, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 6.5, duration: 0.125, velocity: 60 },
+                { pitch: 42, startBeat: 7, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 7.5, duration: 0.125, velocity: 60 },
+            ];
+
+        // Lo-Fi Kit - laid-back shuffle
+        case 'lofi-kit':
+            return [
+                // Muted kick
+                { pitch: 36, startBeat: 0, duration: 0.5, velocity: 90 },
+                { pitch: 36, startBeat: 2.5, duration: 0.5, velocity: 80 },
+                { pitch: 36, startBeat: 4, duration: 0.5, velocity: 90 },
+                { pitch: 36, startBeat: 6.5, duration: 0.5, velocity: 80 },
+                // Lo-fi snare on 2 and 4
+                { pitch: 38, startBeat: 2, duration: 0.5, velocity: 85 },
+                { pitch: 38, startBeat: 6, duration: 0.5, velocity: 85 },
+                // Lazy swing hats
+                { pitch: 42, startBeat: 0, duration: 0.25, velocity: 65 },
+                { pitch: 42, startBeat: 1.5, duration: 0.25, velocity: 55 },
+                { pitch: 42, startBeat: 2, duration: 0.25, velocity: 65 },
+                { pitch: 42, startBeat: 3.5, duration: 0.25, velocity: 55 },
+                { pitch: 42, startBeat: 4, duration: 0.25, velocity: 65 },
+                { pitch: 42, startBeat: 5.5, duration: 0.25, velocity: 55 },
+                { pitch: 42, startBeat: 6, duration: 0.25, velocity: 65 },
+                { pitch: 42, startBeat: 7.5, duration: 0.25, velocity: 55 },
+            ];
+
+        // Electronic Kit - four-on-the-floor dance beat
+        case 'electronic-kit':
+            return [
+                // Kick on every beat
+                { pitch: 36, startBeat: 0, duration: 0.5, velocity: 120 },
+                { pitch: 36, startBeat: 2, duration: 0.5, velocity: 110 },
+                { pitch: 36, startBeat: 4, duration: 0.5, velocity: 120 },
+                { pitch: 36, startBeat: 6, duration: 0.5, velocity: 110 },
+                // Clap on 2 and 4
+                { pitch: 38, startBeat: 2, duration: 0.5, velocity: 100 },
+                { pitch: 38, startBeat: 6, duration: 0.5, velocity: 100 },
+                // Open hat on offbeats
+                { pitch: 46, startBeat: 1, duration: 0.25, velocity: 85 },
+                { pitch: 46, startBeat: 3, duration: 0.25, velocity: 85 },
+                { pitch: 46, startBeat: 5, duration: 0.25, velocity: 85 },
+                { pitch: 46, startBeat: 7, duration: 0.25, velocity: 85 },
+                // Closed hat on beats
+                { pitch: 42, startBeat: 0, duration: 0.25, velocity: 75 },
+                { pitch: 42, startBeat: 2, duration: 0.25, velocity: 75 },
+                { pitch: 42, startBeat: 4, duration: 0.25, velocity: 75 },
+                { pitch: 42, startBeat: 6, duration: 0.25, velocity: 75 },
+            ];
+
         // Piano/Keys - C major chord progression
         case 'electric-piano':
         case 'bright-piano':

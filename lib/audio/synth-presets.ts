@@ -376,6 +376,82 @@ const createDrumSampler = (): Tone.Sampler => {
     return sampler;
 };
 
+// 808 Kit - Deep sub kick, clap snare, tight hats
+const create808Kit = (): Tone.Sampler => {
+    return new Tone.Sampler({
+        urls: {
+            C1: 'kick-808.wav',       // 36 - Kick (808)
+            B0: 'kick-808.wav',       // 35 - Bass Drum
+            D1: 'snare-clap.wav',     // 38 - Snare (clap)
+            E1: 'snare-clap.wav',     // 40 - Electric Snare
+            'C#1': 'perc-rim.wav',    // 37 - Side Stick
+            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
+            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
+            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
+            'D#2': 'perc-shaker.wav',  // 51
+        },
+        baseUrl: '/samples/drums/',
+        release: 0.5,
+    });
+};
+
+// Acoustic Kit - Natural, punchy acoustic sounds
+const createAcousticKit = (): Tone.Sampler => {
+    return new Tone.Sampler({
+        urls: {
+            C1: 'kick-deep.wav',       // 36 - Kick (deep acoustic)
+            B0: 'kick-punchy.wav',     // 35 - Bass Drum (punchy)
+            D1: 'snare-crisp.wav',     // 38 - Snare (crisp acoustic)
+            E1: 'snare-crisp.wav',     // 40 - Electric Snare
+            'C#1': 'perc-rim.wav',     // 37 - Side Stick
+            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
+            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
+            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
+            'D#2': 'perc-shaker.wav',  // 51
+        },
+        baseUrl: '/samples/drums/',
+        release: 0.5,
+    });
+};
+
+// Lo-Fi Kit - Muted, dusty character
+const createLoFiKit = (): Tone.Sampler => {
+    return new Tone.Sampler({
+        urls: {
+            C1: 'kick-deep.wav',       // 36 - Kick (muffled deep)
+            B0: 'kick-deep.wav',       // 35 - Bass Drum
+            D1: 'snare-lofi.wav',      // 38 - Snare (lo-fi)
+            E1: 'snare-clap.wav',      // 40 - Clap
+            'C#1': 'perc-rim.wav',     // 37 - Side Stick
+            'F#1': 'hihat-pedal.wav',  // 42 - Closed Hi-Hat (muted pedal)
+            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
+            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
+            'D#2': 'perc-shaker.wav',  // 51
+        },
+        baseUrl: '/samples/drums/',
+        release: 0.3,
+    });
+};
+
+// Electronic Kit - Punchy, tight, modern
+const createElectronicKit = (): Tone.Sampler => {
+    return new Tone.Sampler({
+        urls: {
+            C1: 'kick-punchy.wav',     // 36 - Kick (punchy)
+            B0: 'kick-808.wav',        // 35 - Bass Drum (808 sub)
+            D1: 'snare-clap.wav',      // 38 - Snare (clap)
+            E1: 'snare-crisp.wav',     // 40 - Electric Snare
+            'C#1': 'perc-rim.wav',     // 37 - Side Stick
+            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
+            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
+            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
+            'D#2': 'perc-shaker.wav',  // 51
+        },
+        baseUrl: '/samples/drums/',
+        release: 0.4,
+    });
+};
+
 /**
  * Wait for a synth to be ready (mainly for Sampler which loads async)
  */
@@ -543,6 +619,30 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         name: 'Drum Kit',
         category: 'drums',
         createSynth: createDrumSampler,
+    },
+    '808-kit': {
+        id: '808-kit',
+        name: '808 Kit',
+        category: 'drums',
+        createSynth: create808Kit,
+    },
+    'acoustic-kit': {
+        id: 'acoustic-kit',
+        name: 'Acoustic Kit',
+        category: 'drums',
+        createSynth: createAcousticKit,
+    },
+    'lofi-kit': {
+        id: 'lofi-kit',
+        name: 'Lo-Fi Kit',
+        category: 'drums',
+        createSynth: createLoFiKit,
+    },
+    'electronic-kit': {
+        id: 'electronic-kit',
+        name: 'Electronic Kit',
+        category: 'drums',
+        createSynth: createElectronicKit,
     },
 };
 

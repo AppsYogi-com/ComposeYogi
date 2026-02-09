@@ -31,7 +31,7 @@ export interface TemplateItem {
 export interface InstrumentItem {
     id: string;
     name: string;
-    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead';
+    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums';
     description: string;
     trackType: TrackType;
     trackColor: TrackColor;
@@ -324,6 +324,47 @@ export const INSTRUMENTS: InstrumentItem[] = [
         trackType: 'midi',
         trackColor: 'melody',
     },
+    // Drums
+    {
+        id: 'drum-sampler',
+        name: 'Drum Kit',
+        category: 'drums',
+        description: 'Standard kit with kicks, snares & hats',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    {
+        id: '808-kit',
+        name: '808 Kit',
+        category: 'drums',
+        description: 'Classic TR-808 style with deep sub kick & claps',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    {
+        id: 'acoustic-kit',
+        name: 'Acoustic Kit',
+        category: 'drums',
+        description: 'Natural punchy acoustic drum sounds',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    {
+        id: 'lofi-kit',
+        name: 'Lo-Fi Kit',
+        category: 'drums',
+        description: 'Muted dusty lo-fi drum character',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    {
+        id: 'electronic-kit',
+        name: 'Electronic Kit',
+        category: 'drums',
+        description: 'Punchy tight modern electronic drums',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
 ];
 
 // ============================================
@@ -464,6 +505,7 @@ export const FX_PRESETS: FXPreset[] = [
 // ============================================
 
 export const INSTRUMENT_CATEGORIES = [
+    { id: 'drums', name: 'Drums', icon: '🥁' },
     { id: 'synth', name: 'Synths', icon: '🎛️' },
     { id: 'keys', name: 'Keys', icon: '🎹' },
     { id: 'bass', name: 'Bass', icon: '🎸' },
