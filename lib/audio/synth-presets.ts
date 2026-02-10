@@ -376,22 +376,22 @@ const createDrumSampler = (): Tone.Sampler => {
     return sampler;
 };
 
-// Punchy Drum - Tight punchy kick, crisp snare, clean hats
+// Punchy Drum - Fully synthesized punchy kit with its own unique samples
 const createPunchyKit = (): Tone.Sampler => {
     return new Tone.Sampler({
         urls: {
-            C1: 'kick-punchy.wav',     // 36 - Kick (punchy)
-            B0: 'kick-punchy.wav',     // 35 - Bass Drum
-            D1: 'snare-crisp.wav',     // 38 - Snare (crisp)
+            C1: 'kick-punchy.wav',     // 36 - Kick (tight punchy)
+            B0: 'kick-sub.wav',        // 35 - Bass Drum (sub)
+            D1: 'snare-punchy.wav',    // 38 - Snare (punchy)
             E1: 'snare-clap.wav',      // 40 - Clap
-            'C#1': 'perc-rim.wav',     // 37 - Side Stick
+            'C#1': 'perc-rim.wav',     // 37 - Rim shot
             'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
             'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
             'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
+            'D#2': 'perc-shaker.wav',  // 51 - Shaker
         },
-        baseUrl: '/samples/drums/',
-        release: 0.4,
+        baseUrl: '/samples/drums-punchy/',
+        release: 0.3,
     });
 };
 
