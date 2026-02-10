@@ -376,6 +376,25 @@ const createDrumSampler = (): Tone.Sampler => {
     return sampler;
 };
 
+// Punchy Drum - Tight punchy kick, crisp snare, clean hats
+const createPunchyKit = (): Tone.Sampler => {
+    return new Tone.Sampler({
+        urls: {
+            C1: 'kick-punchy.wav',     // 36 - Kick (punchy)
+            B0: 'kick-punchy.wav',     // 35 - Bass Drum
+            D1: 'snare-crisp.wav',     // 38 - Snare (crisp)
+            E1: 'snare-clap.wav',      // 40 - Clap
+            'C#1': 'perc-rim.wav',     // 37 - Side Stick
+            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
+            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
+            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
+            'D#2': 'perc-shaker.wav',  // 51
+        },
+        baseUrl: '/samples/drums/',
+        release: 0.4,
+    });
+};
+
 // 808 Kit - Deep sub kick, clap snare, tight hats
 const create808Kit = (): Tone.Sampler => {
     return new Tone.Sampler({
@@ -619,6 +638,12 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         name: 'Drum Kit',
         category: 'drums',
         createSynth: createDrumSampler,
+    },
+    'punchy-kit': {
+        id: 'punchy-kit',
+        name: 'Punchy Drum',
+        category: 'drums',
+        createSynth: createPunchyKit,
     },
     '808-kit': {
         id: '808-kit',

@@ -73,6 +73,7 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
         // Drum kits - basic rock/pop beat (kick=36, snare=38, hat=42)
         case 'drum-sampler':
         case 'acoustic-kit':
+        case 'punchy-kit':
             return [
                 // Kick on 1 and 3
                 { pitch: 36, startBeat: 0, duration: 0.5, velocity: 110 },
