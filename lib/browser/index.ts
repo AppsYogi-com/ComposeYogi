@@ -31,7 +31,7 @@ export interface TemplateItem {
 export interface InstrumentItem {
     id: string;
     name: string;
-    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums';
+    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'mallet' | 'strings' | 'woodwind' | 'brass';
     description: string;
     trackType: TrackType;
     trackColor: TrackColor;
@@ -324,6 +324,195 @@ export const INSTRUMENTS: InstrumentItem[] = [
         trackType: 'midi',
         trackColor: 'melody',
     },
+    // Mallet / Pitched Percussion
+    {
+        id: 'chimes',
+        name: 'Chimes',
+        category: 'mallet',
+        description: 'Metallic pipe chimes with long ring',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'marimba',
+        name: 'Marimba',
+        category: 'mallet',
+        description: 'Warm wooden mallet percussion',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'xylophone',
+        name: 'Xylophone',
+        category: 'mallet',
+        description: 'Bright, short wooden tone',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'vibraphone',
+        name: 'Vibraphone',
+        category: 'mallet',
+        description: 'Sustained metallic mallet with vibrato',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'kalimba',
+        name: 'Kalimba',
+        category: 'mallet',
+        description: 'Delicate African thumb piano',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'celeste',
+        name: 'Celeste',
+        category: 'mallet',
+        description: 'Gentle music-box bell tone',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'glockenspiel',
+        name: 'Glockenspiel',
+        category: 'mallet',
+        description: 'Bright metallic orchestral bells',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    // Plucked Strings
+    {
+        id: 'guitar',
+        name: 'Guitar',
+        category: 'strings',
+        description: 'Warm nylon-like plucked string',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'harp',
+        name: 'Harp',
+        category: 'strings',
+        description: 'Gentle plucked harp string',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'pizzicato',
+        name: 'Pizzicato',
+        category: 'strings',
+        description: 'Short orchestral plucked string',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'ukulele',
+        name: 'Ukulele',
+        category: 'strings',
+        description: 'Bright small-bodied pluck',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'banjo',
+        name: 'Banjo',
+        category: 'strings',
+        description: 'Twangy bright plucked string',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    // Bowed Strings
+    {
+        id: 'violin',
+        name: 'Violin',
+        category: 'strings',
+        description: 'Bright bowed string',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'cello',
+        name: 'Cello',
+        category: 'strings',
+        description: 'Warm rich bowed string',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'double-bass',
+        name: 'Double Bass',
+        category: 'strings',
+        description: 'Deep bowed orchestral bass',
+        trackType: 'midi',
+        trackColor: 'bass',
+    },
+    {
+        id: 'tenor-violin',
+        name: 'Tenor Violin',
+        category: 'strings',
+        description: 'Mellow viola-like bowed string',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'fiddle',
+        name: 'Fiddle',
+        category: 'strings',
+        description: 'Lively bright bowed string',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    // Woodwinds
+    {
+        id: 'flute',
+        name: 'Flute',
+        category: 'woodwind',
+        description: 'Pure breathy woodwind tone',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'piccolo',
+        name: 'Piccolo',
+        category: 'woodwind',
+        description: 'Bright high-pitched flute',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'saxophone',
+        name: 'Saxophone',
+        category: 'woodwind',
+        description: 'Rich reedy tone with harmonics',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'bassoon',
+        name: 'Bassoon',
+        category: 'woodwind',
+        description: 'Dark low woodwind',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'oboe',
+        name: 'Oboe',
+        category: 'woodwind',
+        description: 'Nasal reedy orchestral woodwind',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    // Brass
+    {
+        id: 'trumpet',
+        name: 'Trumpet',
+        category: 'brass',
+        description: 'Bright brassy fanfare tone',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
     // Drums
     {
         id: 'drum-sampler',
@@ -522,6 +711,10 @@ export const FX_PRESETS: FXPreset[] = [
 
 export const INSTRUMENT_CATEGORIES = [
     { id: 'drums', name: 'Drums', icon: '🥁' },
+    { id: 'mallet', name: 'Mallet', icon: '🔔' },
+    { id: 'strings', name: 'Strings', icon: '🎻' },
+    { id: 'woodwind', name: 'Woodwind', icon: '🎷' },
+    { id: 'brass', name: 'Brass', icon: '🎺' },
     { id: 'synth', name: 'Synths', icon: '🎛️' },
     { id: 'keys', name: 'Keys', icon: '🎹' },
     { id: 'bass', name: 'Bass', icon: '🎸' },

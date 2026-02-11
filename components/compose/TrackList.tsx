@@ -276,11 +276,174 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
 
         // Bell - spaced hits to let the long decay ring
         case 'bell-synth':
+        case 'chimes':
+        case 'celeste':
+        case 'glockenspiel':
             return [
                 { pitch: 84, startBeat: 0, duration: 0.5, velocity: 90 },
                 { pitch: 79, startBeat: 2, duration: 0.5, velocity: 85 },
                 { pitch: 76, startBeat: 4, duration: 0.5, velocity: 80 },
                 { pitch: 72, startBeat: 6, duration: 0.5, velocity: 85 },
+            ];
+
+        // Mallet - percussive melodic pattern
+        case 'marimba':
+        case 'xylophone':
+        case 'vibraphone':
+        case 'kalimba':
+            return [
+                { pitch: 72, startBeat: 0, duration: 0.25, velocity: 100 },
+                { pitch: 74, startBeat: 0.5, duration: 0.25, velocity: 85 },
+                { pitch: 76, startBeat: 1, duration: 0.25, velocity: 95 },
+                { pitch: 79, startBeat: 1.5, duration: 0.25, velocity: 90 },
+                { pitch: 76, startBeat: 2, duration: 0.5, velocity: 100 },
+                { pitch: 72, startBeat: 3, duration: 0.5, velocity: 90 },
+                { pitch: 67, startBeat: 4, duration: 0.25, velocity: 95 },
+                { pitch: 69, startBeat: 4.5, duration: 0.25, velocity: 85 },
+                { pitch: 72, startBeat: 5, duration: 0.25, velocity: 100 },
+                { pitch: 74, startBeat: 5.5, duration: 0.25, velocity: 90 },
+                { pitch: 72, startBeat: 6, duration: 0.5, velocity: 95 },
+                { pitch: 67, startBeat: 7, duration: 0.5, velocity: 85 },
+            ];
+
+        // Plucked strings - arpeggiated chord pattern
+        case 'guitar':
+        case 'ukulele':
+        case 'banjo':
+            return [
+                { pitch: 60, startBeat: 0, duration: 0.5, velocity: 100 },
+                { pitch: 64, startBeat: 0.5, duration: 0.5, velocity: 85 },
+                { pitch: 67, startBeat: 1, duration: 0.5, velocity: 90 },
+                { pitch: 64, startBeat: 1.5, duration: 0.5, velocity: 80 },
+                { pitch: 60, startBeat: 2, duration: 0.5, velocity: 95 },
+                { pitch: 64, startBeat: 2.5, duration: 0.5, velocity: 85 },
+                { pitch: 67, startBeat: 3, duration: 0.5, velocity: 90 },
+                { pitch: 64, startBeat: 3.5, duration: 0.5, velocity: 80 },
+                { pitch: 55, startBeat: 4, duration: 0.5, velocity: 100 },
+                { pitch: 59, startBeat: 4.5, duration: 0.5, velocity: 85 },
+                { pitch: 62, startBeat: 5, duration: 0.5, velocity: 90 },
+                { pitch: 59, startBeat: 5.5, duration: 0.5, velocity: 80 },
+                { pitch: 55, startBeat: 6, duration: 0.5, velocity: 95 },
+                { pitch: 59, startBeat: 6.5, duration: 0.5, velocity: 85 },
+                { pitch: 62, startBeat: 7, duration: 0.5, velocity: 90 },
+            ];
+
+        // Harp - cascading arpeggio
+        case 'harp':
+            return [
+                { pitch: 60, startBeat: 0, duration: 1.5, velocity: 90 },
+                { pitch: 64, startBeat: 0.25, duration: 1.5, velocity: 85 },
+                { pitch: 67, startBeat: 0.5, duration: 1.5, velocity: 80 },
+                { pitch: 72, startBeat: 0.75, duration: 1.5, velocity: 85 },
+                { pitch: 76, startBeat: 1, duration: 2, velocity: 90 },
+                { pitch: 55, startBeat: 4, duration: 1.5, velocity: 90 },
+                { pitch: 59, startBeat: 4.25, duration: 1.5, velocity: 85 },
+                { pitch: 62, startBeat: 4.5, duration: 1.5, velocity: 80 },
+                { pitch: 67, startBeat: 4.75, duration: 1.5, velocity: 85 },
+                { pitch: 71, startBeat: 5, duration: 2, velocity: 90 },
+            ];
+
+        // Pizzicato - short staccato notes
+        case 'pizzicato':
+            return [
+                { pitch: 60, startBeat: 0, duration: 0.15, velocity: 100 },
+                { pitch: 64, startBeat: 0.5, duration: 0.15, velocity: 90 },
+                { pitch: 67, startBeat: 1, duration: 0.15, velocity: 95 },
+                { pitch: 72, startBeat: 1.5, duration: 0.15, velocity: 90 },
+                { pitch: 67, startBeat: 2, duration: 0.15, velocity: 85 },
+                { pitch: 64, startBeat: 2.5, duration: 0.15, velocity: 80 },
+                { pitch: 60, startBeat: 3, duration: 0.15, velocity: 95 },
+                { pitch: 55, startBeat: 3.5, duration: 0.15, velocity: 85 },
+                { pitch: 60, startBeat: 4, duration: 0.15, velocity: 100 },
+                { pitch: 62, startBeat: 5, duration: 0.15, velocity: 90 },
+                { pitch: 65, startBeat: 6, duration: 0.15, velocity: 95 },
+                { pitch: 69, startBeat: 7, duration: 0.15, velocity: 90 },
+            ];
+
+        // Bowed strings - sustained legato melody
+        case 'violin':
+        case 'tenor-violin':
+        case 'fiddle':
+            return [
+                { pitch: 67, startBeat: 0, duration: 2, velocity: 85 },
+                { pitch: 69, startBeat: 2, duration: 1, velocity: 90 },
+                { pitch: 72, startBeat: 3, duration: 1, velocity: 95 },
+                { pitch: 74, startBeat: 4, duration: 2, velocity: 90 },
+                { pitch: 72, startBeat: 6, duration: 2, velocity: 85 },
+            ];
+
+        // Cello - warm sustained lower notes
+        case 'cello':
+            return [
+                { pitch: 48, startBeat: 0, duration: 4, velocity: 85 },
+                { pitch: 52, startBeat: 0, duration: 4, velocity: 75 },
+                { pitch: 55, startBeat: 0, duration: 4, velocity: 70 },
+                { pitch: 45, startBeat: 4, duration: 4, velocity: 85 },
+                { pitch: 48, startBeat: 4, duration: 4, velocity: 75 },
+                { pitch: 52, startBeat: 4, duration: 4, velocity: 70 },
+            ];
+
+        // Double Bass - deep sustained notes
+        case 'double-bass':
+            return [
+                { pitch: 36, startBeat: 0, duration: 2, velocity: 90 },
+                { pitch: 36, startBeat: 2, duration: 1, velocity: 80 },
+                { pitch: 41, startBeat: 3, duration: 1, velocity: 85 },
+                { pitch: 43, startBeat: 4, duration: 2, velocity: 90 },
+                { pitch: 41, startBeat: 6, duration: 1, velocity: 85 },
+                { pitch: 36, startBeat: 7, duration: 1, velocity: 80 },
+            ];
+
+        // Woodwinds - lyrical melody line
+        case 'flute':
+        case 'piccolo':
+        case 'oboe':
+            return [
+                { pitch: 72, startBeat: 0, duration: 1, velocity: 85 },
+                { pitch: 74, startBeat: 1, duration: 0.5, velocity: 80 },
+                { pitch: 76, startBeat: 1.5, duration: 1.5, velocity: 90 },
+                { pitch: 74, startBeat: 3, duration: 1, velocity: 85 },
+                { pitch: 72, startBeat: 4, duration: 1, velocity: 80 },
+                { pitch: 69, startBeat: 5, duration: 0.5, velocity: 85 },
+                { pitch: 67, startBeat: 5.5, duration: 2.5, velocity: 90 },
+            ];
+
+        // Saxophone - jazzy phrase
+        case 'saxophone':
+            return [
+                { pitch: 65, startBeat: 0, duration: 0.75, velocity: 95 },
+                { pitch: 67, startBeat: 0.75, duration: 0.25, velocity: 80 },
+                { pitch: 69, startBeat: 1, duration: 1.5, velocity: 90 },
+                { pitch: 67, startBeat: 2.5, duration: 0.5, velocity: 85 },
+                { pitch: 65, startBeat: 3, duration: 0.5, velocity: 80 },
+                { pitch: 62, startBeat: 3.5, duration: 0.5, velocity: 85 },
+                { pitch: 60, startBeat: 4, duration: 2, velocity: 95 },
+                { pitch: 62, startBeat: 6, duration: 0.5, velocity: 85 },
+                { pitch: 65, startBeat: 6.5, duration: 1.5, velocity: 90 },
+            ];
+
+        // Bassoon - low woodwind melody
+        case 'bassoon':
+            return [
+                { pitch: 48, startBeat: 0, duration: 1.5, velocity: 85 },
+                { pitch: 50, startBeat: 1.5, duration: 0.5, velocity: 80 },
+                { pitch: 52, startBeat: 2, duration: 2, velocity: 90 },
+                { pitch: 50, startBeat: 4, duration: 1, velocity: 85 },
+                { pitch: 48, startBeat: 5, duration: 1, velocity: 80 },
+                { pitch: 45, startBeat: 6, duration: 2, velocity: 85 },
+            ];
+
+        // Trumpet - bright fanfare
+        case 'trumpet':
+            return [
+                { pitch: 67, startBeat: 0, duration: 0.5, velocity: 100 },
+                { pitch: 67, startBeat: 0.5, duration: 0.5, velocity: 90 },
+                { pitch: 72, startBeat: 1, duration: 1.5, velocity: 100 },
+                { pitch: 74, startBeat: 2.5, duration: 0.5, velocity: 95 },
+                { pitch: 76, startBeat: 3, duration: 1, velocity: 100 },
+                { pitch: 74, startBeat: 4, duration: 0.5, velocity: 90 },
+                { pitch: 72, startBeat: 4.5, duration: 0.5, velocity: 95 },
+                { pitch: 67, startBeat: 5, duration: 3, velocity: 100 },
             ];
 
         // Default synth - simple arpeggio
