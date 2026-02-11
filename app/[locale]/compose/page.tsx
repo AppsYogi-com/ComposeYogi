@@ -154,7 +154,11 @@ function ComposePageContent() {
     }, [project, isAudioReady]);
 
     // Calculate a hash of clip notes for change detection
-    const clipNotesHash = project?.clips.map(c => `${c.id}:${c.notes?.length || 0}`).join(',') || '';
+    // Include note content (pitch, beat, duration, velocity) so edits trigger rescheduling
+    const clipNotesHash = project?.clips.map(c => {
+        const noteHash = c.notes?.map(n => `${n.pitch}.${n.startBeat}.${n.duration}.${n.velocity}`).join(';') || '';
+        return `${c.id}:${c.startBar}:${c.lengthBars}:${c.instrumentPreset || ''}:${noteHash}`;
+    }).join(',') || '';
 
     // Calculate hash for track effects to detect changes
     const trackEffectsHash = project?.tracks.map(t =>

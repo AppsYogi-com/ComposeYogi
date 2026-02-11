@@ -49,6 +49,9 @@ class PlayoutManager {
     private trackEntries: Map<string, Tone.Gain> = new Map();
     private trackEffects: Map<string, Tone.ToneAudioNode[]> = new Map();
 
+    // Version counter to prevent concurrent scheduleProject races
+    private scheduleVersion = 0;
+
     // ========================================
     // Initialization
     // ========================================
@@ -527,17 +530,30 @@ class PlayoutManager {
     // ========================================
 
     async scheduleProject(project: Project): Promise<void> {
-        logger.debug('Scheduling project', { clips: project.clips.length, tracks: project.tracks.length });
+        // Increment version to invalidate any in-flight scheduling
+        const version = ++this.scheduleVersion;
+        logger.debug('Scheduling project', { clips: project.clips.length, tracks: project.tracks.length, version });
 
         // Clear existing schedules
         this.clearAllScheduled();
 
-        // Schedule all clips
+        // Schedule all clips, checking version after each async op
         for (const clip of project.clips) {
+            // Abort if a newer scheduleProject call has started
+            if (this.scheduleVersion !== version) {
+                logger.debug('Aborting stale schedule', { version, current: this.scheduleVersion });
+                return;
+            }
             const track = project.tracks.find((t) => t.id === clip.trackId);
             if (track && !track.muted) {
                 await this.scheduleClip(clip, track, project);
             }
+        }
+
+        // Final check before applying track settings
+        if (this.scheduleVersion !== version) {
+            logger.debug('Aborting stale schedule (post-clips)', { version, current: this.scheduleVersion });
+            return;
         }
 
         // Update track volumes and pans
