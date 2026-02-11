@@ -342,6 +342,14 @@ export const INSTRUMENTS: InstrumentItem[] = [
         trackColor: 'drums',
     },
     {
+        id: 'drum-synth',
+        name: 'Classic Drum',
+        category: 'drums',
+        description: 'Pure synthesized knock sound, no samples',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    {
         id: '808-kit',
         name: '808 Kit',
         category: 'drums',

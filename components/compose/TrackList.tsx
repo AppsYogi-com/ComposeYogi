@@ -92,6 +92,26 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
                 { pitch: 42, startBeat: 7, duration: 0.25, velocity: 70 },
             ];
 
+        // Classic Drum (MembraneSynth) - pitched knocks
+        case 'drum-synth':
+            return [
+                // Low knock (kick)
+                { pitch: 36, startBeat: 0, duration: 0.5, velocity: 110 },
+                { pitch: 36, startBeat: 4, duration: 0.5, velocity: 100 },
+                // Mid knock (snare)
+                { pitch: 38, startBeat: 2, duration: 0.5, velocity: 100 },
+                { pitch: 38, startBeat: 6, duration: 0.5, velocity: 100 },
+                // High knock (hat)
+                { pitch: 42, startBeat: 0, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 1, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 2, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 3, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 4, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 5, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 6, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 7, duration: 0.25, velocity: 70 },
+            ];
+
         // 808 Kit - trap-style beat
         case '808-kit':
             return [

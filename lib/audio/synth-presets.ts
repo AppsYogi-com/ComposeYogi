@@ -629,7 +629,7 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
     // Drums (special case)
     'drum-synth': {
         id: 'drum-synth',
-        name: 'Drum Synth',
+        name: 'Classic Drum',
         category: 'drums',
         createSynth: createDrumSynth,
     },
