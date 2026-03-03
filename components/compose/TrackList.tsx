@@ -446,6 +446,81 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
                 { pitch: 67, startBeat: 5, duration: 3, velocity: 100 },
             ];
 
+        // Synth Drum Kit - punchy synthesized beat
+        case 'synth-drum-kit':
+            return [
+                { pitch: 36, startBeat: 0, duration: 0.5, velocity: 120 },
+                { pitch: 36, startBeat: 4, duration: 0.5, velocity: 110 },
+                { pitch: 38, startBeat: 2, duration: 0.5, velocity: 100 },
+                { pitch: 38, startBeat: 6, duration: 0.5, velocity: 100 },
+                { pitch: 42, startBeat: 0, duration: 0.25, velocity: 85 },
+                { pitch: 42, startBeat: 1, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 2, duration: 0.25, velocity: 85 },
+                { pitch: 42, startBeat: 3, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 4, duration: 0.25, velocity: 85 },
+                { pitch: 42, startBeat: 5, duration: 0.25, velocity: 70 },
+                { pitch: 42, startBeat: 6, duration: 0.25, velocity: 85 },
+                { pitch: 42, startBeat: 7, duration: 0.25, velocity: 70 },
+            ];
+
+        // Didgeridoo - sustained low drone
+        case 'didgeridoo':
+            return [
+                { pitch: 36, startBeat: 0, duration: 4, velocity: 90 },
+                { pitch: 38, startBeat: 4, duration: 2, velocity: 85 },
+                { pitch: 36, startBeat: 6, duration: 2, velocity: 90 },
+            ];
+
+        // Vocal Synth - sustained vocal phrase
+        case 'vocal-synth':
+            return [
+                { pitch: 60, startBeat: 0, duration: 2, velocity: 85 },
+                { pitch: 64, startBeat: 0, duration: 2, velocity: 75 },
+                { pitch: 67, startBeat: 0, duration: 2, velocity: 70 },
+                { pitch: 62, startBeat: 2.5, duration: 1.5, velocity: 80 },
+                { pitch: 65, startBeat: 2.5, duration: 1.5, velocity: 72 },
+                { pitch: 69, startBeat: 2.5, duration: 1.5, velocity: 68 },
+                { pitch: 60, startBeat: 4, duration: 4, velocity: 85 },
+                { pitch: 64, startBeat: 4, duration: 4, velocity: 75 },
+                { pitch: 67, startBeat: 4, duration: 4, velocity: 70 },
+            ];
+
+        // Orchestra Hit - big stab chords
+        case 'orchestra-hit':
+            return [
+                { pitch: 48, startBeat: 0, duration: 0.5, velocity: 120 },
+                { pitch: 55, startBeat: 0, duration: 0.5, velocity: 110 },
+                { pitch: 60, startBeat: 0, duration: 0.5, velocity: 115 },
+                { pitch: 64, startBeat: 0, duration: 0.5, velocity: 105 },
+                { pitch: 48, startBeat: 2, duration: 0.5, velocity: 115 },
+                { pitch: 55, startBeat: 2, duration: 0.5, velocity: 105 },
+                { pitch: 60, startBeat: 2, duration: 0.5, velocity: 110 },
+                { pitch: 64, startBeat: 2, duration: 0.5, velocity: 100 },
+                { pitch: 53, startBeat: 4, duration: 0.5, velocity: 120 },
+                { pitch: 57, startBeat: 4, duration: 0.5, velocity: 110 },
+                { pitch: 60, startBeat: 4, duration: 0.5, velocity: 115 },
+                { pitch: 65, startBeat: 4, duration: 0.5, velocity: 105 },
+                { pitch: 48, startBeat: 6, duration: 1, velocity: 120 },
+                { pitch: 55, startBeat: 6, duration: 1, velocity: 110 },
+                { pitch: 60, startBeat: 6, duration: 1, velocity: 115 },
+                { pitch: 67, startBeat: 6, duration: 1, velocity: 108 },
+            ];
+
+        // Guzheng - cascading plucked zither
+        case 'guzheng':
+            return [
+                { pitch: 64, startBeat: 0, duration: 1.5, velocity: 90 },
+                { pitch: 67, startBeat: 0.25, duration: 1.5, velocity: 85 },
+                { pitch: 71, startBeat: 0.5, duration: 1.5, velocity: 80 },
+                { pitch: 76, startBeat: 0.75, duration: 1.5, velocity: 85 },
+                { pitch: 79, startBeat: 1, duration: 2, velocity: 90 },
+                { pitch: 60, startBeat: 4, duration: 1.5, velocity: 90 },
+                { pitch: 64, startBeat: 4.25, duration: 1.5, velocity: 85 },
+                { pitch: 67, startBeat: 4.5, duration: 1.5, velocity: 80 },
+                { pitch: 72, startBeat: 4.75, duration: 1.5, velocity: 85 },
+                { pitch: 76, startBeat: 5, duration: 2, velocity: 90 },
+            ];
+
         // Default synth - simple arpeggio
         case 'basic-synth':
         default:

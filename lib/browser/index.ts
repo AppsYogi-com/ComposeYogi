@@ -513,7 +513,48 @@ export const INSTRUMENTS: InstrumentItem[] = [
         trackType: 'midi',
         trackColor: 'melody',
     },
+    // Additional
+    {
+        id: 'didgeridoo',
+        name: 'Didgeridoo',
+        category: 'woodwind',
+        description: 'Deep droning Australian wind instrument',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'vocal-synth',
+        name: 'Vocal Synth',
+        category: 'synth',
+        description: 'Formant-like vocal ahh articulation',
+        trackType: 'midi',
+        trackColor: 'vocals',
+    },
+    {
+        id: 'orchestra-hit',
+        name: 'Orchestra Hit',
+        category: 'synth',
+        description: 'Classic big orchestral stab chord',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'guzheng',
+        name: 'Guzheng',
+        category: 'strings',
+        description: 'Chinese plucked zither with bright twang',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
     // Drums
+    {
+        id: 'synth-drum-kit',
+        name: 'Synth Drum Kit',
+        category: 'drums',
+        description: 'Punchy synthesized drums, no samples',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
     {
         id: 'drum-sampler',
         name: 'Drum Kit',

@@ -928,6 +928,97 @@ const createTrumpet = (): Tone.PolySynth => {
     });
 };
 
+// Synth Drum Kit — punchier, more tonal variety than Classic Drum
+const createSynthDrumKit = (): Tone.MembraneSynth => {
+    return new Tone.MembraneSynth({
+        pitchDecay: 0.08,
+        octaves: 6,
+        oscillator: { type: 'triangle' },
+        envelope: {
+            attack: 0.001,
+            decay: 0.25,
+            sustain: 0,
+            release: 0.08,
+        },
+    });
+};
+
+// Didgeridoo — deep droning buzz
+const createDidgeridoo = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.MonoSynth, {
+        oscillator: { type: 'sawtooth' },
+        envelope: {
+            attack: 0.1,
+            decay: 0.3,
+            sustain: 0.9,
+            release: 0.5,
+        },
+        filterEnvelope: {
+            attack: 0.08,
+            decay: 0.2,
+            sustain: 0.4,
+            release: 0.4,
+            baseFrequency: 80,
+            octaves: 1.5,
+        },
+    });
+};
+
+// Vocal Synth — formant-like "ahh" articulation
+const createVocalSynth = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.AMSynth, {
+        harmonicity: 3,
+        oscillator: { type: 'fatsine', spread: 40, count: 3 },
+        modulation: { type: 'sine' },
+        envelope: {
+            attack: 0.15,
+            decay: 0.4,
+            sustain: 0.7,
+            release: 0.8,
+        },
+        modulationEnvelope: {
+            attack: 0.1,
+            decay: 0.3,
+            sustain: 0.5,
+            release: 0.6,
+        },
+    });
+};
+
+// Orchestra Hit — big stab chord
+const createOrchestraHit = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', spread: 30, count: 5 },
+        envelope: {
+            attack: 0.005,
+            decay: 0.6,
+            sustain: 0.0,
+            release: 0.4,
+        },
+    });
+};
+
+// Guzheng — Chinese plucked zither with bright twang
+const createGuzheng = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.MonoSynth, {
+        oscillator: { type: 'triangle' },
+        envelope: {
+            attack: 0.001,
+            decay: 1.8,
+            sustain: 0.0,
+            release: 1.2,
+        },
+        filterEnvelope: {
+            attack: 0.001,
+            decay: 0.5,
+            sustain: 0.0,
+            release: 0.4,
+            baseFrequency: 600,
+            octaves: 4,
+        },
+    });
+};
+
 // Legacy drum synth for fallback (simpler, no samples needed)
 const createDrumSynth = (): Tone.MembraneSynth => {
     return new Tone.MembraneSynth({
@@ -1220,7 +1311,39 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         createSynth: createTrumpet,
     },
 
+    // Additional instruments
+    'didgeridoo': {
+        id: 'didgeridoo',
+        name: 'Didgeridoo',
+        category: 'woodwind',
+        createSynth: createDidgeridoo,
+    },
+    'vocal-synth': {
+        id: 'vocal-synth',
+        name: 'Vocal Synth',
+        category: 'synth',
+        createSynth: createVocalSynth,
+    },
+    'orchestra-hit': {
+        id: 'orchestra-hit',
+        name: 'Orchestra Hit',
+        category: 'synth',
+        createSynth: createOrchestraHit,
+    },
+    'guzheng': {
+        id: 'guzheng',
+        name: 'Guzheng',
+        category: 'strings',
+        createSynth: createGuzheng,
+    },
+
     // Drums (special case)
+    'synth-drum-kit': {
+        id: 'synth-drum-kit',
+        name: 'Synth Drum Kit',
+        category: 'drums',
+        createSynth: createSynthDrumKit,
+    },
     'drum-synth': {
         id: 'drum-synth',
         name: 'Classic Drum',
