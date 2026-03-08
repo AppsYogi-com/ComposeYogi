@@ -6,15 +6,29 @@ This roadmap reflects our current priorities and vision. Star ⭐ this repo to f
 
 ---
 
+## ✅ Recently Shipped (v1.1.0 — March 2026)
+
+- [x] **WAV Export** — Export compositions as high-quality .wav audio files
+- [x] **MP3 Export** — Export compositions as compressed .mp3 files
+- [x] **Audio Import** — Drag-and-drop WAV/MP3 files onto the timeline
+- [x] **45+ Instruments** — Synths, keys, bass, pads, leads, strings, woodwind, brass, idiophones, and drums
+- [x] **6 Drum Kits** — 808, Acoustic, Lo-Fi, Electronic, Punchy, and Classic
+- [x] **10 Instrument Categories** — Synths, Keys, Bass, Pads, Leads, Drums, Idiophones, Strings, Woodwind, Brass
+- [x] **Zoom Controls** — Toolbar buttons and custom time signatures
+- [x] **4 New Templates** — Bollywood Beats, Reggaeton, Synthwave, Afrobeats
+- [x] **Bug Fixes** — Polyphony, audio glitch on note edit, per-clip instrument presets
+
+---
+
 ## 🚀 Now (Next 2–4 Weeks)
 
 **Actively in development**
 
-- [ ] **WAV Export** — Export your compositions as high-quality audio files
-- [ ] **Additional Templates** — More starter templates (EDM, Jazz, Ambient, Synthwave)
 - [ ] **Performance Optimizations** — Faster audio rendering and timeline scrolling
 - [ ] **Mobile View Mode** — Read-only playback on mobile devices
-- [ ] **Project Duplication** — Clone existing projects as starting points
+- [ ] **Project Management** — Create, duplicate, rename, delete projects
+- [ ] **Clip Virtualization** — Smooth 60fps with 200+ clips
+- [ ] **Piano Roll Velocity Lane** — Control note dynamics visually
 
 ---
 
@@ -29,10 +43,10 @@ This roadmap reflects our current priorities and vision. Star ⭐ this repo to f
 - [ ] **Project Gallery** — Browse and remix community projects
 
 ### Audio Features
-- [ ] **Audio Import** — Upload your own samples and loops
 - [ ] **Multi-Take Recording** — Record multiple takes and comp the best parts
 - [ ] **Audio Effects Chain** — Add reverb, delay, distortion, and filters to tracks
 - [ ] **Master Track FX** — Apply effects to the final mix
+- [ ] **Additional Templates** — More starter templates (Jazz, Classical, World)
 
 ### Workflow Improvements
 - [ ] **Snap to Grid Options** — Fine-tune snapping (1/4, 1/8, 1/16 notes)
@@ -85,6 +99,6 @@ We love hearing from the community! The best ideas often come from our users.
 
 ---
 
-**Last updated:** January 2026
+**Last updated:** March 2026
 
 Star ⭐ this repo to stay updated on our progress!
