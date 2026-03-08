@@ -15,7 +15,7 @@ export type SynthType = Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | T
 export interface SynthPreset {
     id: string;
     name: string;
-    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'mallet' | 'strings' | 'woodwind' | 'brass';
+    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'idiophones' | 'strings' | 'woodwind' | 'brass';
     createSynth: () => SynthType;
 }
 
@@ -1034,6 +1034,79 @@ const createDrumSynth = (): Tone.MembraneSynth => {
     });
 };
 
+// Bongos — high-pitched pair of hand drums, short tonal decay
+const createBongos = (): Tone.MembraneSynth => {
+    return new Tone.MembraneSynth({
+        pitchDecay: 0.03,
+        octaves: 3,
+        oscillator: { type: 'sine' },
+        envelope: {
+            attack: 0.001,
+            decay: 0.15,
+            sustain: 0,
+            release: 0.05,
+        },
+    });
+};
+
+// Wooden Block — sharp, clicky percussive crack
+const createWoodenBlock = (): Tone.MembraneSynth => {
+    return new Tone.MembraneSynth({
+        pitchDecay: 0.008,
+        octaves: 2,
+        oscillator: { type: 'square' },
+        envelope: {
+            attack: 0.001,
+            decay: 0.06,
+            sustain: 0,
+            release: 0.02,
+        },
+    });
+};
+
+// Harpsichord — bright, plucked-string keyboard with metallic twang
+const createHarpsichord = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.MonoSynth, {
+        oscillator: { type: 'sawtooth' },
+        envelope: {
+            attack: 0.001,
+            decay: 1.2,
+            sustain: 0.0,
+            release: 0.6,
+        },
+        filterEnvelope: {
+            attack: 0.001,
+            decay: 0.3,
+            sustain: 0.0,
+            release: 0.3,
+            baseFrequency: 800,
+            octaves: 4,
+        },
+    });
+};
+
+// Steel Pan — bright, shimmery bell-like tones with metallic harmonics
+const createSteelPan = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 4,
+        modulationIndex: 3,
+        oscillator: { type: 'sine' },
+        modulation: { type: 'triangle' },
+        envelope: {
+            attack: 0.001,
+            decay: 1.5,
+            sustain: 0.0,
+            release: 0.8,
+        },
+        modulationEnvelope: {
+            attack: 0.001,
+            decay: 0.8,
+            sustain: 0.0,
+            release: 0.5,
+        },
+    });
+};
+
 // ============================================
 // Preset Registry
 // ============================================
@@ -1051,6 +1124,12 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         name: 'Bright Piano',
         category: 'keys',
         createSynth: createBrightPiano,
+    },
+    'harpsichord': {
+        id: 'harpsichord',
+        name: 'Harpsichord',
+        category: 'keys',
+        createSynth: createHarpsichord,
     },
     'organ': {
         id: 'organ',
@@ -1159,52 +1238,58 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
     'bell-synth': {
         id: 'bell-synth',
         name: 'Bell',
-        category: 'synth',
+        category: 'idiophones',
         createSynth: createBellSynth,
     },
 
-    // Mallet / Pitched Percussion
+    // Idiophones / Pitched Percussion
     'chimes': {
         id: 'chimes',
         name: 'Chimes',
-        category: 'mallet',
+        category: 'idiophones',
         createSynth: createChimes,
     },
     'marimba': {
         id: 'marimba',
         name: 'Marimba',
-        category: 'mallet',
+        category: 'idiophones',
         createSynth: createMarimba,
     },
     'xylophone': {
         id: 'xylophone',
         name: 'Xylophone',
-        category: 'mallet',
+        category: 'idiophones',
         createSynth: createXylophone,
     },
     'vibraphone': {
         id: 'vibraphone',
         name: 'Vibraphone',
-        category: 'mallet',
+        category: 'idiophones',
         createSynth: createVibraphone,
     },
     'kalimba': {
         id: 'kalimba',
         name: 'Kalimba',
-        category: 'mallet',
+        category: 'idiophones',
         createSynth: createKalimba,
     },
     'celeste': {
         id: 'celeste',
         name: 'Celeste',
-        category: 'mallet',
+        category: 'idiophones',
         createSynth: createCeleste,
     },
     'glockenspiel': {
         id: 'glockenspiel',
         name: 'Glockenspiel',
-        category: 'mallet',
+        category: 'idiophones',
         createSynth: createGlockenspiel,
+    },
+    'steel-pan': {
+        id: 'steel-pan',
+        name: 'Steel Pan',
+        category: 'idiophones',
+        createSynth: createSteelPan,
     },
 
     // Plucked Strings
@@ -1327,7 +1412,7 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
     'orchestra-hit': {
         id: 'orchestra-hit',
         name: 'Orchestra Hit',
-        category: 'synth',
+        category: 'strings',
         createSynth: createOrchestraHit,
     },
     'guzheng': {
@@ -1385,6 +1470,18 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         name: 'Electronic Kit',
         category: 'drums',
         createSynth: createElectronicKit,
+    },
+    'bongos': {
+        id: 'bongos',
+        name: 'Bongos',
+        category: 'drums',
+        createSynth: createBongos,
+    },
+    'wooden-block': {
+        id: 'wooden-block',
+        name: 'Wooden Block',
+        category: 'drums',
+        createSynth: createWoodenBlock,
     },
 };
 

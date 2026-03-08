@@ -31,7 +31,7 @@ export interface TemplateItem {
 export interface InstrumentItem {
     id: string;
     name: string;
-    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'mallet' | 'strings' | 'woodwind' | 'brass';
+    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'idiophones' | 'strings' | 'woodwind' | 'brass';
     description: string;
     trackType: TrackType;
     trackColor: TrackColor;
@@ -226,6 +226,14 @@ export const INSTRUMENTS: InstrumentItem[] = [
         trackColor: 'keys',
     },
     {
+        id: 'harpsichord',
+        name: 'Harpsichord',
+        category: 'keys',
+        description: 'Baroque plucked-string keyboard with metallic twang',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
         id: 'organ',
         name: 'Organ',
         category: 'keys',
@@ -319,16 +327,16 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'bell-synth',
         name: 'Bell',
-        category: 'synth',
+        category: 'idiophones',
         description: 'FM bell with metallic harmonics',
         trackType: 'midi',
         trackColor: 'melody',
     },
-    // Mallet / Pitched Percussion
+    // Idiophones / Pitched Percussion
     {
         id: 'chimes',
         name: 'Chimes',
-        category: 'mallet',
+        category: 'idiophones',
         description: 'Metallic pipe chimes with long ring',
         trackType: 'midi',
         trackColor: 'keys',
@@ -336,7 +344,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'marimba',
         name: 'Marimba',
-        category: 'mallet',
+        category: 'idiophones',
         description: 'Warm wooden mallet percussion',
         trackType: 'midi',
         trackColor: 'keys',
@@ -344,7 +352,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'xylophone',
         name: 'Xylophone',
-        category: 'mallet',
+        category: 'idiophones',
         description: 'Bright, short wooden tone',
         trackType: 'midi',
         trackColor: 'keys',
@@ -352,7 +360,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'vibraphone',
         name: 'Vibraphone',
-        category: 'mallet',
+        category: 'idiophones',
         description: 'Sustained metallic mallet with vibrato',
         trackType: 'midi',
         trackColor: 'keys',
@@ -360,7 +368,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'kalimba',
         name: 'Kalimba',
-        category: 'mallet',
+        category: 'idiophones',
         description: 'Delicate African thumb piano',
         trackType: 'midi',
         trackColor: 'keys',
@@ -368,7 +376,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'celeste',
         name: 'Celeste',
-        category: 'mallet',
+        category: 'idiophones',
         description: 'Gentle music-box bell tone',
         trackType: 'midi',
         trackColor: 'keys',
@@ -376,8 +384,16 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'glockenspiel',
         name: 'Glockenspiel',
-        category: 'mallet',
+        category: 'idiophones',
         description: 'Bright metallic orchestral bells',
+        trackType: 'midi',
+        trackColor: 'keys',
+    },
+    {
+        id: 'steel-pan',
+        name: 'Steel Pan',
+        category: 'idiophones',
+        description: 'Bright shimmery Caribbean bell-like tones',
         trackType: 'midi',
         trackColor: 'keys',
     },
@@ -533,7 +549,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'orchestra-hit',
         name: 'Orchestra Hit',
-        category: 'synth',
+        category: 'strings',
         description: 'Classic big orchestral stab chord',
         trackType: 'midi',
         trackColor: 'melody',
@@ -608,6 +624,22 @@ export const INSTRUMENTS: InstrumentItem[] = [
         name: 'Electronic Kit',
         category: 'drums',
         description: 'Punchy tight modern electronic drums',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    {
+        id: 'bongos',
+        name: 'Bongos',
+        category: 'drums',
+        description: 'Afro-Cuban high-pitched hand drum pair',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    {
+        id: 'wooden-block',
+        name: 'Wooden Block',
+        category: 'drums',
+        description: 'Sharp clicky percussive wood crack',
         trackType: 'drum',
         trackColor: 'drums',
     },
@@ -752,7 +784,7 @@ export const FX_PRESETS: FXPreset[] = [
 
 export const INSTRUMENT_CATEGORIES = [
     { id: 'drums', name: 'Drums', icon: '🥁' },
-    { id: 'mallet', name: 'Mallet', icon: '🔔' },
+    { id: 'idiophones', name: 'Idiophones', icon: '🔔' },
     { id: 'strings', name: 'Strings', icon: '🎻' },
     { id: 'woodwind', name: 'Woodwind', icon: '🎷' },
     { id: 'brass', name: 'Brass', icon: '🎺' },

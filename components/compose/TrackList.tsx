@@ -521,6 +521,89 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
                 { pitch: 76, startBeat: 5, duration: 2, velocity: 90 },
             ];
 
+        // Bongos — Afro-Cuban martillo-inspired pattern (macho=42 high, hembra=36 low)
+        case 'bongos':
+            return [
+                { pitch: 42, startBeat: 0, duration: 0.25, velocity: 90 },
+                { pitch: 42, startBeat: 0.5, duration: 0.25, velocity: 70 },
+                { pitch: 36, startBeat: 1, duration: 0.25, velocity: 100 },
+                { pitch: 42, startBeat: 1.5, duration: 0.25, velocity: 75 },
+                { pitch: 42, startBeat: 2, duration: 0.25, velocity: 90 },
+                { pitch: 42, startBeat: 2.5, duration: 0.25, velocity: 70 },
+                { pitch: 36, startBeat: 3, duration: 0.25, velocity: 100 },
+                { pitch: 42, startBeat: 3.5, duration: 0.25, velocity: 75 },
+                { pitch: 42, startBeat: 4, duration: 0.25, velocity: 90 },
+                { pitch: 42, startBeat: 4.5, duration: 0.25, velocity: 70 },
+                { pitch: 36, startBeat: 5, duration: 0.25, velocity: 100 },
+                { pitch: 42, startBeat: 5.5, duration: 0.25, velocity: 75 },
+                { pitch: 42, startBeat: 6, duration: 0.25, velocity: 90 },
+                { pitch: 36, startBeat: 6.5, duration: 0.25, velocity: 80 },
+                { pitch: 36, startBeat: 7, duration: 0.25, velocity: 100 },
+                { pitch: 42, startBeat: 7.5, duration: 0.25, velocity: 70 },
+            ];
+
+        // Wooden Block — sharp rhythmic clicks
+        case 'wooden-block':
+            return [
+                { pitch: 42, startBeat: 0, duration: 0.125, velocity: 100 },
+                { pitch: 38, startBeat: 1, duration: 0.125, velocity: 85 },
+                { pitch: 42, startBeat: 2, duration: 0.125, velocity: 100 },
+                { pitch: 38, startBeat: 3, duration: 0.125, velocity: 85 },
+                { pitch: 42, startBeat: 4, duration: 0.125, velocity: 100 },
+                { pitch: 38, startBeat: 4.5, duration: 0.125, velocity: 75 },
+                { pitch: 42, startBeat: 5, duration: 0.125, velocity: 90 },
+                { pitch: 38, startBeat: 6, duration: 0.125, velocity: 85 },
+                { pitch: 42, startBeat: 6.5, duration: 0.125, velocity: 80 },
+                { pitch: 42, startBeat: 7, duration: 0.125, velocity: 100 },
+            ];
+
+        // Harpsichord — baroque chord progression with ornamented pluck
+        case 'harpsichord':
+            return [
+                // C major chord (beat 0)
+                { pitch: 60, startBeat: 0, duration: 1.5, velocity: 100 },
+                { pitch: 64, startBeat: 0, duration: 1.5, velocity: 95 },
+                { pitch: 67, startBeat: 0, duration: 1.5, velocity: 90 },
+                // Ornament run
+                { pitch: 72, startBeat: 1.5, duration: 0.25, velocity: 85 },
+                { pitch: 71, startBeat: 1.75, duration: 0.25, velocity: 80 },
+                // G major chord (beat 2)
+                { pitch: 55, startBeat: 2, duration: 1.5, velocity: 100 },
+                { pitch: 59, startBeat: 2, duration: 1.5, velocity: 95 },
+                { pitch: 62, startBeat: 2, duration: 1.5, velocity: 90 },
+                // Ornament
+                { pitch: 67, startBeat: 3.5, duration: 0.25, velocity: 85 },
+                { pitch: 66, startBeat: 3.75, duration: 0.25, velocity: 80 },
+                // A minor chord (beat 4)
+                { pitch: 57, startBeat: 4, duration: 1.5, velocity: 100 },
+                { pitch: 60, startBeat: 4, duration: 1.5, velocity: 95 },
+                { pitch: 64, startBeat: 4, duration: 1.5, velocity: 90 },
+                // Run down
+                { pitch: 69, startBeat: 5.5, duration: 0.25, velocity: 85 },
+                { pitch: 67, startBeat: 5.75, duration: 0.25, velocity: 80 },
+                // F major chord (beat 6)
+                { pitch: 53, startBeat: 6, duration: 2, velocity: 100 },
+                { pitch: 57, startBeat: 6, duration: 2, velocity: 95 },
+                { pitch: 60, startBeat: 6, duration: 2, velocity: 90 },
+            ];
+
+        // Steel Pan — bright Caribbean melodic pattern
+        case 'steel-pan':
+            return [
+                { pitch: 72, startBeat: 0, duration: 0.5, velocity: 95 },
+                { pitch: 76, startBeat: 0.5, duration: 0.5, velocity: 85 },
+                { pitch: 79, startBeat: 1, duration: 0.5, velocity: 90 },
+                { pitch: 76, startBeat: 1.5, duration: 0.5, velocity: 80 },
+                { pitch: 72, startBeat: 2, duration: 1, velocity: 95 },
+                { pitch: 74, startBeat: 3, duration: 0.5, velocity: 85 },
+                { pitch: 76, startBeat: 3.5, duration: 0.5, velocity: 90 },
+                { pitch: 79, startBeat: 4, duration: 0.5, velocity: 95 },
+                { pitch: 84, startBeat: 4.5, duration: 0.5, velocity: 90 },
+                { pitch: 79, startBeat: 5, duration: 1, velocity: 85 },
+                { pitch: 76, startBeat: 6, duration: 0.5, velocity: 90 },
+                { pitch: 72, startBeat: 6.5, duration: 1.5, velocity: 95 },
+            ];
+
         // Default synth - simple arpeggio
         case 'basic-synth':
         default:
