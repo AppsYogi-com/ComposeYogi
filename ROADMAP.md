@@ -11,9 +11,9 @@ This roadmap reflects our current priorities and vision. Star ⭐ this repo to f
 - [x] **WAV Export** — Export compositions as high-quality .wav audio files
 - [x] **MP3 Export** — Export compositions as compressed .mp3 files
 - [x] **Audio Import** — Drag-and-drop WAV/MP3 files onto the timeline
-- [x] **45+ Instruments** — Synths, keys, bass, pads, leads, strings, woodwind, brass, idiophones, and drums
+- [x] **50+ Instruments** — Synths, keys, bass, pads, leads, plucked strings, bowed strings, wind, idiophones, and drums
 - [x] **6 Drum Kits** — 808, Acoustic, Lo-Fi, Electronic, Punchy, and Classic
-- [x] **10 Instrument Categories** — Synths, Keys, Bass, Pads, Leads, Drums, Idiophones, Strings, Woodwind, Brass
+- [x] **10 Instrument Categories** — Synths, Keys, Bass, Pads, Leads, Drums, Idiophones, Plucked Strings, Bowed Strings, Wind
 - [x] **Zoom Controls** — Toolbar buttons and custom time signatures
 - [x] **4 New Templates** — Bollywood Beats, Reggaeton, Synthwave, Afrobeats
 - [x] **Bug Fixes** — Polyphony, audio glitch on note edit, per-clip instrument presets

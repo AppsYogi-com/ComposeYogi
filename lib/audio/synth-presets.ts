@@ -10,12 +10,12 @@ import * as Tone from 'tone';
 // ============================================
 
 // Union type for all synths we might create
-export type SynthType = Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | Tone.Sampler;
+export type SynthType = Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | Tone.NoiseSynth | Tone.Sampler;
 
 export interface SynthPreset {
     id: string;
     name: string;
-    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'idiophones' | 'strings' | 'woodwind' | 'brass';
+    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'idiophones' | 'plucked-strings' | 'bowed-strings' | 'wind';
     createSynth: () => SynthType;
 }
 
@@ -1108,6 +1108,108 @@ const createSteelPan = (): Tone.PolySynth => {
 };
 
 // ============================================
+// Basic Waveform Synths — pure oscillator PolySynths
+// ============================================
+
+// Square Wave — classic 8-bit / retro tone, hollow and buzzy
+const createSquareWave = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'square' },
+        envelope: {
+            attack: 0.01,
+            decay: 0.3,
+            sustain: 0.6,
+            release: 0.4,
+        },
+    });
+};
+
+// Triangle Wave — soft, mellow, almost flute-like pure tone
+const createTriangleWave = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'triangle' },
+        envelope: {
+            attack: 0.01,
+            decay: 0.3,
+            sustain: 0.7,
+            release: 0.4,
+        },
+    });
+};
+
+// Sawtooth Wave — bright, buzzy, harmonically rich waveform
+const createSawtoothWave = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'sawtooth' },
+        envelope: {
+            attack: 0.01,
+            decay: 0.3,
+            sustain: 0.6,
+            release: 0.4,
+        },
+    });
+};
+
+// ============================================
+// Euphonium — warm, mellow low-brass PolySynth
+// ============================================
+
+const createEuphonium = (): Tone.PolySynth => {
+    return new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 1.5,
+        modulationIndex: 2,
+        oscillator: { type: 'sine' },
+        modulation: { type: 'sine' },
+        envelope: {
+            attack: 0.08,
+            decay: 0.2,
+            sustain: 0.7,
+            release: 0.4,
+        },
+        modulationEnvelope: {
+            attack: 0.1,
+            decay: 0.3,
+            sustain: 0.5,
+            release: 0.3,
+        },
+    });
+};
+
+// ============================================
+// Taiko — deep resonant Japanese drum (no samples)
+// ============================================
+
+const createTaiko = (): Tone.MembraneSynth => {
+    return new Tone.MembraneSynth({
+        pitchDecay: 0.08,
+        octaves: 4,
+        oscillator: { type: 'sine' },
+        envelope: {
+            attack: 0.001,
+            decay: 0.6,
+            sustain: 0,
+            release: 0.4,
+        },
+    });
+};
+
+// ============================================
+// Maracas — shaker noise burst (no samples)
+// ============================================
+
+const createMaracas = (): Tone.NoiseSynth => {
+    return new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: {
+            attack: 0.001,
+            decay: 0.05,
+            sustain: 0,
+            release: 0.02,
+        },
+    });
+};
+
+// ============================================
 // Preset Registry
 // ============================================
 
@@ -1296,31 +1398,31 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
     'guitar': {
         id: 'guitar',
         name: 'Guitar',
-        category: 'strings',
+        category: 'plucked-strings',
         createSynth: createGuitar,
     },
     'harp': {
         id: 'harp',
         name: 'Harp',
-        category: 'strings',
+        category: 'plucked-strings',
         createSynth: createHarp,
     },
     'pizzicato': {
         id: 'pizzicato',
         name: 'Pizzicato',
-        category: 'strings',
+        category: 'plucked-strings',
         createSynth: createPizzicato,
     },
     'ukulele': {
         id: 'ukulele',
         name: 'Ukulele',
-        category: 'strings',
+        category: 'plucked-strings',
         createSynth: createUkulele,
     },
     'banjo': {
         id: 'banjo',
         name: 'Banjo',
-        category: 'strings',
+        category: 'plucked-strings',
         createSynth: createBanjo,
     },
 
@@ -1328,79 +1430,83 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
     'violin': {
         id: 'violin',
         name: 'Violin',
-        category: 'strings',
+        category: 'bowed-strings',
         createSynth: createViolin,
     },
     'cello': {
         id: 'cello',
         name: 'Cello',
-        category: 'strings',
+        category: 'bowed-strings',
         createSynth: createCello,
     },
     'double-bass': {
         id: 'double-bass',
         name: 'Double Bass',
-        category: 'strings',
+        category: 'bowed-strings',
         createSynth: createDoubleBass,
     },
     'tenor-violin': {
         id: 'tenor-violin',
         name: 'Tenor Violin',
-        category: 'strings',
+        category: 'bowed-strings',
         createSynth: createTenorViolin,
     },
     'fiddle': {
         id: 'fiddle',
         name: 'Fiddle',
-        category: 'strings',
+        category: 'bowed-strings',
         createSynth: createFiddle,
     },
 
-    // Woodwinds
+    // Wind (merged Woodwind + Brass)
     'flute': {
         id: 'flute',
         name: 'Flute',
-        category: 'woodwind',
+        category: 'wind',
         createSynth: createFlute,
     },
     'piccolo': {
         id: 'piccolo',
         name: 'Piccolo',
-        category: 'woodwind',
+        category: 'wind',
         createSynth: createPiccolo,
     },
     'saxophone': {
         id: 'saxophone',
         name: 'Saxophone',
-        category: 'woodwind',
+        category: 'wind',
         createSynth: createSaxophone,
     },
     'bassoon': {
         id: 'bassoon',
         name: 'Bassoon',
-        category: 'woodwind',
+        category: 'wind',
         createSynth: createBassoon,
     },
     'oboe': {
         id: 'oboe',
         name: 'Oboe',
-        category: 'woodwind',
+        category: 'wind',
         createSynth: createOboe,
     },
-
-    // Brass
     'trumpet': {
         id: 'trumpet',
         name: 'Trumpet',
-        category: 'brass',
+        category: 'wind',
         createSynth: createTrumpet,
+    },
+    'euphonium': {
+        id: 'euphonium',
+        name: 'Euphonium',
+        category: 'wind',
+        createSynth: createEuphonium,
     },
 
     // Additional instruments
     'didgeridoo': {
         id: 'didgeridoo',
         name: 'Didgeridoo',
-        category: 'woodwind',
+        category: 'wind',
         createSynth: createDidgeridoo,
     },
     'vocal-synth': {
@@ -1412,13 +1518,13 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
     'orchestra-hit': {
         id: 'orchestra-hit',
         name: 'Orchestra Hit',
-        category: 'strings',
+        category: 'idiophones',
         createSynth: createOrchestraHit,
     },
     'guzheng': {
         id: 'guzheng',
         name: 'Guzheng',
-        category: 'strings',
+        category: 'plucked-strings',
         createSynth: createGuzheng,
     },
 
@@ -1482,6 +1588,38 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         name: 'Wooden Block',
         category: 'drums',
         createSynth: createWoodenBlock,
+    },
+    'taiko': {
+        id: 'taiko',
+        name: 'Taiko',
+        category: 'drums',
+        createSynth: createTaiko,
+    },
+    'maracas': {
+        id: 'maracas',
+        name: 'Maracas',
+        category: 'drums',
+        createSynth: createMaracas,
+    },
+
+    // Basic Waveform Synths
+    'square-wave': {
+        id: 'square-wave',
+        name: 'Square Wave',
+        category: 'synth',
+        createSynth: createSquareWave,
+    },
+    'triangle-wave': {
+        id: 'triangle-wave',
+        name: 'Triangle Wave',
+        category: 'synth',
+        createSynth: createTriangleWave,
+    },
+    'sawtooth-wave': {
+        id: 'sawtooth-wave',
+        name: 'Sawtooth Wave',
+        category: 'synth',
+        createSynth: createSawtoothWave,
     },
 };
 

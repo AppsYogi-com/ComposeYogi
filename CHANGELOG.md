@@ -22,11 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 10 new synth presets: Electric Piano, Clavinet, Fingerstyle Bass, FM Bass, Funk Lead, Distortion Lead, Warm Pad, Choir Pad, Ethereal Pad, Pluck Synth (#9)
 - 24 pitched instruments across 4 new categories (#16):
   - **Idiophones**: Marimba, Xylophone, Glockenspiel, Vibraphone, Celesta, Kalimba, Music Box
-  - **Strings**: Violin, Viola, Cello, Double Bass, Acoustic Guitar, Harp, Erhu, Sitar
-  - **Woodwind**: Flute, Clarinet, Oboe, Bassoon, Pan Flute
-  - **Brass**: Trumpet, French Horn, Trombone, Tuba
+  - **Plucked Strings**: Acoustic Guitar, Harp, Ukulele, Banjo, Pizzicato, Guzheng
+  - **Bowed Strings**: Violin, Cello, Double Bass, Tenor Violin, Fiddle
+  - **Wind**: Flute, Piccolo, Oboe, Bassoon, Saxophone, Trumpet
 - 5 additional instruments: Synth Drum Kit, Didgeridoo, Vocal Synth, Orchestra Hit, Guzheng (#17)
 - 4 more instruments: Bongos, Wooden Block, Harpsichord, Steel Pan (#18)
+- 6 new instruments: Square Wave, Triangle Wave, Sawtooth Wave, Euphonium, Taiko, Maracas (#19)
 - Per-clip instrument preset support (each clip remembers its instrument)
 - Demo note patterns for every instrument
 
@@ -39,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zoom controls in toolbar (+/− buttons) (#8)
 - Custom time signature support (#8)
 - 4 new demo templates: Bollywood Beats, Reggaeton, Synthwave, Afrobeats
-- 10 instrument categories: Synths, Keys, Bass, Pads, Leads, Drums, Idiophones, Strings, Woodwind, Brass
+- 10 instrument categories: Synths, Keys, Bass, Pads, Leads, Drums, Idiophones, Plucked Strings, Bowed Strings, Wind
 - Public roadmap (ROADMAP.md)
 - AI coding assistant instructions (.github/copilot-instructions.md)
 
@@ -51,7 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - "Mallet" instrument category renamed to "Idiophones" (#18)
 - Bell moved from Synths → Idiophones (#18)
-- Orchestra Hit moved from Synths → Strings (#18)
+- Orchestra Hit moved from Synths → Idiophones (#18, #19)
+- Woodwind and Brass merged into "Wind" category (#19)
+- Strings split into "Plucked Strings" and "Bowed Strings" (#19)
+- NoiseSynth added to SynthType union for Maracas support (#19)
 
 ---
 

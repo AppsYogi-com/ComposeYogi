@@ -387,12 +387,21 @@ async function scheduleMidiClipForOffline(
             const scheduledTime = timeKey + offset;
 
             transport.schedule((time) => {
-                synth.triggerAttackRelease(
-                    Tone.Frequency(note.pitch, 'midi').toFrequency(),
-                    noteDurationSeconds,
-                    time,
-                    note.velocity / 127
-                );
+                if (synth instanceof Tone.NoiseSynth) {
+                    // NoiseSynth has no pitch — just trigger duration and velocity
+                    synth.triggerAttackRelease(
+                        noteDurationSeconds,
+                        time,
+                        note.velocity / 127
+                    );
+                } else {
+                    synth.triggerAttackRelease(
+                        Tone.Frequency(note.pitch, 'midi').toFrequency(),
+                        noteDurationSeconds,
+                        time,
+                        note.velocity / 127
+                    );
+                }
             }, scheduledTime);
         });
     }

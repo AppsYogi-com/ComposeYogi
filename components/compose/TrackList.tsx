@@ -604,6 +604,94 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
                 { pitch: 72, startBeat: 6.5, duration: 1.5, velocity: 95 },
             ];
 
+        // Square Wave — retro 8-bit arpeggio
+        case 'square-wave':
+            return [
+                { pitch: 60, startBeat: 0, duration: 0.5, velocity: 100 },
+                { pitch: 64, startBeat: 0.5, duration: 0.5, velocity: 90 },
+                { pitch: 67, startBeat: 1, duration: 0.5, velocity: 95 },
+                { pitch: 72, startBeat: 1.5, duration: 0.5, velocity: 100 },
+                { pitch: 67, startBeat: 2, duration: 0.5, velocity: 85 },
+                { pitch: 64, startBeat: 2.5, duration: 0.5, velocity: 80 },
+                { pitch: 60, startBeat: 3, duration: 0.5, velocity: 95 },
+                { pitch: 55, startBeat: 3.5, duration: 0.5, velocity: 85 },
+                { pitch: 60, startBeat: 4, duration: 1, velocity: 100 },
+                { pitch: 67, startBeat: 5, duration: 1, velocity: 90 },
+                { pitch: 72, startBeat: 6, duration: 2, velocity: 95 },
+            ];
+
+        // Triangle Wave — gentle mellow melody
+        case 'triangle-wave':
+            return [
+                { pitch: 67, startBeat: 0, duration: 1.5, velocity: 85 },
+                { pitch: 69, startBeat: 1.5, duration: 0.5, velocity: 80 },
+                { pitch: 72, startBeat: 2, duration: 2, velocity: 90 },
+                { pitch: 69, startBeat: 4, duration: 1, velocity: 85 },
+                { pitch: 67, startBeat: 5, duration: 1, velocity: 80 },
+                { pitch: 64, startBeat: 6, duration: 2, velocity: 85 },
+            ];
+
+        // Sawtooth Wave — buzzy lead riff
+        case 'sawtooth-wave':
+            return [
+                { pitch: 60, startBeat: 0, duration: 0.5, velocity: 100 },
+                { pitch: 63, startBeat: 0.5, duration: 0.5, velocity: 90 },
+                { pitch: 67, startBeat: 1, duration: 1, velocity: 100 },
+                { pitch: 63, startBeat: 2, duration: 0.5, velocity: 85 },
+                { pitch: 60, startBeat: 2.5, duration: 0.5, velocity: 90 },
+                { pitch: 58, startBeat: 3, duration: 1, velocity: 95 },
+                { pitch: 60, startBeat: 4, duration: 0.5, velocity: 100 },
+                { pitch: 63, startBeat: 4.5, duration: 0.5, velocity: 90 },
+                { pitch: 67, startBeat: 5, duration: 1, velocity: 100 },
+                { pitch: 72, startBeat: 6, duration: 2, velocity: 95 },
+            ];
+
+        // Euphonium — warm low brass melody
+        case 'euphonium':
+            return [
+                { pitch: 48, startBeat: 0, duration: 1.5, velocity: 90 },
+                { pitch: 50, startBeat: 1.5, duration: 0.5, velocity: 85 },
+                { pitch: 52, startBeat: 2, duration: 2, velocity: 95 },
+                { pitch: 50, startBeat: 4, duration: 1, velocity: 85 },
+                { pitch: 48, startBeat: 5, duration: 0.5, velocity: 80 },
+                { pitch: 45, startBeat: 5.5, duration: 2.5, velocity: 90 },
+            ];
+
+        // Taiko — powerful rhythmic hits
+        case 'taiko':
+            return [
+                { pitch: 36, startBeat: 0, duration: 0.5, velocity: 120 },
+                { pitch: 36, startBeat: 1, duration: 0.5, velocity: 90 },
+                { pitch: 36, startBeat: 2, duration: 0.5, velocity: 120 },
+                { pitch: 42, startBeat: 3, duration: 0.25, velocity: 80 },
+                { pitch: 42, startBeat: 3.5, duration: 0.25, velocity: 70 },
+                { pitch: 36, startBeat: 4, duration: 0.5, velocity: 120 },
+                { pitch: 38, startBeat: 5, duration: 0.5, velocity: 100 },
+                { pitch: 36, startBeat: 6, duration: 0.5, velocity: 110 },
+                { pitch: 36, startBeat: 7, duration: 0.5, velocity: 120 },
+            ];
+
+        // Maracas — fast shaker rhythm
+        case 'maracas':
+            return [
+                { pitch: 42, startBeat: 0, duration: 0.125, velocity: 90 },
+                { pitch: 42, startBeat: 0.5, duration: 0.125, velocity: 70 },
+                { pitch: 42, startBeat: 1, duration: 0.125, velocity: 90 },
+                { pitch: 42, startBeat: 1.5, duration: 0.125, velocity: 70 },
+                { pitch: 42, startBeat: 2, duration: 0.125, velocity: 90 },
+                { pitch: 42, startBeat: 2.5, duration: 0.125, velocity: 70 },
+                { pitch: 42, startBeat: 3, duration: 0.125, velocity: 90 },
+                { pitch: 42, startBeat: 3.5, duration: 0.125, velocity: 70 },
+                { pitch: 42, startBeat: 4, duration: 0.125, velocity: 90 },
+                { pitch: 42, startBeat: 4.5, duration: 0.125, velocity: 70 },
+                { pitch: 42, startBeat: 5, duration: 0.125, velocity: 90 },
+                { pitch: 42, startBeat: 5.5, duration: 0.125, velocity: 70 },
+                { pitch: 42, startBeat: 6, duration: 0.125, velocity: 90 },
+                { pitch: 42, startBeat: 6.5, duration: 0.125, velocity: 70 },
+                { pitch: 42, startBeat: 7, duration: 0.125, velocity: 90 },
+                { pitch: 42, startBeat: 7.5, duration: 0.125, velocity: 70 },
+            ];
+
         // Default synth - simple arpeggio
         case 'basic-synth':
         default:

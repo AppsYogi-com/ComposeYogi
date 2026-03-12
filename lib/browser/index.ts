@@ -31,7 +31,7 @@ export interface TemplateItem {
 export interface InstrumentItem {
     id: string;
     name: string;
-    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'idiophones' | 'strings' | 'woodwind' | 'brass';
+    category: 'synth' | 'keys' | 'bass' | 'pad' | 'lead' | 'drums' | 'idiophones' | 'plucked-strings' | 'bowed-strings' | 'wind';
     description: string;
     trackType: TrackType;
     trackColor: TrackColor;
@@ -401,7 +401,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'guitar',
         name: 'Guitar',
-        category: 'strings',
+        category: 'plucked-strings',
         description: 'Warm nylon-like plucked string',
         trackType: 'midi',
         trackColor: 'melody',
@@ -409,7 +409,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'harp',
         name: 'Harp',
-        category: 'strings',
+        category: 'plucked-strings',
         description: 'Gentle plucked harp string',
         trackType: 'midi',
         trackColor: 'melody',
@@ -417,7 +417,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'pizzicato',
         name: 'Pizzicato',
-        category: 'strings',
+        category: 'plucked-strings',
         description: 'Short orchestral plucked string',
         trackType: 'midi',
         trackColor: 'melody',
@@ -425,7 +425,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'ukulele',
         name: 'Ukulele',
-        category: 'strings',
+        category: 'plucked-strings',
         description: 'Bright small-bodied pluck',
         trackType: 'midi',
         trackColor: 'melody',
@@ -433,7 +433,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'banjo',
         name: 'Banjo',
-        category: 'strings',
+        category: 'plucked-strings',
         description: 'Twangy bright plucked string',
         trackType: 'midi',
         trackColor: 'melody',
@@ -442,7 +442,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'violin',
         name: 'Violin',
-        category: 'strings',
+        category: 'bowed-strings',
         description: 'Bright bowed string',
         trackType: 'midi',
         trackColor: 'melody',
@@ -450,7 +450,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'cello',
         name: 'Cello',
-        category: 'strings',
+        category: 'bowed-strings',
         description: 'Warm rich bowed string',
         trackType: 'midi',
         trackColor: 'melody',
@@ -458,7 +458,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'double-bass',
         name: 'Double Bass',
-        category: 'strings',
+        category: 'bowed-strings',
         description: 'Deep bowed orchestral bass',
         trackType: 'midi',
         trackColor: 'bass',
@@ -466,7 +466,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'tenor-violin',
         name: 'Tenor Violin',
-        category: 'strings',
+        category: 'bowed-strings',
         description: 'Mellow viola-like bowed string',
         trackType: 'midi',
         trackColor: 'melody',
@@ -474,16 +474,16 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'fiddle',
         name: 'Fiddle',
-        category: 'strings',
+        category: 'bowed-strings',
         description: 'Lively bright bowed string',
         trackType: 'midi',
         trackColor: 'melody',
     },
-    // Woodwinds
+    // Wind (merged Woodwind + Brass)
     {
         id: 'flute',
         name: 'Flute',
-        category: 'woodwind',
+        category: 'wind',
         description: 'Pure breathy woodwind tone',
         trackType: 'midi',
         trackColor: 'melody',
@@ -491,7 +491,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'piccolo',
         name: 'Piccolo',
-        category: 'woodwind',
+        category: 'wind',
         description: 'Bright high-pitched flute',
         trackType: 'midi',
         trackColor: 'melody',
@@ -499,7 +499,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'saxophone',
         name: 'Saxophone',
-        category: 'woodwind',
+        category: 'wind',
         description: 'Rich reedy tone with harmonics',
         trackType: 'midi',
         trackColor: 'melody',
@@ -507,7 +507,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'bassoon',
         name: 'Bassoon',
-        category: 'woodwind',
+        category: 'wind',
         description: 'Dark low woodwind',
         trackType: 'midi',
         trackColor: 'melody',
@@ -515,17 +515,24 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'oboe',
         name: 'Oboe',
-        category: 'woodwind',
+        category: 'wind',
         description: 'Nasal reedy orchestral woodwind',
         trackType: 'midi',
         trackColor: 'melody',
     },
-    // Brass
     {
         id: 'trumpet',
         name: 'Trumpet',
-        category: 'brass',
+        category: 'wind',
         description: 'Bright brassy fanfare tone',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'euphonium',
+        name: 'Euphonium',
+        category: 'wind',
+        description: 'Warm mellow low-brass tone',
         trackType: 'midi',
         trackColor: 'melody',
     },
@@ -533,7 +540,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'didgeridoo',
         name: 'Didgeridoo',
-        category: 'woodwind',
+        category: 'wind',
         description: 'Deep droning Australian wind instrument',
         trackType: 'midi',
         trackColor: 'melody',
@@ -549,7 +556,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'orchestra-hit',
         name: 'Orchestra Hit',
-        category: 'strings',
+        category: 'idiophones',
         description: 'Classic big orchestral stab chord',
         trackType: 'midi',
         trackColor: 'melody',
@@ -557,7 +564,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'guzheng',
         name: 'Guzheng',
-        category: 'strings',
+        category: 'plucked-strings',
         description: 'Chinese plucked zither with bright twang',
         trackType: 'midi',
         trackColor: 'melody',
@@ -642,6 +649,56 @@ export const INSTRUMENTS: InstrumentItem[] = [
         description: 'Sharp clicky percussive wood crack',
         trackType: 'drum',
         trackColor: 'drums',
+    },
+    {
+        id: 'taiko',
+        name: 'Taiko',
+        category: 'drums',
+        description: 'Deep resonant Japanese drum',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    {
+        id: 'maracas',
+        name: 'Maracas',
+        category: 'drums',
+        description: 'Shaker noise burst percussion',
+        trackType: 'drum',
+        trackColor: 'drums',
+    },
+    // Basic Waveform Synths
+    {
+        id: 'square-wave',
+        name: 'Square Wave',
+        category: 'synth',
+        description: 'Classic hollow buzzy 8-bit tone',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'triangle-wave',
+        name: 'Triangle Wave',
+        category: 'synth',
+        description: 'Soft mellow flute-like pure tone',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    {
+        id: 'sawtooth-wave',
+        name: 'Sawtooth Wave',
+        category: 'synth',
+        description: 'Bright buzzy harmonically rich waveform',
+        trackType: 'midi',
+        trackColor: 'melody',
+    },
+    // Euphonium
+    {
+        id: 'euphonium',
+        name: 'Euphonium',
+        category: 'wind',
+        description: 'Warm mellow low-brass tone',
+        trackType: 'midi',
+        trackColor: 'melody',
     },
 ];
 
@@ -785,9 +842,9 @@ export const FX_PRESETS: FXPreset[] = [
 export const INSTRUMENT_CATEGORIES = [
     { id: 'drums', name: 'Drums', icon: '🥁' },
     { id: 'idiophones', name: 'Idiophones', icon: '🔔' },
-    { id: 'strings', name: 'Strings', icon: '🎻' },
-    { id: 'woodwind', name: 'Woodwind', icon: '🎷' },
-    { id: 'brass', name: 'Brass', icon: '🎺' },
+    { id: 'plucked-strings', name: 'Plucked Strings', icon: '🎸' },
+    { id: 'bowed-strings', name: 'Bowed Strings', icon: '🎻' },
+    { id: 'wind', name: 'Wind', icon: '🎷' },
     { id: 'synth', name: 'Synths', icon: '🎛️' },
     { id: 'keys', name: 'Keys', icon: '🎹' },
     { id: 'bass', name: 'Bass', icon: '🎸' },

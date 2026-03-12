@@ -437,12 +437,21 @@ class PlayoutManager {
 
                 // Use Transport.schedule for proper transport sync
                 const eventId = Tone.getTransport().schedule((time) => {
-                    synth.triggerAttackRelease(
-                        Tone.Frequency(note.pitch, 'midi').toFrequency(),
-                        noteDurationSeconds,
-                        time,
-                        note.velocity / 127
-                    );
+                    if (synth instanceof Tone.NoiseSynth) {
+                        // NoiseSynth has no pitch — just trigger duration and velocity
+                        synth.triggerAttackRelease(
+                            noteDurationSeconds,
+                            time,
+                            note.velocity / 127
+                        );
+                    } else {
+                        synth.triggerAttackRelease(
+                            Tone.Frequency(note.pitch, 'midi').toFrequency(),
+                            noteDurationSeconds,
+                            time,
+                            note.velocity / 127
+                        );
+                    }
                 }, scheduledTime);
 
                 // Create a dummy event to track disposal
@@ -506,6 +515,8 @@ class PlayoutManager {
                 } else if (scheduled.player instanceof Tone.Sampler) {
                     scheduled.player.releaseAll();
                 } else if (scheduled.player instanceof Tone.MonoSynth || scheduled.player instanceof Tone.MembraneSynth) {
+                    scheduled.player.triggerRelease();
+                } else if (scheduled.player instanceof Tone.NoiseSynth) {
                     scheduled.player.triggerRelease();
                 }
             } catch (error) {
