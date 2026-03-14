@@ -1518,7 +1518,7 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
     'orchestra-hit': {
         id: 'orchestra-hit',
         name: 'Orchestra Hit',
-        category: 'idiophones',
+        category: 'bowed-strings',
         createSynth: createOrchestraHit,
     },
     'guzheng': {

@@ -192,9 +192,17 @@
     },
     "shortcuts": {
         "title": "Keyboard Shortcuts",
-        "transport": "Transport",
+        "playback": "Playback",
         "editing": "Editing",
-        "navigation": "Navigation"
+        "view": "View",
+        "navigation": "Navigation",
+        "clickToRebind": "Click to rebind",
+        "pressKeys": "Press keys...",
+        "escToCancel": "Esc to cancel",
+        "resetAll": "Reset All",
+        "resetToDefault": "Reset to default",
+        "conflictWith": "is already used by",
+        "footer": "Click a shortcut to rebind it"
     },
     "errors": {
         "microphonePermission": "Microphone permission required for recording",

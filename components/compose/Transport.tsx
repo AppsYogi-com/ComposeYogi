@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useHotkeys } from 'react-hotkeys-hook';
 import {
     Play,
     Pause,
@@ -36,6 +35,7 @@ import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
 import { audioEngine, recordingManager } from '@/lib/audio';
 import { formatTime, formatBarsBeats } from '@/lib/utils';
+import { useShortcut } from '@/hooks';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
@@ -113,8 +113,7 @@ export function Transport({
     const [customDenominator, setCustomDenominator] = useState(4);
 
     // / or ? key to toggle keyboard shortcuts
-    useHotkeys('slash', () => setShowShortcutsModal(prev => !prev), { enableOnFormTags: false });
-    useHotkeys('shift+slash', () => setShowShortcutsModal(prev => !prev), { enableOnFormTags: false });
+    useShortcut('view.showShortcuts', () => setShowShortcutsModal(prev => !prev), []);
 
     // Update display time from ref during playback (doesn't cause re-renders elsewhere)
     useEffect(() => {

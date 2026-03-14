@@ -192,9 +192,17 @@
     },
     "shortcuts": {
         "title": "Atajos de Teclado",
-        "transport": "Transporte",
+        "playback": "Reproducción",
         "editing": "Edición",
-        "navigation": "Navegación"
+        "view": "Vista",
+        "navigation": "Navegación",
+        "clickToRebind": "Haz clic para reasignar",
+        "pressKeys": "Presiona teclas...",
+        "escToCancel": "Esc para cancelar",
+        "resetAll": "Restablecer Todo",
+        "resetToDefault": "Restablecer por defecto",
+        "conflictWith": "ya está asignado a",
+        "footer": "Haz clic en un atajo para reasignarlo"
     },
     "errors": {
         "microphonePermission": "Se requiere permiso del micrófono para grabar",

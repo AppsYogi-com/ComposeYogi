@@ -556,7 +556,7 @@ export const INSTRUMENTS: InstrumentItem[] = [
     {
         id: 'orchestra-hit',
         name: 'Orchestra Hit',
-        category: 'idiophones',
+        category: 'bowed-strings',
         description: 'Classic big orchestral stab chord',
         trackType: 'midi',
         trackColor: 'melody',
@@ -688,15 +688,6 @@ export const INSTRUMENTS: InstrumentItem[] = [
         name: 'Sawtooth Wave',
         category: 'synth',
         description: 'Bright buzzy harmonically rich waveform',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    // Euphonium
-    {
-        id: 'euphonium',
-        name: 'Euphonium',
-        category: 'wind',
-        description: 'Warm mellow low-brass tone',
         trackType: 'midi',
         trackColor: 'melody',
     },

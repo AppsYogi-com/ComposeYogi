@@ -4,3 +4,4 @@ export { usePlaybackAnimation, usePlayhead } from './usePlaybackAnimation';
 export { useOfflineStatus } from './useOfflineStatus';
 export { useAutosave } from './useAutosave';
 export { useClipDrag } from './useClipDrag';
+export { useShortcut, useLoadKeyBindings, usePersistKeyBindings } from './useShortcuts';

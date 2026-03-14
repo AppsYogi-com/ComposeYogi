@@ -2,7 +2,6 @@
 
 import { useEffect, useCallback, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useHotkeys } from 'react-hotkeys-hook';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
 import { audioEngine, playoutManager, registerAudioTake, clearAudioTakes, type LatencyCalibrationResult } from '@/lib/audio';
 import { createLogger } from '@/lib/logger';
@@ -16,7 +15,7 @@ import { TrackList } from '@/components/compose/TrackList';
 import { AudioVisualizer, VisualizerCollapsedBar } from '@/components/compose/AudioVisualizer';
 import { LatencyCalibrationModal } from '@/components/compose/LatencyCalibrationModal';
 import { ProjectSelector } from '@/components/compose/ProjectSelector';
-import { useAutosave } from '@/hooks';
+import { useAutosave, useShortcut, useLoadKeyBindings, usePersistKeyBindings } from '@/hooks';
 import { listProjects, loadProject, loadAudioTakesForClip } from '@/lib/persistence';
 import { loadDemoTemplate } from '@/lib/templates';
 
@@ -230,63 +229,66 @@ function ComposePageContent() {
     }, [shouldAutoPlay, project, isInitializing, handlePlay]);
 
     // ============================
-    // Keyboard shortcuts
+    // Keyboard shortcuts (rebindable)
     // ============================
 
+    // Load and persist custom key bindings
+    useLoadKeyBindings();
+    usePersistKeyBindings();
+
     // Spacebar: Play/Pause
-    useHotkeys('space', (e) => {
+    useShortcut('playback.playPause', (e) => {
         e.preventDefault();
         handlePlay();
-    }, { enableOnFormTags: false }, [handlePlay]);
+    }, [handlePlay]);
 
     // Enter: Stop and return to start
-    useHotkeys('enter', (e) => {
+    useShortcut('playback.stop', (e) => {
         e.preventDefault();
         stop();
         audioEngine.stop();
         // Reset scroll to show bar 1 where clips typically start
         setScrollX(0);
-    }, { enableOnFormTags: false });
+    }, [stop, setScrollX]);
 
     // Cmd/Ctrl + Z: Undo
-    useHotkeys('mod+z', (e) => {
+    useShortcut('editing.undo', (e) => {
         e.preventDefault();
         useProjectStore.temporal.getState().undo();
-    }, { enableOnFormTags: false });
+    }, []);
 
     // Cmd/Ctrl + Shift + Z: Redo
-    useHotkeys('mod+shift+z', (e) => {
+    useShortcut('editing.redo', (e) => {
         e.preventDefault();
         useProjectStore.temporal.getState().redo();
-    }, { enableOnFormTags: false });
+    }, []);
 
     // B: Toggle browser
-    useHotkeys('b', () => toggleBrowser(), { enableOnFormTags: false });
+    useShortcut('view.toggleBrowser', () => toggleBrowser(), [toggleBrowser]);
 
     // I: Toggle inspector
-    useHotkeys('i', () => toggleInspector(), { enableOnFormTags: false });
+    useShortcut('view.toggleInspector', () => toggleInspector(), [toggleInspector]);
 
     // E: Toggle editor
-    useHotkeys('e', () => toggleEditor(), { enableOnFormTags: false });
+    useShortcut('view.toggleEditor', () => toggleEditor(), [toggleEditor]);
 
     // V: Toggle visualizer
-    useHotkeys('v', () => toggleVisualizer(), { enableOnFormTags: false });
+    useShortcut('view.toggleVisualizer', () => toggleVisualizer(), [toggleVisualizer]);
 
     // +/= : Zoom in
-    useHotkeys('equal', () => zoomIn(), { enableOnFormTags: false });
-    useHotkeys('shift+equal', () => zoomIn(), { enableOnFormTags: false }); // + key
+    useShortcut('view.zoomIn', () => zoomIn(), [zoomIn]);
 
-    // -/_ : Zoom out
-    useHotkeys('minus', () => zoomOut(), { enableOnFormTags: false });
+    // - : Zoom out
+    useShortcut('view.zoomOut', () => zoomOut(), [zoomOut]);
 
     // Cmd/Ctrl + 0: Reset zoom
-    useHotkeys('mod+0', (e) => {
+    useShortcut('view.resetZoom', (e) => {
         e.preventDefault();
         useUIStore.getState().setZoom(80); // Default zoom
-    }, { enableOnFormTags: false });
+    }, []);
 
-    // Delete/Backspace: Delete selected clips (skip if editor has focus - editor handles its own delete)
-    useHotkeys('delete, backspace', (e) => {
+    // Delete/Backspace: Delete selected clips (skip if editor has focus)
+    useShortcut('editing.delete', (e) => {
         // Don't delete clips if the editor is focused - let the editor handle note deletion
         if (editorFocused) return;
 
@@ -295,7 +297,7 @@ function ComposePageContent() {
             deleteClips(selectedClipIds);
             clearSelection();
         }
-    }, { enableOnFormTags: false }, [selectedClipIds, deleteClips, clearSelection, editorFocused]);
+    }, [selectedClipIds, deleteClips, clearSelection, editorFocused]);
 
     // Handle latency calibration result
     const handleCalibrationComplete = useCallback((result: LatencyCalibrationResult) => {

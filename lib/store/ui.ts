@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import type { EditorScope, ModalType } from '@/types';
+import type { KeyBindings } from '@/lib/shortcuts';
 
 // ============================================
 // Store Types
@@ -41,6 +42,10 @@ interface UIState {
 
     // Mobile detection
     isMobile: boolean;
+
+    // Custom keyboard shortcut bindings
+    customKeyBindings: KeyBindings;
+    keyBindingsLoaded: boolean;
 }
 
 interface UIActions {
@@ -81,6 +86,13 @@ interface UIActions {
 
     // Mobile
     setIsMobile: (isMobile: boolean) => void;
+
+    // Keyboard shortcuts
+    setCustomKeyBindings: (bindings: KeyBindings) => void;
+    updateKeyBinding: (actionId: string, hotkeyStr: string) => void;
+    resetKeyBinding: (actionId: string) => void;
+    resetAllKeyBindings: () => void;
+    setKeyBindingsLoaded: (loaded: boolean) => void;
 }
 
 // Computed getters (read-only properties derived from state)
@@ -127,6 +139,8 @@ export const useUIStore = create<UIStore>((set, get) => ({
     multiDragOffsetBars: 0,
     activeModal: null,
     isMobile: false,
+    customKeyBindings: {},
+    keyBindingsLoaded: false,
 
     // Computed getters for component compatibility
     get showBrowser() {
@@ -286,6 +300,33 @@ export const useUIStore = create<UIStore>((set, get) => ({
     setIsMobile: (isMobile) => {
         set({ isMobile });
     },
+
+    // Keyboard shortcuts
+    setCustomKeyBindings: (bindings) => {
+        set({ customKeyBindings: bindings, keyBindingsLoaded: true });
+    },
+
+    updateKeyBinding: (actionId, hotkeyStr) => {
+        set((state) => ({
+            customKeyBindings: { ...state.customKeyBindings, [actionId]: hotkeyStr },
+        }));
+    },
+
+    resetKeyBinding: (actionId) => {
+        set((state) => {
+            const next = { ...state.customKeyBindings };
+            delete next[actionId];
+            return { customKeyBindings: next };
+        });
+    },
+
+    resetAllKeyBindings: () => {
+        set({ customKeyBindings: {} });
+    },
+
+    setKeyBindingsLoaded: (loaded) => {
+        set({ keyBindingsLoaded: loaded });
+    },
 }));
 
 // ============================================
@@ -303,6 +344,8 @@ export const selectZoom = (state: UIStore) => state.zoom;
 export const selectIsDragging = (state: UIStore) => state.isDragging;
 export const selectActiveModal = (state: UIStore) => state.activeModal;
 export const selectIsMobile = (state: UIStore) => state.isMobile;
+export const selectCustomKeyBindings = (state: UIStore) => state.customKeyBindings;
+export const selectKeyBindingsLoaded = (state: UIStore) => state.keyBindingsLoaded;
 
 // Derived selectors
 export const selectHasSelection = (state: UIStore) => state.selectedClipIds.length > 0;
