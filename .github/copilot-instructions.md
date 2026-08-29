@@ -1,91 +1,77 @@
-# ComposeYogi AI Coding Assistant Instructions
+# ComposeYogi — AI Coding Assistant Instructions
 
-## Project Overview
-ComposeYogi is a professional browser-based Digital Audio Workstation (DAW) with an Ableton-like interface. Built with Next.js 15, Tone.js, TypeScript, and Zustand for state management. The app is local-first with IndexedDB persistence, PWA-enabled, and supports i18n (en, es).
+ComposeYogi is a browser-based DAW with an Ableton-style arrangement view.
+Next.js 15 · React 19 · TypeScript (strict) · Tone.js · Zustand + zundo ·
+IndexedDB · Radix/Tailwind · next-intl (en/es) · Serwist PWA. Local-first: there
+is no backend today, and nothing leaves the browser.
 
-## Architecture & Core Systems
+## Read this first
 
-### State Management (Zustand + Zundo)
-- **Three stores**: `project`, `playback`, `ui` in `lib/store/`
-- Project store uses `temporal` from `zundo` for undo/redo history
-- Always import from `lib/store/index.ts` for consistent selectors
-- Use refs in `playbackRefs` (from `lib/store/playback`) for animation loop values that don't trigger re-renders
+**[ARCHITECTURE.md](../ARCHITECTURE.md) is the source of truth** for how the
+audio engine, state, persistence and rendering work, and which invariants a
+change must not break. This file does not restate it — it drifted out of date
+once already by trying to.
 
-### Audio Engine (Tone.js)
-- **Engine**: `lib/audio/engine.ts` wraps Tone.Transport for play/stop/seek/loop
-- **Playout**: `lib/audio/playout.ts` schedules clips to Tone.js, manages track signal chains (gain → panner → effects → master)
-- **Recording**: `lib/audio/recorder.ts` + `recording-manager.ts` handle microphone input with latency compensation
-- Always await `audioEngine.initialize()` before playback operations
+Also worth reading before proposing changes:
 
-### Data Model & Persistence
-- **Types**: All core types in `types/index.ts` (Project, Track, Clip, Note, AudioTake)
-- **IndexedDB schema**: Defined in `lib/persistence/db.ts` with separate object stores for projects, tracks, clips, audioTakes, settings
-- Projects store metadata only; tracks/clips stored separately for efficient updates
-- Audio takes stored as ArrayBuffer with peaks JSON for waveform rendering
-- Auto-save runs every 30s via `hooks/useAutosave.ts`
+- **[ROADMAP.md](../ROADMAP.md)** — what is planned and in what order. Several
+  fields in `types/index.ts` (`energy`, `groove`, `brightness`, `space`,
+  `humanize`, `transpose`) are persisted but not yet wired to DSP. They are
+  **designed features, not dead code.** Do not suggest deleting them.
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** — workflow and PR expectations.
 
-### Rendering & Canvas
-- **GridRenderer** (`lib/canvas/GridRenderer.ts`): Timeline grid with beat markers, handles DPR scaling
-- **WaveformRenderer** (`lib/canvas/WaveformRenderer.ts`): Audio visualization with peaks caching at different zoom levels
-- All canvas operations scale for devicePixelRatio
-- Use `requestAnimationFrame` for playhead animation loops
+## The rules that matter most
 
-### Internationalization (next-intl)
-- Locale-prefixed routes via `app/[locale]/` and middleware
-- Translation keys in `messages/{locale}.json`
-- Use `useTranslations()` hook with namespace (e.g., `t = useTranslations('compose.transport')`)
-- Validate translations before build: `npm run validate:locales`
+1. **`lib/audio/scheduler.ts` owns how a clip becomes sound.** Live playback and
+   offline export both schedule through it. A change to timing, instruments,
+   effects or mix gating that touches only one caller is a bug — that split is
+   exactly what made exports stop matching playback before.
+2. **If a feature changes how a clip sounds, add it to the reschedule hashes**
+   in `app/[locale]/compose/page.tsx`. Otherwise playback silently goes stale.
+3. **Never put per-frame values in React state.** The playhead and scroll
+   position use `playbackRefs` (plain `{ current }` refs) deliberately.
+4. **Mixer moves must not reschedule.** Volume, pan, mute and solo ramp existing
+   nodes. Rebuilding the schedule for a fader is a regression.
+5. **Adding an instrument touches two places**: the preset in
+   `lib/audio/synth-presets.ts` and its metadata in `lib/browser/index.ts`.
+   Forgetting the second fails the build, by design.
+6. **Every user-visible string needs both locales.** `npm run validate:locales`
+   gates the build.
+7. **Schema changes go in `lib/persistence/migrations.ts`** as a new numbered
+   migration. Never edit a shipped one.
 
-## Development Workflows
+## Conventions
 
-### Running & Building
+- Banner comments: `// ============================================`
+- Imports: React → Next → external → internal (`@/…`) → types
+- `PascalCase.tsx` for components (`TrackList.tsx`), `kebab-case.ts` for lib
+  modules (`synth-presets.ts`); barrel `index.ts` per folder
+- 4-space indentation
+- `createLogger('Context')` from `lib/logger.ts` — no bare `console.*`
+- Immutable Zustand updates: `set((state) => ({ … }))`
+- Time: bars in UI and state, seconds in Tone.js — convert at the boundary
+- Always dispose Tone nodes (Players, Synths, effects) on unschedule/unmount
+- Commit messages follow Conventional Commits and reference the issue (`(#NN)`)
+
+## Commands
+
 ```bash
-npm run dev             # Dev server with Turbopack
-npm run build           # Validate locales, type-check, lint, then build
-npm run check           # Run all validations without building
+npm run dev      # Dev server (Turbopack)
+npm test         # Vitest
+npm run check    # Locales + types + lint + tests — what CI runs
+npm run build    # Production build
 ```
 
-### Key Patterns
-- **Clip Editors**: Each clip type has a dedicated editor in `components/compose/editors/` (DrumSequencer, PianoRoll, WaveformEditor)
-- **DnD**: Uses `@dnd-kit` for clip dragging in timeline. See `hooks/useClipDrag.ts` for collision/snapping logic
-- **Keyboard shortcuts**: Registered with `react-hotkeys-hook` in main compose page
-- **PWA**: Service worker built with Serwist from `app/sw.ts` → `public/sw.js`
+## Where things live
 
-### Critical Dependencies
-- **Tone.js**: All audio scheduling/synthesis/recording
-- **@dnd-kit**: Drag-and-drop for clips
-- **idb**: IndexedDB wrapper
-- **zundo**: Time-travel for project store
-- **next-intl**: i18n routing and translations
-
-## Project-Specific Conventions
-
-### Naming & Structure
-- Use kebab-case for file names: `track-list.tsx`, `audio-engine.ts`
-- Components prefixed by feature: `compose/Transport.tsx`, `home/DemoTemplates.tsx`
-- Barrel exports in `index.ts` files for clean imports
-
-### Code Style
-- Banner comments: `// ============================================`
-- Group imports: React → Next → external → internal → types
-- State updates immutable via Zustand's `set((state) => ({ ... }))`
-- Logger usage: `createLogger('ComponentName')` for all modules
-
-### Audio-Specific
-- Time values: Bars for UI/state, seconds for Tone.js Transport
-- Always convert: `Tone.getTransport().toSeconds('bars:beats:sixteenths')`
-- Latency: Stored in `project.latencyOffset` (ms), applied in recording only
-- COOP/COEP headers required (set in `next.config.ts`) for SharedArrayBuffer support
-
-### Common Pitfalls
-- Don't update playback refs directly; use `playbackRefs.isPlayingRef.current`
-- Always dispose Tone.js objects when unmounting (Players, Synths, Effects)
-- Canvas rendering: Clear before draw, restore context after transformations
-- IndexedDB: Notes stored as JSON string in ClipRecord, parse on read
-
-## File References
-- Main compose page: `app/[locale]/compose/page.tsx`
-- Store setup: `lib/store/index.ts`, `lib/store/project.ts`
-- Audio system: `lib/audio/engine.ts`, `lib/audio/playout.ts`
-- Type definitions: `types/index.ts`
-- Configuration: `config/app.ts`, `next.config.ts`
+| | |
+|---|---|
+| Studio page (audio lifecycle, reschedule triggers) | `app/[locale]/compose/page.tsx` |
+| Shared scheduling core | `lib/audio/scheduler.ts` |
+| Live playback / offline export | `lib/audio/playout.ts` / `lib/audio/offline-renderer.ts` |
+| Stores | `lib/store/{project,playback,ui}.ts` |
+| Persistence and migrations | `lib/persistence/` |
+| Instruments | `lib/audio/synth-presets.ts` |
+| Shortcut registry | `lib/shortcuts/` |
+| Types | `types/index.ts` |
+| Tests | `tests/` |

@@ -1,104 +1,154 @@
 # 🗺️ ComposeYogi Roadmap
 
-Our mission: **Make professional music creation accessible to everyone, instantly, in the browser.**
+Our mission: **make professional music creation accessible to everyone,
+instantly, in the browser.**
 
-This roadmap reflects our current priorities and vision. Star ⭐ this repo to follow along!
+The north star we hold ourselves to: *if a first-time user records a vocal and
+says "this felt like a real studio", we've won.* Everything below is in service
+of that — a beginner-grade cognitive load over a DAW-grade engine, with the
+depth revealed progressively rather than removed.
 
----
-
-## ✅ Recently Shipped (v1.1.0 — March 2026)
-
-- [x] **WAV Export** — Export compositions as high-quality .wav audio files
-- [x] **MP3 Export** — Export compositions as compressed .mp3 files
-- [x] **Audio Import** — Drag-and-drop WAV/MP3 files onto the timeline
-- [x] **50+ Instruments** — Synths, keys, bass, pads, leads, plucked strings, bowed strings, wind, idiophones, and drums
-- [x] **6 Drum Kits** — 808, Acoustic, Lo-Fi, Electronic, Punchy, and Classic
-- [x] **10 Instrument Categories** — Synths, Keys, Bass, Pads, Leads, Drums, Idiophones, Plucked Strings, Bowed Strings, Wind
-- [x] **Zoom Controls** — Toolbar buttons and custom time signatures
-- [x] **4 New Templates** — Bollywood Beats, Reggaeton, Synthwave, Afrobeats
-- [x] **Bug Fixes** — Polyphony, audio glitch on note edit, per-clip instrument presets
+This is the single source of truth for what has shipped and what is next.
+Star ⭐ the repo to follow along.
 
 ---
 
-## 🚀 Now (Next 2–4 Weeks)
+## ✅ Shipped
 
-**Actively in development**
+### v1.2 — Solid Ground *(in progress)*
 
-- [ ] **Performance Optimizations** — Faster audio rendering and timeline scrolling
-- [ ] **Mobile View Mode** — Read-only playback on mobile devices
-- [ ] **Project Management** — Create, duplicate, rename, delete projects
-- [ ] **Clip Virtualization** — Smooth 60fps with 200+ clips
-- [ ] **Piano Roll Velocity Lane** — Control note dynamics visually
+The engine you can build on. No new surface area; everything here is about the
+studio behaving the way a studio has to.
+
+- [x] **Export sounds exactly like playback** — live and offline rendering now
+      share one scheduler, so a mix cannot drift between what you hear and what
+      you download
+- [x] **Solo works** — and is honoured on export, alongside mute and faders
+- [x] **Instant mixer** — volume, pan, mute and solo no longer rebuild the
+      playback schedule, so faders respond immediately and never interrupt audio
+- [x] **Templates load real music** — clicking a template in the browser panel
+      now opens the full arrangement instead of a silent set of empty tracks
+- [x] **Smooth with big arrangements** — clips are virtualized; a 256-clip
+      project mounts a screenful, not all of it
+- [x] **Track headers stay aligned** — vertical scrolling past a screenful of
+      tracks no longer desynced the names from their lanes
+- [x] **Crash containment** — a failure in one panel no longer blanks the page
+      while your project sits safely saved
+- [x] **First test suite and CI** — types, lint, locales and tests run on every
+      pull request
+- [x] **Correct splits in odd time signatures** — splitting a clip in 3/4 or 7/8
+      no longer sends notes to the wrong side of the cut
+
+### v1.1.0 — March 2026
+
+- [x] **WAV, MP3, MIDI and JSON export**
+- [x] **Audio import** — drag-and-drop WAV/MP3 onto the timeline
+- [x] **64 instruments** across 10 categories, including 6 drum kits
+- [x] **Zoom controls** and custom time signatures
+- [x] **8 demo templates** — Lo-Fi, Trap, Ambient, EDM, Bollywood, Reggaeton,
+      Synthwave, Afrobeats
+- [x] **Bug fixes** — polyphony, audio glitch on note edit, per-clip instruments
+
+### v1.0.0 — Studio
+
+Multi-track timeline, piano roll, drum sequencer, microphone recording with
+latency calibration, local-first storage with autosave, offline PWA support,
+rebindable keyboard shortcuts, English and Spanish.
 
 ---
 
-## 📅 Next (1–3 Months)
+## 🎨 Next — v1.3, Design System
 
-**Coming soon**
+Before any new interface ships, ComposeYogi gets a real design system: tokens,
+components and artboards for desktop *and* mobile, committed publicly in
+`design/` so contributors build inside it rather than around it. The existing
+app is migrated to comply first.
 
-### Cloud & Collaboration
-- [ ] **User Authentication** — Sign in with email or social accounts
-- [ ] **Cloud Project Sync** — Access your projects from any device
-- [ ] **Share Links** — Share read-only project links with anyone
-- [ ] **Project Gallery** — Browse and remix community projects
-
-### Audio Features
-- [ ] **Multi-Take Recording** — Record multiple takes and comp the best parts
-- [ ] **Audio Effects Chain** — Add reverb, delay, distortion, and filters to tracks
-- [ ] **Master Track FX** — Apply effects to the final mix
-- [ ] **Additional Templates** — More starter templates (Jazz, Classical, World)
-
-### Workflow Improvements
-- [ ] **Snap to Grid Options** — Fine-tune snapping (1/4, 1/8, 1/16 notes)
-- [ ] **Clip Color Coding** — Color-code clips for better organization
-- [ ] **Batch Operations** — Select and edit multiple clips at once
-- [ ] **Keyboard Velocity Editor** — Control note dynamics in piano roll
+- [ ] Design system committed to the repo — foundations, component gallery,
+      desktop and mobile artboards
+- [ ] Full app migration: no hardcoded colours, one type and spacing scale,
+      verified in both themes
+- [ ] **Home page redesign** — the studio's real power, with clear paths for
+      musicians and for contributors
+- [ ] Refreshed screenshots, demo GIF and social preview
 
 ---
 
-## 🔮 Later (3+ Months)
+## 🎼 Then — v1.4, Feel & Musicality
 
-**Long-term vision**
+Where a pattern stops being programmed and starts being played.
 
-### Pro Features
-- [ ] **Automation Lanes** — Automate volume, pan, and effect parameters over time
-- [ ] **VST Plugin Support** — Load external instruments and effects (via WebAssembly)
-- [ ] **MIDI Controller Support** — Play and control with MIDI keyboards
-- [ ] **Time Stretching** — Change tempo without affecting pitch
-- [ ] **Sidechain Compression** — Create pumping effects and ducking
+- [ ] **Velocity lane** in the piano roll — the biggest gap between our editor
+      and a real one
+- [ ] **Clip macros that do something** — Energy, Groove, Brightness and Space
+      wired to real DSP: one slider, many changes
+- [ ] **Swing and humanize** — timing and velocity that breathe
+- [ ] **Triplet snapping** — and finer grid options, which unlock whole genres
+- [ ] **Vibe-based key and scale picker** — "Chill", "Dark", rather than modes
+- [ ] **Stretch to BPM** for audio clips
+- [ ] **Custom instruments** ([#21](https://github.com/AppsYogi-com/ComposeYogi/issues/21))
+      — design your own sounds, save and share them as presets
+- [ ] **Play it live** — MIDI keyboard input and musical typing
 
-### Collaboration
-- [ ] **Real-Time Collaboration** — Work on projects with others simultaneously
-- [ ] **Time-Stamped Comments** — Leave feedback at specific points in the timeline
-- [ ] **Version History** — Browse and restore previous versions of your project
-- [ ] **Remix System** — Fork and build on others' work with attribution
+---
 
-### Ecosystem
-- [ ] **Mobile Recording App** — Record vocals and ideas on the go, sync to desktop
-- [ ] **Sample Marketplace** — Buy and sell high-quality loops and presets
-- [ ] **Educational Content** — Built-in tutorials and music theory guides
-- [ ] **API & Integrations** — Connect with Spotify, YouTube, and other platforms
+## 🔗 After that — v1.5, Share & Cloud
+
+A track should be able to become a link.
+
+- [ ] **Anonymous share links** — no account needed, on either end
+- [ ] **Public play page** — mobile-first, plays in the browser, unfurls nicely
+- [ ] **Remix** — open someone's track in your own editor, with attribution
+- [ ] **Accounts and cloud sync** — optional, arriving after sharing works
+- [ ] **Embeddable player**
+- [ ] **More templates** — Jazz, Classical, World, Rock, House
+
+> **A promise about the backend.** ComposeYogi stays fully local-first. Sharing
+> is powered by a managed, open-source backend configured with keys in a `.env`
+> file — paste your keys and it runs in minutes, no infrastructure to deploy.
+> With **no keys at all, the app works exactly as it does today**, with the
+> sharing UI simply hidden. Self-hosting stays possible; it is never required.
+
+---
+
+## 🎛️ Later — v2.0 and beyond
+
+The pro depth. Sequenced behind the on-ramp, not cut from it.
+
+- [ ] **Multi-take recording** with comping
+- [ ] **Automation lanes** — volume, pan and effect parameters over time
+- [ ] **Collaboration** — remix chains and time-stamped comments
+- [ ] **True time-stretching** via WASM
+- [ ] **Sidechain compression** and master-bus FX
+- [ ] **Version history**
+- [ ] **Plugin exploration** — a WASM instrument and effect API
+
+**Deliberately not planned:** real-time simultaneous co-editing. We are building
+the asynchronous model instead — remix and comment — because it fits how music
+actually gets passed between people, and it works without anyone being online at
+the same time.
 
 ---
 
 ## 💡 Suggest a Feature
 
-Have an idea? [Open an issue](https://github.com/AppsYogi-com/ComposeYogi/issues/new) and tag it with `feature-request`.
+Have an idea? [Open an issue](https://github.com/AppsYogi-com/ComposeYogi/issues/new).
+Several of the instruments and fixes above came directly from community issues.
 
-We love hearing from the community! The best ideas often come from our users.
+Want to build something? [`good first issue`](https://github.com/AppsYogi-com/ComposeYogi/labels/good%20first%20issue)
+is where to start, and [ARCHITECTURE.md](ARCHITECTURE.md) explains how the
+engine fits together.
 
 ---
 
 ## 🎯 Our Principles
 
-1. **Browser-first** — No installation, works everywhere
+1. **Browser-first** — no installation, works everywhere
 2. **Professional quality** — DAW-grade tools without the complexity
-3. **Local-first** — Your data stays on your device unless you choose to sync
-4. **Open & collaborative** — Built with and for the community
-5. **Progressive disclosure** — Simple for beginners, powerful for pros
+3. **Local-first** — your data stays on your device unless you choose to sync
+4. **Open and collaborative** — built with and for the community
+5. **Progressive disclosure** — simple for beginners, powerful for pros
 
 ---
 
-**Last updated:** March 2026
-
-Star ⭐ this repo to stay updated on our progress!
+**Last updated:** August 2026

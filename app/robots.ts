@@ -1,12 +1,16 @@
 import { MetadataRoute } from 'next';
 
+import { APP_CONFIG } from '@/config/app';
+
 export default function robots(): MetadataRoute.Robots {
     return {
         rules: {
             userAgent: '*',
             allow: '/',
-            disallow: ['/api/', '*/compose', '/_next/'], // Don't index compose pages (any locale)
+            // The studio itself was disallowed here, which kept the actual
+            // product out of search results. Only internals stay blocked.
+            disallow: ['/api/', '/_next/'],
         },
-        sitemap: 'https://composeyogi.com/sitemap.xml',
+        sitemap: `${APP_CONFIG.baseUrl}/sitemap.xml`,
     };
 }
