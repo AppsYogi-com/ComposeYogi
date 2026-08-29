@@ -196,7 +196,6 @@
       "stepCount": "{steps} pasos ({bars, plural, one {# compás} other {# compases}})",
       "clearAll": "Borrar todo",
       "clickToPreview": "Clic para escuchar",
-      "velocityTooltip": "Velocidad {velocity} — arrastra arriba o abajo",
       "beat": "Pulso",
       "stepTooltip": "Pulso {beat}.{sub} (paso {step})",
       "stepActiveLabel": "{sound}, paso {step}, velocidad {velocity}",
@@ -206,13 +205,14 @@
       "incompatibleAudio": "Este es un clip de audio. Cambia a un clip MIDI para usar el piano roll, o cambia el tipo de clip.",
       "incompatibleDrum": "Este es un clip de batería. Cambia a un clip MIDI para usar el piano roll, o cambia el tipo de clip.",
       "snap": "Ajuste:",
-      "velocity": "Velocidad:",
       "scale": "Escala:",
       "zoomLevel": "{px} px"
     },
     "velocity": {
       "label": "vel",
-      "barLabel": "Velocidad {velocity}"
+      "barLabel": "Velocidad {velocity}",
+      "defaultLabel": "Velocidad:",
+      "defaultAriaLabel": "Velocidad para notas nuevas"
     },
     "waveform": {
       "loading": "Cargando audio...",

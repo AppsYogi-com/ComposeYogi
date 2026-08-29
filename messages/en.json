@@ -196,7 +196,6 @@
       "stepCount": "{steps} steps ({bars, plural, one {# bar} other {# bars}})",
       "clearAll": "Clear All",
       "clickToPreview": "Click to preview",
-      "velocityTooltip": "Velocity {velocity} — drag up or down",
       "beat": "Beat",
       "stepTooltip": "Beat {beat}.{sub} (Step {step})",
       "stepActiveLabel": "{sound} step {step}, velocity {velocity}",
@@ -206,13 +205,14 @@
       "incompatibleAudio": "This is an audio clip. Switch to a MIDI clip to use the piano roll, or change the clip type.",
       "incompatibleDrum": "This is a drum clip. Switch to a MIDI clip to use the piano roll, or change the clip type.",
       "snap": "Snap:",
-      "velocity": "Velocity:",
       "scale": "Scale:",
       "zoomLevel": "{px}px"
     },
     "velocity": {
       "label": "vel",
-      "barLabel": "Velocity {velocity}"
+      "barLabel": "Velocity {velocity}",
+      "defaultLabel": "Velocity:",
+      "defaultAriaLabel": "Velocity for new notes"
     },
     "waveform": {
       "loading": "Loading audio...",

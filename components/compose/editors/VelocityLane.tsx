@@ -23,7 +23,10 @@ import { useTranslations } from 'next-intl';
 
 import { useProjectStore } from '@/lib/store';
 
+import { AnchoredTooltip } from './AnchoredTooltip';
+
 import type { Clip, Note } from '@/types';
+import type { AnchorRect } from './AnchoredTooltip';
 
 // ============================================
 // Constants
@@ -81,6 +84,18 @@ export function VelocityLane({
 
     const dragRef = useRef<DragState | null>(null);
     const [pending, setPending] = useState<Map<string, number> | null>(null);
+    // Mirrored in a ref so the gesture can be committed from an event handler.
+    // Committing inside a setPending updater instead would write to the project
+    // store during React's render phase — which is a real error, not a warning:
+    // React runs updaters twice under StrictMode, so the write can land twice.
+    const pendingRef = useRef<Map<string, number> | null>(null);
+
+    const setPendingValues = useCallback((values: Map<string, number> | null) => {
+        pendingRef.current = values;
+        setPending(values);
+    }, []);
+    // One tooltip for the lane, anchored to whichever bar the pointer is on.
+    const [hoveredBar, setHoveredBar] = useState<{ anchor: AnchorRect; noteId: string } | null>(null);
 
     const notes = useMemo(() => clip.notes ?? [], [clip.notes]);
 
@@ -136,9 +151,9 @@ export function VelocityLane({
                     ids.map((id) => [id, notes.find((n) => n.id === id)?.velocity ?? MAX_VELOCITY])
                 ),
             };
-            setPending(new Map(dragRef.current.base));
+            setPendingValues(new Map(dragRef.current.base));
         },
-        [affectedIds, disabled, notes]
+        [affectedIds, disabled, notes, setPendingValues]
     );
 
     const handlePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
@@ -149,8 +164,8 @@ export function VelocityLane({
         const delta = (drag.startY - event.clientY) * (MAX_VELOCITY / VELOCITY_LANE_HEIGHT);
         const next = new Map<string, number>();
         for (const [id, base] of drag.base) next.set(id, clampVelocity(base + delta));
-        setPending(next);
-    }, []);
+        setPendingValues(next);
+    }, [setPendingValues]);
 
     const endDrag = useCallback(
         (event: React.PointerEvent<HTMLDivElement>) => {
@@ -160,12 +175,13 @@ export function VelocityLane({
                 event.currentTarget.releasePointerCapture(event.pointerId);
             }
             dragRef.current = null;
-            setPending((values) => {
-                if (values) commit(values);
-                return null;
-            });
+
+            // Clear first, then commit — both outside render.
+            const values = pendingRef.current;
+            setPendingValues(null);
+            if (values) commit(values);
         },
-        [commit]
+        [commit, setPendingValues]
     );
 
     // ============================================
@@ -232,7 +248,17 @@ export function VelocityLane({
                                 aria-valuemin={MIN_VELOCITY}
                                 aria-valuemax={MAX_VELOCITY}
                                 aria-disabled={disabled || undefined}
-                                title={`${velocity}`}
+                                onPointerEnter={(e) => {
+                                    const r = e.currentTarget.getBoundingClientRect();
+                                    setHoveredBar({
+                                        anchor: { left: r.left, top: r.top, width: r.width, height: r.height },
+                                        noteId: note.id,
+                                    });
+                                }}
+                                onPointerLeave={() => {
+                                    // Keep the readout up for the duration of a drag.
+                                    if (!dragRef.current) setHoveredBar(null);
+                                }}
                                 className={`
                                     absolute bottom-0 cursor-ns-resize rounded-t-sm border-t
                                     transition-colors focus-visible:outline focus-visible:outline-1
@@ -257,6 +283,14 @@ export function VelocityLane({
                     })}
                 </div>
             </div>
+
+            <AnchoredTooltip anchor={hoveredBar?.anchor ?? null}>
+                {hoveredBar
+                    ? shownVelocity(
+                        notes.find((n) => n.id === hoveredBar.noteId) ?? notes[0]
+                    )
+                    : ''}
+            </AnchoredTooltip>
         </div>
     );
 }

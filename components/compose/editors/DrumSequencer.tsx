@@ -12,12 +12,23 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useViewportWidth } from '@/hooks/useVisibleClips';
+import { useVisibleStepRange, stepIndices } from '@/hooks/useVisibleSteps';
+
+import { AnchoredTooltip } from './AnchoredTooltip';
+import { DefaultVelocityControl } from './DefaultVelocityControl';
+
 import type { Clip, Note } from '@/types';
+import type { AnchorRect } from './AnchoredTooltip';
 import * as Tone from 'tone';
 
 // ============================================
 // Velocity editing
 // ============================================
+
+/** Width of one step column, in px. Fixed rather than fractional so a step's
+ *  position can be computed without measuring the grid. */
+const STEP_WIDTH = 28;
 
 /** Vertical travel before a press stops being a click and becomes a drag. */
 const VELOCITY_DRAG_THRESHOLD = 4;
@@ -167,9 +178,17 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
     // cleared — so a finished drag would fall through and toggle the step off.
     // This flag survives that one event.
     const suppressClickRef = useRef(false);
+    // Which filled step the pointer is over, so one tooltip can follow it.
+    const [hoveredStep, setHoveredStep] = useState<{
+        anchor: AnchorRect;
+        sound: string;
+        velocity: number;
+    } | null>(null);
     const [previewSynth, setPreviewSynth] = useState<Tone.MembraneSynth | null>(null);
     const [activePreset, setActivePreset] = useState<string | null>(null);
     const gridRef = useRef<HTMLDivElement>(null);
+    const [gridScrollX, setGridScrollX] = useState(0);
+    const gridWidth = useViewportWidth(gridRef);
 
     // Check if clip type is compatible
     const isCompatible = clip.type === 'drum' || clip.type === 'midi';
@@ -177,8 +196,17 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
     // Calculate steps based on clip length and time signature
     const beatsPerBar = project?.timeSignature[0] || 4;
     const stepsPerBeat = 4; // 16th notes
-    const totalSteps = clip.lengthBars * beatsPerBar * stepsPerBeat;
-    const steps = Math.min(totalSteps, 64); // Cap at 64 steps for performance
+    // Every step the clip actually spans. This used to be capped at 64, which
+    // did not limit the view so much as the pattern: past bar four the grid had
+    // no cells, so those hits could be heard and cleared but never seen or
+    // edited. The columns are virtualized instead — see hooks/useVisibleSteps.
+    const steps = clip.lengthBars * beatsPerBar * stepsPerBeat;
+
+    const visibleSteps = useVisibleStepRange(steps, STEP_WIDTH, {
+        scrollX: gridScrollX,
+        width: gridWidth,
+    });
+    const visibleStepIndices = stepIndices(visibleSteps);
 
     // Initialize preview synth
     useEffect(() => {
@@ -405,6 +433,8 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                         {name}
                     </Button>
                 ))}
+                <DefaultVelocityControl disabled={!isCompatible} />
+
                 <div className="flex-1" />
                 <span className="text-xs text-muted-foreground">
                     {t('stepCount', { steps, bars: clip.lengthBars })}
@@ -470,24 +500,29 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                             if (beatRow) {
                                 beatRow.scrollLeft = e.currentTarget.scrollLeft;
                             }
+                            setGridScrollX(e.currentTarget.scrollLeft);
                         }}
                     >
-                        <div style={{ minWidth: steps * 28 }}>
-                            {/* Grid */}
+                        <div style={{ width: steps * STEP_WIDTH }}>
+                            {/* Only the columns on screen are mounted; the offset
+                                keeps them under the right part of the ruler. */}
                             <div
                                 className="grid"
                                 style={{
-                                    gridTemplateColumns: `repeat(${steps}, 1fr)`,
+                                    marginLeft: visibleSteps.start * STEP_WIDTH,
+                                    gridTemplateColumns: `repeat(${visibleStepIndices.length}, ${STEP_WIDTH}px)`,
                                     gridTemplateRows: `repeat(${DRUM_SOUNDS.length}, ${ROW_HEIGHT}px)`,
                                 }}
                             >
                                 {DRUM_SOUNDS.map((sound, rowIndex) =>
-                                    Array.from({ length: steps }).map((_, stepIndex) => {
+                                    visibleStepIndices.map((stepIndex) => {
                                         const key = `${rowIndex}-${stepIndex}`;
                                         const note = gridState.get(key);
                                         const isActive = !!note;
                                         const isDownbeat = stepIndex % (stepsPerBeat * beatsPerBar) === 0;
                                         const isBeat = stepIndex % stepsPerBeat === 0;
+                                        const isBeingDragged =
+                                            !!velocityDrag && velocityDrag.noteId === note?.id && velocityDrag.moved;
                                         // Show the in-flight value while its own step is being dragged.
                                         const velocity =
                                             velocityDrag?.noteId && velocityDrag.noteId === note?.id
@@ -500,6 +535,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                                 className={`
                                                 relative transition-all duration-75 border-b border-r border-border
                                                 ${isDownbeat ? 'bg-surface border-l-2 border-l-accent/50' : isBeat ? 'bg-surface/80 border-l border-l-border' : 'bg-background/60'}
+                                                ${isActive ? 'cursor-ns-resize' : 'cursor-pointer'}
                                                 hover:bg-accent/20
                                             `}
                                                 aria-label={
@@ -528,18 +564,49 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                                 onPointerMove={moveVelocityDrag}
                                                 onPointerUp={endVelocityDrag}
                                                 onPointerCancel={endVelocityDrag}
-                                                title={isActive ? t('velocityTooltip', { velocity }) : undefined}
+                                                onPointerEnter={(e) => {
+                                                    if (!note) return setHoveredStep(null);
+                                                    const r = e.currentTarget.getBoundingClientRect();
+                                                    setHoveredStep({
+                                                        anchor: { left: r.left, top: r.top, width: r.width, height: r.height },
+                                                        sound: sound.name,
+                                                        velocity,
+                                                    });
+                                                }}
+                                                onPointerLeave={() => {
+                                                    // A drag keeps its readout even once the pointer
+                                                    // leaves the cell it started on.
+                                                    if (!velocityDragRef.current) setHoveredStep(null);
+                                                }}
                                             >
                                                 {isActive && (
-                                                    <div
-                                                        className={`
-                                                        absolute inset-1 rounded-sm ${DRUM_BG[sound.family]}
-                                                        transition-opacity
-                                                    `}
-                                                        style={{
-                                                            opacity: 0.5 + (velocity / 127) * 0.5,
-                                                        }}
-                                                    />
+                                                    <>
+                                                        {/* The hit itself, dimmed by how softly it lands */}
+                                                        <div
+                                                            className={`
+                                                            absolute inset-1 rounded-sm ${DRUM_BG[sound.family]}
+                                                            transition-opacity
+                                                        `}
+                                                            style={{
+                                                                opacity: 0.35 + (velocity / 127) * 0.65,
+                                                            }}
+                                                        />
+                                                        {/* A level filling from the bottom, so velocity is
+                                                            readable at a glance and visibly moves under a
+                                                            drag. Opacity alone is hard to judge, and
+                                                            impossible to compare between two steps. */}
+                                                        <div
+                                                            className="pointer-events-none absolute inset-x-1 bottom-1 rounded-b-sm bg-clip-foreground/30"
+                                                            style={{
+                                                                height: `calc((100% - 0.5rem) * ${velocity / 127})`,
+                                                            }}
+                                                        />
+                                                        {isBeingDragged && (
+                                                            <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-2xs font-bold text-clip-foreground">
+                                                                {velocity}
+                                                            </span>
+                                                        )}
+                                                    </>
                                                 )}
                                             </button>
                                         );
@@ -561,14 +628,17 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                         id="drum-beat-numbers"
                         className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-hide"
                     >
+                        {/* Virtualized on the same range as the grid, or the
+                            numbers drift out of line with the steps they label. */}
+                        <div style={{ width: steps * STEP_WIDTH }}>
                         <div
                             className="grid"
                             style={{
-                                gridTemplateColumns: `repeat(${steps}, 1fr)`,
-                                minWidth: steps * 28,
+                                marginLeft: visibleSteps.start * STEP_WIDTH,
+                                gridTemplateColumns: `repeat(${visibleStepIndices.length}, ${STEP_WIDTH}px)`,
                             }}
                         >
-                            {Array.from({ length: steps }).map((_, i) => {
+                            {visibleStepIndices.map((i) => {
                                 const beatNumber = Math.floor(i / stepsPerBeat) + 1;
                                 const subBeat = (i % stepsPerBeat) + 1;
                                 const isDownbeat = i % (stepsPerBeat * beatsPerBar) === 0;
@@ -595,9 +665,20 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                 );
                             })}
                         </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {/* One tooltip for the whole grid, following the hovered step */}
+            <AnchoredTooltip anchor={hoveredStep?.anchor ?? null}>
+                {/* Just the number, as in the piano roll's lane. The gesture is
+                    already announced by the ns-resize cursor, so spelling it out
+                    on every hover is noise. */}
+                {velocityDrag && hoveredStep
+                    ? velocityDrag.value
+                    : hoveredStep?.velocity ?? 0}
+            </AnchoredTooltip>
         </div>
     );
 }

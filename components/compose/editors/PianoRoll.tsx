@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { ZoomIn, ZoomOut, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
+import { DefaultVelocityControl } from './DefaultVelocityControl';
 import { VelocityLane } from './VelocityLane';
 import { Button } from '@/components/ui/button';
 import {
@@ -59,7 +60,6 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const project = useProjectStore((s) => s.project);
     const setEditorFocused = useUIStore((s) => s.setEditorFocused);
     const defaultVelocity = useUIStore((s) => s.defaultVelocity);
-    const setDefaultVelocity = useUIStore((s) => s.setDefaultVelocity);
 
     const [snap, setSnap] = useState<SnapValue>('1/16');
     const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
@@ -73,6 +73,9 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const gridRef = useRef<HTMLDivElement>(null);
     const keysRef = useRef<HTMLDivElement>(null);
     const velocityLaneRef = useRef<HTMLDivElement>(null);
+
+    // Check if clip is compatible with piano roll
+    const isCompatible = clip.type === 'midi';
 
     // Project settings
     const musicalKey = project?.key || 'C';
@@ -183,17 +186,33 @@ export function PianoRoll({ clip }: PianoRollProps) {
         });
 
         if (existingNote) {
-            // Delete existing note (toggle off)
-            deleteNote(clip.id, existingNote.id);
+            // Select, do not delete. A single click used to remove the note
+            // outright, which meant selection could never be populated at all:
+            // the Delete key had nothing to act on, the selected-note styling
+            // never appeared, and the velocity lane's multi-note drag could
+            // never trigger. Removing a note is now a double-click or Delete,
+            // which is also what a DAW does.
             setSelectedNoteIds((prev) => {
+                const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+                if (!additive) return new Set([existingNote.id]);
                 const next = new Set(prev);
-                next.delete(existingNote.id);
+                if (next.has(existingNote.id)) next.delete(existingNote.id);
+                else next.add(existingNote.id);
                 return next;
             });
+
+            if (previewSynth) {
+                previewSynth.triggerAttackRelease(
+                    Tone.Frequency(existingNote.pitch, 'midi').toNote(),
+                    existingNote.duration * (60 / (project?.bpm || 120))
+                );
+            }
         } else {
             // Add new note (toggle on)
             const maxDuration = totalBeats - beat;
             const noteDuration = Math.min(snapBeats, maxDuration);
+
+            setSelectedNoteIds(new Set());
 
             const newNote = addNote(clip.id, {
                 pitch,
@@ -224,6 +243,33 @@ export function PianoRoll({ clip }: PianoRollProps) {
             );
         }
     }, [previewSynth]);
+
+    /** Double-click removes a note. Single click selects it. */
+    const handleGridDoubleClick = useCallback((e: React.MouseEvent) => {
+        const grid = gridRef.current;
+        if (!grid || !isCompatible) return;
+
+        const rect = grid.getBoundingClientRect();
+        const x = e.clientX - rect.left + grid.scrollLeft;
+        const y = e.clientY - rect.top + grid.scrollTop;
+        const row = Math.floor(y / NOTE_HEIGHT);
+
+        const note = clip.notes?.find((n) => {
+            const noteStartX = n.startBeat * pixelsPerBeat;
+            const noteEndX = (n.startBeat + n.duration) * pixelsPerBeat;
+            return row === pitchToRow(n.pitch) && x >= noteStartX && x < noteEndX;
+        });
+        if (!note) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        deleteNote(clip.id, note.id);
+        setSelectedNoteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(note.id);
+            return next;
+        });
+    }, [clip.id, clip.notes, deleteNote, isCompatible, pitchToRow, pixelsPerBeat]);
 
     // Delete selected notes
     const handleDeleteSelected = useCallback(() => {
@@ -310,8 +356,6 @@ export function PianoRoll({ clip }: PianoRollProps) {
         return result;
     }, []);
 
-    // Check if clip is compatible with piano roll
-    const isCompatible = clip.type === 'midi';
 
     return (
         <div
@@ -351,25 +395,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                     </Select>
                 </div>
 
-                {/* Velocity every new note is drawn at */}
-                <div className="flex items-center gap-1.5">
-                    <label htmlFor="default-velocity" className="text-xs text-muted-foreground">
-                        {t('velocity')}
-                    </label>
-                    <input
-                        id="default-velocity"
-                        type="range"
-                        min={1}
-                        max={127}
-                        value={defaultVelocity}
-                        disabled={!isCompatible}
-                        onChange={(e) => setDefaultVelocity(Number(e.target.value))}
-                        className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-input [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
-                    />
-                    <span className="w-6 text-right text-xs font-mono text-muted-foreground">
-                        {defaultVelocity}
-                    </span>
-                </div>
+                <DefaultVelocityControl disabled={!isCompatible} />
 
                 {/* Scale info */}
                 <div className="flex items-center gap-1.5">
@@ -430,6 +456,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                     ref={gridRef}
                     className="flex-1 overflow-auto bg-background relative"
                     onClick={handleGridClick}
+                    onDoubleClick={handleGridDoubleClick}
                     onScroll={(e) => {
                         // Sync piano keys scroll with grid vertical scroll
                         if (keysRef.current) {
