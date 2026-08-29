@@ -180,9 +180,12 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   (rAF doesn't run in a headless pane). Don't quote numbers for these.
 - Open issues: **#21** Custom Instruments (answered 2026-08-29, scheduled v1.4/Sprint
   8.7.5, awaiting requester's scoping input), **#23–#30** good-first-issues.
-- **Sprint 8.5 is in review as PR #31** (branch `sprint-8.5-hardening`, CI green).
-  Its commits are authored as `3322516+superzero11@users.noreply.github.com` because
-  GitHub blocks command-line pushes exposing the maintainer's private email.
+- **Sprint 8.5 shipped as v1.2.0** (PR #31 rebase-merged 2026-08-29; CI green on main).
+  Next up is Sprint 8.6, the design-system gate — no new UI ships before it.
+- **Pushing**: GitHub rejects pushes exposing the maintainer's private email (GH007), so
+  commits must be authored as `3322516+superzero11@users.noreply.github.com`. Set
+  `GIT_AUTHOR_EMAIL`/`GIT_COMMITTER_EMAIL` per commit, or offer to set it in the repo's
+  local git config.
 
 ## Open-source posture
 
