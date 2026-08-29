@@ -1,5 +1,8 @@
-{
-    "_generated": "lib/design/tokens.ts — do not edit, run `npm run design:tokens`",
+/*
+ * Generated from lib/design/tokens.ts by scripts/generate-design-tokens.js.
+ * Do not edit — run `npm run design:tokens`.
+ */
+window.COMPOSEYOGI_TOKENS = {
     "groups": [
         {
             "title": "Ground and elevation",
@@ -173,4 +176,4 @@
         "inspector": "260px",
         "editor": "35vh"
     }
-}
+};

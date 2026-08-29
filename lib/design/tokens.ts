@@ -131,14 +131,14 @@ export const DARK: ThemeColors = {
     input: '30 5% 16%',
     ring: '35 100% 55%',
 
-    destructive: '358 72% 56%',
-    'destructive-foreground': '0 0% 100%',
-    success: '150 62% 45%',
-    'success-foreground': '0 0% 100%',
+    destructive: '358 82% 66%',
+    'destructive-foreground': '358 35% 10%',
+    success: '150 62% 52%',
+    'success-foreground': '150 40% 8%',
     warning: '45 95% 55%',
     'warning-foreground': '40 40% 10%',
-    info: '210 85% 60%',
-    'info-foreground': '0 0% 100%',
+    info: '210 90% 66%',
+    'info-foreground': '210 45% 10%',
 
     playhead: '358 85% 62%',
 
@@ -146,11 +146,12 @@ export const DARK: ThemeColors = {
     // themes. They are still tokens rather than literals: a fixed colour that
     // is deliberately fixed belongs in the system, where the decision is
     // visible, not scattered through a component as `bg-zinc-800`.
-    // Fixed in both themes, and for the same reason: a scrim darkens whatever
-    // is behind it, and a clip label sits on a saturated colour rather than on
-    // a theme surface. Neither has anything to invert against.
+    // A scrim darkens whatever is behind it, so it is the same in both themes.
+    // clip-foreground is not: it sits on the track colour, and the track colour
+    // is bright on the dark timeline and deep on the light one — so the label
+    // that reads on it inverts with the fill, not with the theme's text.
     scrim: '30 8% 4%',
-    'clip-foreground': '40 15% 98%',
+    'clip-foreground': '30 25% 10%',
 
     'piano-white': '40 12% 92%',
     'piano-white-foreground': '30 8% 28%',
@@ -191,9 +192,9 @@ export const LIGHT: ThemeColors = {
     popover: '0 0% 100%',
     'popover-foreground': '30 10% 10%',
 
-    primary: '32 95% 44%',
+    primary: '29 96% 34%',
     'primary-foreground': '0 0% 100%',
-    accent: '32 95% 44%',
+    accent: '29 96% 34%',
     'accent-foreground': '0 0% 100%',
     secondary: '38 14% 93%',
     'secondary-foreground': '30 10% 10%',
@@ -202,15 +203,15 @@ export const LIGHT: ThemeColors = {
 
     border: '36 12% 87%',
     input: '36 12% 87%',
-    ring: '32 95% 44%',
+    ring: '29 96% 34%',
 
-    destructive: '358 68% 48%',
+    destructive: '358 70% 42%',
     'destructive-foreground': '0 0% 100%',
-    success: '150 60% 32%',
+    success: '150 62% 26%',
     'success-foreground': '0 0% 100%',
-    warning: '38 92% 40%',
+    warning: '32 95% 30%',
     'warning-foreground': '0 0% 100%',
-    info: '210 82% 45%',
+    info: '210 85% 38%',
     'info-foreground': '0 0% 100%',
 
     playhead: '358 75% 50%',
@@ -487,3 +488,32 @@ export const THEME_COLOR_HEX = hslToHex(DARK.background);
 
 /** The accent, for places that need the brand as a literal. */
 export const ACCENT_HEX = hslToHex(DARK.accent);
+
+// ============================================
+// Contrast
+// ============================================
+//
+// WCAG relative luminance and contrast ratio, so the palette's accessibility is
+// a thing the test suite can check rather than a thing someone remembers to
+// look at. tests/design-system.test.ts asserts the pairs that actually get used
+// together — text on ground, and foreground on its own fill.
+//
+// The light accent had to be darkened because of this: at 44% lightness it was
+// 3.2:1 both as text on the page and under white text on a button, which fails
+// AA in both directions. Amber accents are prone to exactly this.
+
+/** WCAG 2.1 relative luminance of a bare HSL triple. */
+export function relativeLuminance(hsl: Hsl): number {
+    const hex = hslToHex(hsl);
+    const channel = (offset: number) => {
+        const value = parseInt(hex.slice(1 + offset * 2, 3 + offset * 2), 16) / 255;
+        return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * channel(0) + 0.7152 * channel(1) + 0.0722 * channel(2);
+}
+
+/** WCAG contrast ratio between two tokens, 1–21. AA wants 4.5 for body text. */
+export function contrastRatio(a: Hsl, b: Hsl): number {
+    const [light, dark] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
+    return (light + 0.05) / (dark + 0.05);
+}
