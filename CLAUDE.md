@@ -56,8 +56,14 @@ npm run type-check     # tsc --noEmit
 npm run validate:locales  # messages/en.json vs es.json key parity
 ```
 
-No test suite exists yet. CI (`.github/workflows/docker-publish.yml`) only builds/signs
-the Docker image — it does not run `check`.
+```bash
+npm test               # vitest run
+npm run test:watch     # vitest
+```
+
+`npm run check` = validate:locales + type-check + lint + tests. CI
+(`.github/workflows/ci.yml`) runs `check` then a production build on every push
+and PR; `docker-publish.yml` still builds/signs the image separately.
 
 ---
 
@@ -73,22 +79,30 @@ the Docker image — it does not run `check`.
 ### Audio (`lib/audio/`)
 - `engine.ts` — singleton wrapping Tone.Transport: play/pause/stop/seek, BPM, time
   signature, loop, metronome, bar↔second conversion.
-- `playout.ts` — `PlayoutManager`: per-track chain `entry → [effects] → gain → panner →
-  master → analyser → destination`; `scheduleProject()` schedules every clip via
-  `Transport.schedule`. Guarded by a `scheduleVersion` counter so stale in-flight
-  schedules abort (race fix from #15) — preserve this pattern.
+- `scheduler.ts` — **the single source of truth for how a clip becomes sound.** Owns
+  timing, instrument resolution, effect construction, solo/mute gating, and
+  `buildRenderPlan()` (which clips play, when, at what gain). BOTH the live and
+  offline paths schedule through it. A change that touches only one caller is a bug —
+  that split is what made exports stop matching playback. Golden snapshot in
+  `tests/scheduler.test.ts`.
+- `playout.ts` — `PlayoutManager` (live): per-track chain `entry → [active effects] →
+  gain → panner → master → limiter → analyser → destination`; schedules from the render
+  plan. Guarded by a `scheduleVersion` counter so stale in-flight schedules abort (race
+  fix from #15) — preserve this pattern. Mixer moves (`applyMixState`) ramp existing
+  nodes and must NEVER reschedule.
 - `recorder.ts` + `recording-manager.ts` — mic → trim to loop bounds → fades → WAV bytes
   → `AudioTake` (in-memory map + IndexedDB). Latency offset from `latency-calibration.ts`.
-- `offline-renderer.ts` — separate scheduling implementation inside `Tone.Offline()` for
-  WAV/MP3 export. ⚠ Duplicates `playout.ts` logic; any scheduling change must be made in
-  BOTH until they are unified (planned).
+- `offline-renderer.ts` — WAV/MP3 export inside `Tone.Offline()`. Renders from the same
+  render plan as `playout.ts`; no scheduling logic of its own.
 - `synth-presets.ts` — 64 preset factories (`SYNTH_PRESETS`). Resolution order at schedule
   time: `clip.instrumentPreset` → `track.instrumentPreset` → fallback by track color.
 - MP3 via lamejs loaded by `<script>` tag (`public/workers/lame.min.js`) — deliberate
   workaround for webpack/CJS issues; don't "fix" it back into the bundle.
 
 ### Persistence (`lib/persistence/`)
-- IndexedDB `composeyogi` v2 via idb. Stores: projects (metadata only), tracks, clips
+- Schema changes go in `migrations.ts` as a new numbered migration; `DB_VERSION` tracks
+  it automatically (a test enforces this). Never edit a shipped migration.
+- IndexedDB `composeyogi` via idb. Stores: projects (metadata only), tracks, clips
   (notes JSON-stringified), audioTakes (ArrayBuffer + serialized peaks), userSamples, settings.
 - `autosave.ts` — 3s debounce for project saves; audio takes save immediately;
   `beforeunload` guard.
@@ -97,13 +111,14 @@ the Docker image — it does not run `check`.
 - Canvas for ruler/grid (`lib/canvas/`, DPR-aware); DOM for clips.
 - Peaks computed in `public/workers/audio-peaks-worker.js` with Transferable zero-copy.
 
-### Instruments & templates — sync hazards
-- `SYNTH_PRESETS` (lib/audio/synth-presets.ts) and `INSTRUMENTS` (lib/browser/index.ts)
-  are **hand-mirrored registries**. Drift here caused the duplicate-euphonium bug (#20).
-  Any instrument add/change touches both (and usually a demo pattern in TrackList).
-- Two template systems exist: `TEMPLATES` (browser panel — tracks only, no clips) and
-  `DEMO_TEMPLATES` (`lib/templates/demo-templates.ts` — full music, used by landing page
-  and `?demo=` param). Consolidation is a known target; until then know which one you're in.
+### Instruments & templates
+- `SYNTH_PRESETS` (lib/audio/synth-presets.ts) is canonical. `INSTRUMENTS`
+  (lib/browser/index.ts) derives id/name/category from it; only browser metadata
+  (description, trackType, trackColor) lives there, typed `Record<SynthPresetId, …>` so a
+  missing entry **fails the build**. Adding an instrument touches both places by design.
+- `DEMO_TEMPLATES` (`lib/templates/demo-templates.ts`) is the single template source; the
+  browser panel's `TEMPLATES` derives from it and `createProject(name, templateId)` loads
+  the full arrangement via `loadDemoTemplate`.
 
 ### i18n
 - Locale routes via `app/[locale]/` + middleware; messages in `messages/{en,es}.json`.
@@ -126,9 +141,10 @@ the Docker image — it does not run `check`.
 - Audio context starts only on user gesture (`audioEngine.initialize()` then
   `playoutManager.initialize()`).
 - Always dispose Tone nodes (Players, Synths, effects) when unscheduling/unmounting.
-- Rescheduling is driven by `clipNotesHash` + `project.clips.length` in
-  `app/[locale]/compose/page.tsx` — if a new feature changes clip audio without changing
-  those hash fields, playback silently goes stale (see issue #22: `activeTakeId`).
+- Rescheduling is driven by `clipNotesHash` + `trackScheduleHash` + `project.clips.length`
+  in `app/[locale]/compose/page.tsx` — if a new feature changes clip audio without
+  changing those hash fields, playback silently goes stale (this was #22). Mixer state
+  (`mixerHash`) deliberately does NOT reschedule.
 - COOP/COEP (`credentialless`) headers in `next.config.ts` are required for future
   SharedArrayBuffer/WASM work — don't remove.
 
@@ -153,24 +169,22 @@ the Docker image — it does not run `check`.
 - **No SEO content scaling** (maintainer rule): every public page must be something a
   musician would want to land on. Discoverability comes from real shared music.
 
-## Known gaps & active issues (updated 2026-08-29 — verify before relying on)
+## Known gaps & active issues (updated 2026-08-29 after Sprint 8.5 — verify before relying on)
 
-- **Solo is unwired**: `playoutManager.updateSoloState()` exists, nothing calls it.
-- **Mixer perf**: any track volume/pan change triggers a full `scheduleProject()`
-  teardown/rebuild; `updateTrackVolume`/`updateTrackPan` exist but the UI never uses them.
 - **Piano roll velocity**: hardcoded 100, display-only. Velocity lane is a designed
   feature (design.md + TaskList 5.3) — drum sequencer already has drag-to-edit to port.
 - **Clip macros** (energy/groove/brightness/space/humanize/transpose): persisted and
   exported but drive no DSP yet. These are planned features (design.md) — implement, don't delete.
-- **Scheduler duplication**: `playout.ts` vs `offline-renderer.ts` (see above).
-- **Metronome state duplicated**: Transport.tsx local `useState` vs unused
-  `playbackStore.metronomeEnabled`.
-- Open issues: **#21** Custom Instruments (5 months old, from the most active community
-  member — scheduled Sprint 8.7.5), **#22** reschedule-hash misses `activeTakeId`
-  (one-line fix proposed by author — lands in Sprint 8.5.1).
-- **README roadmap section has drifted** (lists WAV export as planned though it shipped in
-  v1.1) — fix is Sprint 8.5.5; until then don't cite README's roadmap as current.
-- Repo has no git tags / GitHub Releases despite CHANGELOG versions (Sprint 8.5.4).
+- **Unverified performance claims**: frame rate, Lighthouse, the offline walkthrough and
+  the cross-browser matrix have NOT been measured on real hardware since the 8.5 work
+  (rAF doesn't run in a headless pane). Don't quote numbers for these.
+- **Broken funding link**: `.github/FUNDING.yml` `buy_me_a_coffee: appsyogi` 404s — the
+  repo's Sponsor button points at a dead page. Needs the maintainer's correct username.
+- Open issues: **#21** Custom Instruments (answered 2026-08-29, scheduled v1.4/Sprint
+  8.7.5, awaiting requester's scoping input), **#23–#30** good-first-issues.
+- **Sprint 8.5 is in review as PR #31** (branch `sprint-8.5-hardening`, CI green).
+  Its commits are authored as `3322516+superzero11@users.noreply.github.com` because
+  GitHub blocks command-line pushes exposing the maintainer's private email.
 
 ## Open-source posture
 
