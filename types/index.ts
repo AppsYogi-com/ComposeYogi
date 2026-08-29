@@ -248,6 +248,14 @@ export type ModalType =
     | 'settings'
     | 'newProject';
 
+/** Collapsible sections of the Inspector, in the order they are rendered. */
+export type InspectorSectionId =
+    | 'project'
+    | 'track'
+    | 'effects'
+    | 'clip'
+    | 'feel';
+
 // ============================================
 // Playback State Types
 // ============================================

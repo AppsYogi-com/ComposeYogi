@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 import {
     ChevronLeft,
+    ChevronRight,
     Sliders,
     Music,
     Clock,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 import { MACRO_NEUTRAL, TRANSPOSE_RANGE, isNeutral, readClipMacros } from '@/lib/audio/clip-macros';
 import { useProjectStore, useUIStore } from '@/lib/store';
-import { selectSelectedClipId } from '@/lib/store/ui';
+import { selectCollapsedSections, selectSelectedClipId } from '@/lib/store/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,9 +28,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SCALES, NOTES } from '@/lib/utils';
+import { SCALES, NOTES, cn } from '@/lib/utils';
 import { trackColorValue } from '@/lib/design';
-import type { Clip, MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
+import type { Clip, InspectorSectionId, MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
 
 // Option lists carry ids only — the labels come from `inspector.trackColors.*`
 // and `inspector.trackTypes.*`, so a locale change relabels them.
@@ -68,7 +69,7 @@ export function Inspector() {
 
             <ScrollArea className="flex-1">
                 {/* Project settings section */}
-                <Section title={t('project.title')} icon={<Sliders className="h-4 w-4" />}>
+                <Section id="project" title={t('project.title')} icon={<Sliders className="h-4 w-4" />}>
                     {/* Key */}
                     <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">{t('project.key')}</Label>
@@ -120,7 +121,7 @@ export function Inspector() {
 
                 {/* Selected track section */}
                 {selectedTrack && (
-                    <Section title={t('track.title')} icon={<Music className="h-4 w-4" />}>
+                    <Section id="track" title={t('track.title')} icon={<Music className="h-4 w-4" />}>
                         <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">{t('track.name')}</Label>
                             <Input
@@ -208,7 +209,7 @@ export function Inspector() {
 
                 {/* Selected track effects */}
                 {selectedTrack && (
-                    <Section title={t('effects.title')} icon={<Sparkles className="h-4 w-4" />}>
+                    <Section id="effects" title={t('effects.title')} icon={<Sparkles className="h-4 w-4" />}>
                         {(!selectedTrack.effects || selectedTrack.effects.length === 0) ? (
                             <div className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed border-muted rounded-md bg-muted/20">
                                 {t.rich('effects.emptyState', { br: () => <br /> })}
@@ -337,7 +338,7 @@ export function Inspector() {
 
                 {/* Selected clip section */}
                 {selectedClip && (
-                    <Section title={t('clip.title')} icon={<Clock className="h-4 w-4" />}>
+                    <Section id="clip" title={t('clip.title')} icon={<Clock className="h-4 w-4" />}>
                         <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">{t('clip.name')}</Label>
                             <Input
@@ -406,6 +407,8 @@ export function Inspector() {
 // ============================================
 
 interface SectionProps {
+    /** Identifies the section so its folded state survives reselection. */
+    id: InspectorSectionId;
     title: string;
     icon: React.ReactNode;
     children: React.ReactNode;
@@ -413,17 +416,55 @@ interface SectionProps {
     action?: React.ReactNode;
 }
 
-function Section({ title, icon, children, action }: SectionProps) {
+/**
+ * One foldable section of the Inspector.
+ *
+ * The header is a real button carrying the section's name, so its accessible
+ * name is the name and `aria-expanded` carries the state — no second label to
+ * translate and keep in step. Any `action` stays a sibling rather than a child:
+ * a button inside a button is invalid, and the Reset control must not double as
+ * a fold toggle.
+ *
+ * Folded state lives in the UI store rather than in local state, because the
+ * clip and track sections unmount whenever the selection changes and a fold
+ * that reopened itself every time you picked a different clip would be worse
+ * than no fold at all. It is session state, like the panel toggles it sits
+ * among — a reload starts everything open.
+ */
+function Section({ id, title, icon, children, action }: SectionProps) {
+    const collapsed = useUIStore((s) => Boolean(selectCollapsedSections(s)[id]));
+    const toggleSection = useUIStore((s) => s.toggleSection);
+    const contentId = `inspector-section-${id}`;
+
     return (
         <div className="border-b border-border">
-            <div className="flex items-center gap-2 bg-background/50 px-3 py-2">
-                <span className="text-muted-foreground">{icon}</span>
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {title}
-                </span>
-                {action && <span className="ml-auto">{action}</span>}
+            <div className="flex items-center bg-background/50 pr-2">
+                <button
+                    type="button"
+                    onClick={() => toggleSection(id)}
+                    aria-expanded={!collapsed}
+                    aria-controls={contentId}
+                    className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left transition-colors duration-fast ease-out hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                >
+                    <ChevronRight
+                        className={cn(
+                            'h-3 w-3 shrink-0 text-muted-foreground transition-transform duration-fast ease-out',
+                            !collapsed && 'rotate-90'
+                        )}
+                    />
+                    <span className="shrink-0 text-muted-foreground">{icon}</span>
+                    <span className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {title}
+                    </span>
+                </button>
+                {action}
             </div>
-            <div className="space-y-3 p-3">{children}</div>
+
+            {!collapsed && (
+                <div id={contentId} className="space-y-3 p-3">
+                    {children}
+                </div>
+            )}
         </div>
     );
 }
@@ -469,6 +510,7 @@ function FeelSection({ clip }: { clip: Clip }) {
 
     return (
         <Section
+            id="feel"
             title={t('title')}
             icon={<Waves className="h-4 w-4" />}
             action={
