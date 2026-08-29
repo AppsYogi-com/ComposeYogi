@@ -19,6 +19,12 @@ import { LatencyCalibrationModal } from '@/components/compose/LatencyCalibration
 import { ProjectSelector } from '@/components/compose/ProjectSelector';
 import { useAutosave, useShortcut, useLoadKeyBindings, usePersistKeyBindings } from '@/hooks';
 import { listProjects, loadProject, loadAudioTakesForClip } from '@/lib/persistence';
+import {
+    clipsScheduleHash,
+    mixerStateHash,
+    trackEffectsHash,
+    trackScheduleHash,
+} from '@/lib/audio/schedule-hash';
 import { loadDemoTemplate } from '@/lib/templates';
 
 // Loading fallback for Suspense
@@ -173,27 +179,14 @@ function ComposePageContent() {
 
     // Hash of everything that changes how a clip *sounds*. If a new feature
     // affects clip audio, it must appear here or playback goes silently stale.
-    const clipNotesHash = project?.clips.map(c => {
-        const noteHash = c.notes?.map(n => `${n.pitch}.${n.startBeat}.${n.duration}.${n.velocity}`).join(';') || '';
-        // activeTakeId included so switching an audio take reschedules (#22)
-        return `${c.id}:${c.type}:${c.startBar}:${c.lengthBars}:${c.instrumentPreset || ''}:${c.activeTakeId || ''}:${c.trimStart || 0}:${c.trimEnd || 0}:${c.fadeIn || 0}:${c.fadeOut || 0}:${noteHash}`;
-    }).join(',') || '';
-
-    // Track identity/instrument changes also require a reschedule (the synth is
-    // built at schedule time), but volume/pan/mute/solo deliberately do not.
-    const trackScheduleHash = project?.tracks.map(t =>
-        `${t.id}:${t.instrumentPreset || ''}:${t.color}`
-    ).join('|') || '';
-
-    // Calculate hash for track effects to detect changes
-    const trackEffectsHash = project?.tracks.map(t =>
-        `${t.id}:${(t.effects || []).map(e => `${e.id}-${e.active}-${JSON.stringify(e.params)}`).join(',')}`
-    ).join('|') || '';
-
-    // Mixer state — applied live, never by rescheduling
-    const mixerHash = project?.tracks.map(t =>
-        `${t.id}:${t.volume}:${t.pan}:${t.muted ? 1 : 0}:${t.solo ? 1 : 0}`
-    ).join('|') || '';
+    // What has to change before the audio is rebuilt. Defined in
+    // lib/audio/schedule-hash.ts, where it can be tested: a field that affects
+    // playback but is missing from the hash leaves the schedule stale with no
+    // error anywhere, which is what #22 was.
+    const clipNotesHash = project ? clipsScheduleHash(project.clips) : '';
+    const trackHash = project ? trackScheduleHash(project.tracks) : '';
+    const effectsHash = project ? trackEffectsHash(project.tracks) : '';
+    const mixerHash = project ? mixerStateHash(project.tracks) : '';
 
     // Re-schedule clips when project clips or notes change
     useEffect(() => {
@@ -201,7 +194,7 @@ function ComposePageContent() {
             void scheduleClipsRef.current();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAudioReady, project?.clips.length, clipNotesHash, trackScheduleHash]);
+    }, [isAudioReady, project?.clips.length, clipNotesHash, trackHash]);
 
     // Sync track effects
     useEffect(() => {
@@ -211,7 +204,7 @@ function ComposePageContent() {
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [trackEffectsHash, isAudioReady]); // Only re-run if effects structure changes
+    }, [effectsHash, isAudioReady]); // Only re-run if effects structure changes
 
     // Sync mixer state (volume, pan, mute, solo) — ramps existing nodes instead
     // of tearing down and rebuilding the schedule, so faders and solo are
