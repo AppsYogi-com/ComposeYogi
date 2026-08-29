@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { autosaveManager, SaveStatus } from '@/lib/persistence/autosave';
+import { autosaveManager, projectSaveSignature, SaveStatus } from '@/lib/persistence/autosave';
 import { useProjectStore } from '@/lib/store';
 
 interface UseAutosaveOptions {
@@ -63,17 +63,10 @@ export function useAutosave(options: UseAutosaveOptions = {}): UseAutosaveReturn
     useEffect(() => {
         if (!enabled || !project) return;
 
-        // Serialize project for comparison (simple JSON stringify)
-        const projectJson = JSON.stringify({
-            id: project.id,
-            name: project.name,
-            bpm: project.bpm,
-            key: project.key,
-            scale: project.scale,
-            timeSignature: project.timeSignature,
-            tracks: project.tracks,
-            clips: project.clips,
-        });
+        // Derived from the project, never a list of its fields — see
+        // projectSaveSignature. A field missing from the old hand-written list
+        // was simply never saved, with nothing anywhere to say so.
+        const projectJson = projectSaveSignature(project);
 
         // Skip if project hasn't actually changed
         if (projectJson === previousProjectRef.current) {
