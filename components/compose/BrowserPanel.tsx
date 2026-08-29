@@ -18,6 +18,7 @@ import {
     FolderOpen,
 } from 'lucide-react';
 import { useUIStore, useProjectStore } from '@/lib/store';
+import { TRACK_BG } from '@/lib/design/track-colors';
 import { Button } from '@/components/ui';
 import {
     Tooltip,
@@ -65,18 +66,6 @@ const TABS: { id: BrowserTab; label: string; icon: typeof LayoutTemplate }[] = [
 // ============================================
 // Helper Functions
 // ============================================
-
-const getTrackColorClass = (color: string): string => {
-    switch (color) {
-        case 'drums': return 'red-500';
-        case 'bass': return 'blue-500';
-        case 'keys': return 'orange-400';
-        case 'melody': return 'purple-500';
-        case 'vocals': return 'green-500';
-        case 'fx': return 'pink-500';
-        default: return 'gray-500';
-    }
-};
 
 // ============================================
 // BrowserPanel Component
@@ -334,10 +323,10 @@ export function BrowserPanel() {
                                 {template.description}
                             </p>
                             <div className="flex gap-2 mt-1">
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-background text-muted-foreground">
+                                <span className="text-2xs px-1.5 py-0.5 rounded bg-background text-muted-foreground">
                                     {template.genre}
                                 </span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-background text-muted-foreground">
+                                <span className="text-2xs px-1.5 py-0.5 rounded bg-background text-muted-foreground">
                                     {template.key} {template.scale}
                                 </span>
                             </div>
@@ -404,7 +393,7 @@ export function BrowserPanel() {
                                                     <GripVertical className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-50" />
 
                                                     {/* Color Indicator */}
-                                                    <div className={`w-1.5 h-1.5 rounded-full bg-${getTrackColorClass(instrument.trackColor)}`} />
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${TRACK_BG[instrument.trackColor]}`} />
 
                                                     <Piano className="h-4 w-4 text-muted-foreground" />
 
@@ -426,7 +415,7 @@ export function BrowserPanel() {
                                                 <p className="font-medium">{instrument.name}</p>
                                                 <p className="text-xs text-primary-foreground/80">{instrument.description}</p>
                                                 <div className="mt-1 flex gap-2">
-                                                    <span className="text-[10px] bg-background/20 text-primary-foreground px-1 py-0.5 rounded uppercase tracking-wider font-semibold backdrop-blur-sm">
+                                                    <span className="text-2xs bg-background/20 text-primary-foreground px-1 py-0.5 rounded uppercase tracking-wider font-semibold backdrop-blur-sm">
                                                         {instrument.trackType}
                                                     </span>
                                                 </div>
@@ -508,7 +497,7 @@ export function BrowserPanel() {
                                             <span className="flex-1 text-foreground truncate">
                                                 {sample.name}
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground">
+                                            <span className="text-2xs text-muted-foreground">
                                                 {formatDuration(sample.duration)}
                                             </span>
                                             <button
@@ -569,7 +558,7 @@ export function BrowserPanel() {
                                                 {sample.name}
                                             </span>
                                             {sample.bpm && (
-                                                <span className="text-[10px] text-muted-foreground">
+                                                <span className="text-2xs text-muted-foreground">
                                                     {sample.bpm}
                                                 </span>
                                             )}
@@ -760,7 +749,7 @@ export function BrowserPanel() {
                             </>
                         )}
                     </Button>
-                    <p className="mt-1 text-[10px] text-muted-foreground text-center">
+                    <p className="mt-1 text-2xs text-muted-foreground text-center">
                         WAV, MP3, OGG, FLAC, M4A (max 50MB)
                     </p>
                 </div>
@@ -780,8 +769,8 @@ export function BrowserCollapsedBar() {
                 className="h-full w-6 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
                 <ChevronRight className="h-3 w-3" />
-                <span className="writing-mode-vertical text-[10px] tracking-wider">BROWSER</span>
-                <kbd className="px-1 py-0.5 text-[10px] font-mono bg-muted border border-border rounded">B</kbd>
+                <span className="writing-mode-vertical text-2xs tracking-wider">BROWSER</span>
+                <kbd className="px-1 py-0.5 text-2xs font-mono bg-muted border border-border rounded">B</kbd>
             </button>
         </div>
     );

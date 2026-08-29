@@ -159,8 +159,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                 onClick={handleExportWav}
                                 className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
                             >
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                                    <FileAudio className="h-5 w-5 text-green-500" />
+                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-track-melody/10 flex items-center justify-center">
+                                    <FileAudio className="h-5 w-5 text-track-melody" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium">WAV Audio</div>
@@ -171,8 +171,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                             {/* MP3 Export */}
                             <div className="rounded-lg border border-border p-4 space-y-3">
                                 <div className="flex items-center gap-4">
-                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-                                        <FileAudio className="h-5 w-5 text-orange-500" />
+                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-track-vocals/10 flex items-center justify-center">
+                                        <FileAudio className="h-5 w-5 text-track-vocals" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="font-medium">MP3 Audio</div>
@@ -206,8 +206,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                 onClick={handleExportMidi}
                                 className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
                             >
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                    <Music className="h-5 w-5 text-blue-500" />
+                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-track-bass/10 flex items-center justify-center">
+                                    <Music className="h-5 w-5 text-track-bass" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium">MIDI File</div>
@@ -220,8 +220,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                 onClick={handleExportJSON}
                                 className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
                             >
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                                    <FileJson className="h-5 w-5 text-purple-500" />
+                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-track-keys/10 flex items-center justify-center">
+                                    <FileJson className="h-5 w-5 text-track-keys" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium">Project File (.cyp)</div>
@@ -267,7 +267,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                     {/* Complete State */}
                     {exportState === 'complete' && (
                         <div className="space-y-4">
-                            <div className="flex items-center gap-3 text-green-500">
+                            <div className="flex items-center gap-3 text-success">
                                 <CheckCircle className="h-5 w-5" />
                                 <span className="font-medium">Export Complete!</span>
                             </div>

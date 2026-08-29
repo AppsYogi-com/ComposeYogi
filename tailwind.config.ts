@@ -38,6 +38,10 @@ const config: Config = {
     content: [
         './app/**/*.{js,ts,jsx,tsx,mdx}',
         './components/**/*.{js,ts,jsx,tsx,mdx}',
+        // lib/ has to be scanned: the static class maps in lib/design/ are where
+        // `bg-track-drums` and friends are written out, and a class Tailwind
+        // never sees is a class that produces no CSS.
+        './lib/**/*.{js,ts,jsx,tsx,mdx}',
     ],
     darkMode: 'class',
     theme: {
@@ -72,6 +76,14 @@ const config: Config = {
 
                 // Transport
                 playhead: token('playhead'),
+
+                // Instrument surfaces
+                piano: {
+                    white: token('piano-white'),
+                    'white-foreground': token('piano-white-foreground'),
+                    black: token('piano-black'),
+                    'black-foreground': token('piano-black-foreground'),
+                },
 
                 // Categorical
                 track: fromList(TRACK_ROLES, 'track'),

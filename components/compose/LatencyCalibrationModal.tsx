@@ -216,8 +216,8 @@ function InstructionsView({ onContinue }: { onContinue: () => void }) {
     return (
         <div className="space-y-6">
             <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                    <Settings2 className="w-8 h-8 text-yellow-500" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-warning/10 flex items-center justify-center">
+                    <Settings2 className="w-8 h-8 text-warning" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground mb-2">
                     Setup Instructions
@@ -254,8 +254,8 @@ function InstructionsView({ onContinue }: { onContinue: () => void }) {
                 </div>
 
                 <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
-                        <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="w-4 h-4 text-warning" />
                     </div>
                     <div>
                         <h4 className="font-medium text-foreground">
@@ -321,16 +321,16 @@ function CompleteView({
 }) {
     const confidenceColor =
         result.confidence > 0.7
-            ? 'text-green-500'
+            ? 'text-success'
             : result.confidence > 0.4
-                ? 'text-yellow-500'
-                : 'text-red-500';
+                ? 'text-warning'
+                : 'text-destructive';
 
     return (
         <div className="space-y-6">
             <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <CheckCircle className="w-8 h-8 text-green-500" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/10 flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8 text-success" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground">
                     Calibration Complete
@@ -404,8 +404,8 @@ function ErrorView({
     return (
         <div className="space-y-6">
             <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
-                    <AlertCircle className="w-8 h-8 text-red-500" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-destructive" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground">
                     Calibration Failed

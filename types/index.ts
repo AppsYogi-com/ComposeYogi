@@ -2,6 +2,8 @@
 // ComposeYogi — Core Type Definitions
 // ============================================
 
+import type { TrackRole } from '@/lib/design/tokens';
+
 // ============================================
 // Project & Composition Types
 // ============================================
@@ -65,13 +67,12 @@ export interface TrackEffect {
 
 export type TrackType = 'audio' | 'midi' | 'drum';
 
-export type TrackColor =
-    | 'drums'
-    | 'bass'
-    | 'keys'
-    | 'melody'
-    | 'vocals'
-    | 'fx';
+/**
+ * Track colour roles. Derived from the design system rather than restated here:
+ * lib/design/tokens.ts defines the six roles and their hues together, so a role
+ * cannot exist as a type without existing as a colour.
+ */
+export type TrackColor = TrackRole;
 
 // ============================================
 // Clip Types

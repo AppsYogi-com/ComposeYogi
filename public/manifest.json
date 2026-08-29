@@ -5,8 +5,8 @@
     "start_url": "/compose",
     "scope": "/",
     "display": "standalone",
-    "background_color": "#09090b",
-    "theme_color": "#f97316",
+    "background_color": "#131211",
+    "theme_color": "#131211",
     "icons": [
         {
             "src": "/icons/icon-192x192.png",
