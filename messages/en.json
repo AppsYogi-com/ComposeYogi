@@ -35,6 +35,38 @@
         "title": "Export Anywhere",
         "description": "Download as WAV or MIDI for use in any DAW"
       }
+    },
+    "showcase": {
+      "title": "A real studio, not a toy",
+      "subtitle": "Multi-track arrangement, a piano roll, a drum sequencer and a mixer — the tools you already know, without the install.",
+      "alt": "The ComposeYogi arrangement view with four tracks and clips on the timeline"
+    },
+    "stats": {
+      "instruments": "instruments",
+      "templates": "tracks to remix",
+      "install": "to install",
+      "installValue": "Nothing",
+      "cost": "forever",
+      "costValue": "Free"
+    },
+    "paths": {
+      "title": "Two ways in",
+      "musician": {
+        "title": "Make something",
+        "body": "Open a template, change what you want, export a WAV. Nothing to sign up for, nothing to install, and your work stays on your device.",
+        "cta": "Open the studio"
+      },
+      "builder": {
+        "title": "Build the studio",
+        "body": "ComposeYogi is MIT-licensed and built in the open. The audio engine, the design system and the roadmap are all readable — and there are issues scoped for a first contribution.",
+        "cta": "Good first issues",
+        "secondary": "Read the architecture"
+      }
+    },
+    "finalCta": {
+      "title": "Your next track is one click away",
+      "subtitle": "No account. No download. It opens playing.",
+      "cta": "Start creating"
     }
   },
   "templates": {

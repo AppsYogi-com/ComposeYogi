@@ -35,6 +35,38 @@
         "title": "Exporta a Cualquier Lugar",
         "description": "Descarga como WAV o MIDI para usar en cualquier DAW"
       }
+    },
+    "showcase": {
+      "title": "Un estudio de verdad, no un juguete",
+      "subtitle": "Arreglo multipista, piano roll, secuenciador de batería y mezclador — las herramientas que ya conoces, sin instalar nada.",
+      "alt": "La vista de arreglo de ComposeYogi con cuatro pistas y clips en la línea de tiempo"
+    },
+    "stats": {
+      "instruments": "instrumentos",
+      "templates": "canciones para remezclar",
+      "install": "que instalar",
+      "installValue": "Nada",
+      "cost": "para siempre",
+      "costValue": "Gratis"
+    },
+    "paths": {
+      "title": "Dos formas de empezar",
+      "musician": {
+        "title": "Crea algo",
+        "body": "Abre una plantilla, cambia lo que quieras, exporta un WAV. Sin registro, sin instalación, y tu trabajo se queda en tu dispositivo.",
+        "cta": "Abrir el estudio"
+      },
+      "builder": {
+        "title": "Construye el estudio",
+        "body": "ComposeYogi tiene licencia MIT y se construye en abierto. El motor de audio, el sistema de diseño y la hoja de ruta se pueden leer — y hay incidencias preparadas para una primera contribución.",
+        "cta": "Incidencias para empezar",
+        "secondary": "Leer la arquitectura"
+      }
+    },
+    "finalCta": {
+      "title": "Tu próxima canción está a un clic",
+      "subtitle": "Sin cuenta. Sin descarga. Se abre sonando.",
+      "cta": "Empieza a crear"
     }
   },
   "templates": {
