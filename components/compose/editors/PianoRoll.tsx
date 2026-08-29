@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
 import { ZoomIn, ZoomOut, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
+import { VelocityLane } from './VelocityLane';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -22,6 +23,9 @@ const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 
 const MIN_OCTAVE = 1;
 const MAX_OCTAVE = 7;
 const NOTE_HEIGHT = 14;
+/** Piano-key column width. The velocity lane's gutter matches it so the bars
+ *  sit under the notes they belong to. */
+const KEY_COLUMN_WIDTH = 48;
 const MIN_PIXELS_PER_BEAT = 20;
 const MAX_PIXELS_PER_BEAT = 200;
 const DEFAULT_PIXELS_PER_BEAT = 60;
@@ -51,6 +55,8 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const updateNote = useProjectStore((s) => s.updateNote);
     const project = useProjectStore((s) => s.project);
     const setEditorFocused = useUIStore((s) => s.setEditorFocused);
+    const defaultVelocity = useUIStore((s) => s.defaultVelocity);
+    const setDefaultVelocity = useUIStore((s) => s.setDefaultVelocity);
 
     const [snap, setSnap] = useState<SnapValue>('1/16');
     const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
@@ -63,6 +69,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
 
     const gridRef = useRef<HTMLDivElement>(null);
     const keysRef = useRef<HTMLDivElement>(null);
+    const velocityLaneRef = useRef<HTMLDivElement>(null);
 
     // Project settings
     const musicalKey = project?.key || 'C';
@@ -189,7 +196,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 pitch,
                 startBeat: beat,
                 duration: noteDuration,
-                velocity: 100,
+                velocity: defaultVelocity,
             });
 
             if (newNote && previewSynth) {
@@ -202,7 +209,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
     }, [
         snapBeats, pixelsPerBeat, clip.id, clip.notes, totalBeats,
         pitchToRow, rowToPitch, snapToGrid, addNote, deleteNote,
-        previewSynth, project?.bpm, isDragging
+        previewSynth, project?.bpm, isDragging, defaultVelocity
     ]);
 
     // Handle key preview
@@ -341,6 +348,26 @@ export function PianoRoll({ clip }: PianoRollProps) {
                     </Select>
                 </div>
 
+                {/* Velocity every new note is drawn at */}
+                <div className="flex items-center gap-1.5">
+                    <label htmlFor="default-velocity" className="text-xs text-muted-foreground">
+                        Velocity:
+                    </label>
+                    <input
+                        id="default-velocity"
+                        type="range"
+                        min={1}
+                        max={127}
+                        value={defaultVelocity}
+                        disabled={!isCompatible}
+                        onChange={(e) => setDefaultVelocity(Number(e.target.value))}
+                        className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-input [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                    />
+                    <span className="w-6 text-right text-xs font-mono text-muted-foreground">
+                        {defaultVelocity}
+                    </span>
+                </div>
+
                 {/* Scale info */}
                 <div className="flex items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">Scale:</span>
@@ -370,8 +397,8 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 {/* Piano keys - scroll synced with grid */}
                 <div
                     ref={keysRef}
-                    className="w-12 flex-shrink-0 border-r border-border overflow-y-auto overflow-x-hidden scrollbar-hide"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    className="flex-shrink-0 border-r border-border overflow-y-auto overflow-x-hidden scrollbar-hide"
+                    style={{ width: KEY_COLUMN_WIDTH, scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     <div className="flex flex-col" style={{ height: gridHeight }}>
                         {keys.map(({ pitch, noteName, octave, isBlack }) => (
@@ -404,6 +431,12 @@ export function PianoRoll({ clip }: PianoRollProps) {
                         // Sync piano keys scroll with grid vertical scroll
                         if (keysRef.current) {
                             keysRef.current.scrollTop = e.currentTarget.scrollTop;
+                        }
+                        // The velocity lane follows the grid horizontally. One
+                        // way only — a lane that also drove the grid would feed
+                        // its own scroll back and fight the pointer.
+                        if (velocityLaneRef.current) {
+                            velocityLaneRef.current.scrollLeft = e.currentTarget.scrollLeft;
                         }
                     }}
                 >
@@ -489,30 +522,16 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 </div>
             </div>
 
-            {/* Velocity lane (optional) */}
-            <div className="h-16 border-t border-border bg-surface flex items-end px-14">
-                <div className="flex-1 relative h-full">
-                    {clip.notes?.map((note) => {
-                        const x = note.startBeat * pixelsPerBeat;
-                        const height = (note.velocity / 127) * 100;
-                        const isSelected = selectedNoteIds.has(note.id);
-
-                        return (
-                            <div
-                                key={note.id}
-                                className={`
-                                    absolute bottom-0 w-2 rounded-t-sm
-                                    ${isSelected ? 'bg-accent' : 'bg-accent/60'}
-                                `}
-                                style={{
-                                    left: x,
-                                    height: `${height}%`,
-                                }}
-                            />
-                        );
-                    })}
-                </div>
-            </div>
+            {/* Velocity lane — drag a bar to shape the dynamics */}
+            <VelocityLane
+                clip={clip}
+                pixelsPerBeat={pixelsPerBeat}
+                width={Math.max(clipWidth, 800)}
+                selectedNoteIds={selectedNoteIds}
+                gutterWidth={KEY_COLUMN_WIDTH}
+                scrollRef={velocityLaneRef}
+                disabled={!isCompatible}
+            />
         </div>
     );
 }

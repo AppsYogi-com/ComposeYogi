@@ -15,6 +15,29 @@ import type { Clip, Note } from '@/types';
 import * as Tone from 'tone';
 
 // ============================================
+// Velocity editing
+// ============================================
+
+/** Vertical travel before a press stops being a click and becomes a drag. */
+const VELOCITY_DRAG_THRESHOLD = 4;
+
+/** How much velocity one pixel of travel is worth — a step cell is small, so
+ *  the full 1–127 range wants roughly half a cell height of movement. */
+const VELOCITY_PER_PIXEL = 2;
+
+interface VelocityDrag {
+    pointerId: number;
+    noteId: string;
+    startY: number;
+    /** Velocity when the gesture began, so travel is measured from a fixed point. */
+    base: number;
+    /** In-flight value — drawn during the drag, written to the store on release. */
+    value: number;
+    /** False until the pointer passes the threshold; a press that never moves is a click. */
+    moved: boolean;
+}
+
+// ============================================
 // Drum Sound Definitions (General MIDI Percussion)
 // Full GM percussion set: MIDI notes 35-81
 // ============================================
@@ -130,8 +153,18 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
     const updateNote = useProjectStore((s) => s.updateNote);
     const project = useProjectStore((s) => s.project);
     const setEditorFocused = useUIStore((s) => s.setEditorFocused);
+    const defaultVelocity = useUIStore((s) => s.defaultVelocity);
 
-    const [_velocityEditing, setVelocityEditing] = useState<string | null>(null);
+    // A vertical drag on a filled step edits its velocity. As in the piano
+    // roll's lane, nothing reaches the store until the gesture ends: velocity
+    // is part of clipNotesHash, so a write per pointermove would reschedule the
+    // clip on every pixel and bury the undo history under a single drag.
+    const [velocityDrag, setVelocityDrag] = useState<VelocityDrag | null>(null);
+    const velocityDragRef = useRef<VelocityDrag | null>(null);
+    // `click` fires after `pointerup`, by which point the drag state is already
+    // cleared — so a finished drag would fall through and toggle the step off.
+    // This flag survives that one event.
+    const suppressClickRef = useRef(false);
     const [previewSynth, setPreviewSynth] = useState<Tone.MembraneSynth | null>(null);
     const [activePreset, setActivePreset] = useState<string | null>(null);
     const gridRef = useRef<HTMLDivElement>(null);
@@ -199,7 +232,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                 pitch: sound.pitch,
                 startBeat: stepIndex / stepsPerBeat,
                 duration: 0.25, // 16th note
-                velocity: 100,
+                velocity: defaultVelocity,
             });
 
             // Play preview
@@ -210,16 +243,69 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                 );
             }
         }
-    }, [clip.id, gridState, deleteNote, addNote, previewSynth]);
+    }, [clip.id, gridState, deleteNote, addNote, previewSynth, defaultVelocity]);
 
-    // Handle velocity change via drag
-    const _handleVelocityDrag = useCallback((noteId: string, deltaY: number) => {
-        const note = clip.notes?.find((n) => n.id === noteId);
-        if (!note) return;
+    // ============================================
+    // Velocity drag
+    // ============================================
 
-        const newVelocity = Math.max(1, Math.min(127, note.velocity - deltaY));
-        updateNote(clip.id, noteId, { velocity: newVelocity });
-    }, [clip.id, clip.notes, updateNote]);
+    const beginVelocityDrag = useCallback((
+        note: Note,
+        event: React.PointerEvent<HTMLButtonElement>
+    ) => {
+        // Throws if the pointer is already gone; the drag still works without
+        // capture, it just stops tracking outside the element.
+        try {
+            event.currentTarget.setPointerCapture(event.pointerId);
+        } catch {
+            /* no active pointer to capture */
+        }
+        const drag: VelocityDrag = {
+            pointerId: event.pointerId,
+            noteId: note.id,
+            startY: event.clientY,
+            base: note.velocity,
+            value: note.velocity,
+            moved: false,
+        };
+        velocityDragRef.current = drag;
+        suppressClickRef.current = false;
+        setVelocityDrag(drag);
+    }, []);
+
+    const moveVelocityDrag = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
+        const drag = velocityDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+
+        const travel = drag.startY - event.clientY;
+        // Under the threshold this is still a click, and a click toggles the
+        // step. Only past it does the gesture become a velocity edit.
+        if (!drag.moved && Math.abs(travel) < VELOCITY_DRAG_THRESHOLD) return;
+
+        const next: VelocityDrag = {
+            ...drag,
+            moved: true,
+            value: Math.max(1, Math.min(127, Math.round(drag.base + travel * VELOCITY_PER_PIXEL))),
+        };
+        velocityDragRef.current = next;
+        setVelocityDrag(next);
+    }, []);
+
+    const endVelocityDrag = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
+        const drag = velocityDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        if (drag.moved) {
+            suppressClickRef.current = true;
+            if (drag.value !== drag.base) {
+                updateNote(clip.id, drag.noteId, { velocity: drag.value });
+            }
+        }
+        velocityDragRef.current = null;
+        setVelocityDrag(null);
+    }, [clip.id, updateNote]);
 
     // Preview sound on row hover
     const previewSound = useCallback((rowIndex: number) => {
@@ -400,7 +486,11 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                         const isActive = !!note;
                                         const isDownbeat = stepIndex % (stepsPerBeat * beatsPerBar) === 0;
                                         const isBeat = stepIndex % stepsPerBeat === 0;
-                                        const velocity = note?.velocity ?? 100;
+                                        // Show the in-flight value while its own step is being dragged.
+                                        const velocity =
+                                            velocityDrag?.noteId && velocityDrag.noteId === note?.id
+                                                ? velocityDrag.value
+                                                : note?.velocity ?? defaultVelocity;
 
                                         return (
                                             <button
@@ -410,13 +500,26 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                                 ${isDownbeat ? 'bg-surface border-l-2 border-l-accent/50' : isBeat ? 'bg-surface/80 border-l border-l-border' : 'bg-background/60'}
                                                 hover:bg-accent/20
                                             `}
-                                                onClick={() => toggleStep(rowIndex, stepIndex)}
-                                                onContextMenu={(e) => {
-                                                    e.preventDefault();
-                                                    if (note) {
-                                                        setVelocityEditing(note.id);
+                                                aria-label={
+                                                    isActive
+                                                        ? `${sound.name} step ${stepIndex + 1}, velocity ${velocity}`
+                                                        : `${sound.name} step ${stepIndex + 1}, empty`
+                                                }
+                                                onClick={() => {
+                                                    // A drag already handled this press.
+                                                    if (suppressClickRef.current) {
+                                                        suppressClickRef.current = false;
+                                                        return;
                                                     }
+                                                    toggleStep(rowIndex, stepIndex);
                                                 }}
+                                                onPointerDown={(e) => {
+                                                    if (note) beginVelocityDrag(note, e);
+                                                }}
+                                                onPointerMove={moveVelocityDrag}
+                                                onPointerUp={endVelocityDrag}
+                                                onPointerCancel={endVelocityDrag}
+                                                title={isActive ? `Velocity ${velocity} — drag up or down` : undefined}
                                             >
                                                 {isActive && (
                                                     <div

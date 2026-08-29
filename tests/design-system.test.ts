@@ -265,6 +265,28 @@ describe('every design class reaches Tailwind', () => {
         ).toEqual([]);
     });
 
+    it('reads tokens by bare name, not with the -- prefix', () => {
+        // readCssVar prepends the dashes itself. Passing them again looks up
+        // `----accent`, finds nothing, and tokenColor quietly returns
+        // 'transparent' — a canvas that draws nothing and reports no error.
+        //
+        // Matched against whole files rather than line by line: these calls are
+        // routinely wrapped, so a per-line scan would miss the argument and
+        // pass no matter what the code said.
+        const hits: string[] = [];
+        for (const file of sourceFiles()) {
+            const text = readFileSync(file, 'utf8');
+            for (const match of text.matchAll(/\b(?:tokenColor|readCssVar)\(\s*['"`]--/g)) {
+                const line = text.slice(0, match.index).split('\n').length;
+                hits.push(`${relative(ROOT, file)}:${line}  ${match[0].replace(/\s+/g, ' ')}`);
+            }
+        }
+        expect(
+            hits,
+            'Pass the token name without leading dashes: tokenColor(\'accent\'), not tokenColor(\'--accent\').'
+        ).toEqual([]);
+    });
+
     it('declares each class as a literal a scanner can find', () => {
         // Tailwind matches source text, not evaluated values, so every class in
         // these maps has to appear spelled out in the file.

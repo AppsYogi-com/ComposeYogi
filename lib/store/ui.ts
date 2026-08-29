@@ -43,6 +43,11 @@ interface UIState {
     // Mobile detection
     isMobile: boolean;
 
+    // Velocity every newly drawn note gets, in both editors. An editor
+    // preference rather than project data, so it lives here and not in the
+    // project store — it is not part of the piece, it is part of how you work.
+    defaultVelocity: number;
+
     // Custom keyboard shortcut bindings
     customKeyBindings: KeyBindings;
     keyBindingsLoaded: boolean;
@@ -67,6 +72,7 @@ interface UIActions {
     // Editor scope
     setEditorScope: (scope: EditorScope) => void;
     setEditorFocused: (focused: boolean) => void;
+    setDefaultVelocity: (velocity: number) => void;
 
     // Viewport
     setZoom: (zoom: number) => void;
@@ -139,6 +145,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
     multiDragOffsetBars: 0,
     activeModal: null,
     isMobile: false,
+    defaultVelocity: 100,
     customKeyBindings: {},
     keyBindingsLoaded: false,
 
@@ -249,6 +256,10 @@ export const useUIStore = create<UIStore>((set, get) => ({
         set({ editorFocused: focused });
     },
 
+    setDefaultVelocity: (velocity) => {
+        set({ defaultVelocity: Math.max(1, Math.min(127, Math.round(velocity))) });
+    },
+
     // Viewport
     setZoom: (zoom) => {
         set({ zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom)) });
@@ -344,6 +355,7 @@ export const selectZoom = (state: UIStore) => state.zoom;
 export const selectIsDragging = (state: UIStore) => state.isDragging;
 export const selectActiveModal = (state: UIStore) => state.activeModal;
 export const selectIsMobile = (state: UIStore) => state.isMobile;
+export const selectDefaultVelocity = (state: UIStore) => state.defaultVelocity;
 export const selectCustomKeyBindings = (state: UIStore) => state.customKeyBindings;
 export const selectKeyBindingsLoaded = (state: UIStore) => state.keyBindingsLoaded;
 

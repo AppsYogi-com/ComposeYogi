@@ -10,6 +10,8 @@ import { useProjectStore, useUIStore } from '@/lib/store';
 import { getAudioTake, audioEngine } from '@/lib/audio';
 import { AudioClip } from './AudioClip';
 import { TRACK_BG } from '@/lib/design/track-colors';
+import { tokenColor } from '@/lib/design';
+import { NotePreview } from './NotePreview';
 import type { Clip, Track } from '@/types';
 
 const TRACK_HEIGHT = 80;
@@ -388,18 +390,27 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                         track={track}
                         width={clipWidth}
                         height={clipHeight}
-                        color="rgba(255, 255, 255, 0.7)"
+                        color={tokenColor('clip-foreground', 0.7)}
                         trimStart={clip.trimStart}
                         trimEnd={clip.trimEnd}
                         fadeIn={clip.fadeIn}
                         fadeOut={clip.fadeOut}
                     />
                 ) : (
-                    <div className="flex h-full flex-col p-1 px-2">
-                        <span className="truncate text-2xs font-medium text-clip-foreground/90">
-                            {clip.name}
-                        </span>
-                        {/* MIDI/Drum pattern preview would go here */}
+                    <div className="relative h-full">
+                        {clip.notes?.length ? (
+                            <NotePreview
+                                notes={clip.notes}
+                                totalBeats={clip.lengthBars * beatsPerBar}
+                                width={clipWidth}
+                                height={clipHeight}
+                            />
+                        ) : null}
+                        <div className="relative flex h-full flex-col p-1 px-2">
+                            <span className="truncate text-2xs font-medium text-clip-foreground/90">
+                                {clip.name}
+                            </span>
+                        </div>
                     </div>
                 )}
             </div>
