@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     FolderOpen,
     Plus,
@@ -49,6 +50,8 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSelectorProps) {
+    const t = useTranslations('projects');
+    const tScales = useTranslations('scales');
     const [projects, setProjects] = useState<ProjectRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -88,10 +91,10 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
         const hours = Math.floor(diff / 3600000);
         const days = Math.floor(diff / 86400000);
 
-        if (minutes < 1) return 'Just now';
-        if (minutes < 60) return `${minutes}m ago`;
-        if (hours < 24) return `${hours}h ago`;
-        if (days < 7) return `${days}d ago`;
+        if (minutes < 1) return t('justNow');
+        if (minutes < 60) return t('minutesAgo', { minutes });
+        if (hours < 24) return t('hoursAgo', { hours });
+        if (days < 7) return t('daysAgo', { days });
         return new Date(timestamp).toLocaleDateString();
     };
 
@@ -111,7 +114,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
 
     // Handle new project
     const handleNewProject = () => {
-        createProject('Untitled Project');
+        createProject(t('untitled'));
         onClose();
         onProjectSelect?.();
     };
@@ -155,7 +158,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
 
                 // If we deleted the current project, create a new one
                 if (currentProject?.id === projectToDelete.id) {
-                    createProject('Untitled Project');
+                    createProject(t('untitled'));
                 }
 
                 await refreshProjects();
@@ -174,10 +177,10 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <FolderOpen className="h-5 w-5" />
-                            Projects
+                            {t('title')}
                         </DialogTitle>
                         <DialogDescription>
-                            Select a project to open or create a new one
+                            {t('description')}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -188,7 +191,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                         onClick={handleNewProject}
                     >
                         <Plus className="h-4 w-4" />
-                        New Project
+                        {t('new')}
                     </Button>
 
                     {/* Project List */}
@@ -200,8 +203,8 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                         ) : projects.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                                 <Music className="h-12 w-12 mb-2 opacity-50" />
-                                <p>No projects yet</p>
-                                <p className="text-sm">Create your first project above</p>
+                                <p>{t('empty')}</p>
+                                <p className="text-sm">{t('emptyHint')}</p>
                             </div>
                         ) : (
                             <div className="space-y-1">
@@ -236,8 +239,8 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                                                 <>
                                                     <p className="font-medium truncate">{project.name}</p>
                                                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                                                        <span>{project.bpm} BPM</span>
-                                                        <span>{project.key} {project.scale}</span>
+                                                        <span>{t('bpm', { bpm: project.bpm })}</span>
+                                                        <span>{project.key} {tScales(project.scale)}</span>
                                                         <span className="flex items-center gap-1">
                                                             <Clock className="h-3 w-3" />
                                                             {formatRelativeTime(project.updatedAt)}
@@ -263,7 +266,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                                                     handleStartRename(project);
                                                 }}>
                                                     <Edit2 className="h-4 w-4 mr-2" />
-                                                    Rename
+                                                    {t('rename')}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
@@ -274,7 +277,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                                                     }}
                                                 >
                                                     <Trash2 className="h-4 w-4 mr-2" />
-                                                    Delete
+                                                    {t('delete')}
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -290,17 +293,17 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
             <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
                 <DialogContent className="max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>Delete Project?</DialogTitle>
+                        <DialogTitle>{t('deleteTitle')}</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete &ldquo;{projectToDelete?.name}&rdquo;? This action cannot be undone.
+                            {t('deleteDescription', { name: projectToDelete?.name ?? '' })}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-                            Cancel
+                            {t('cancel')}
                         </Button>
                         <Button variant="destructive" onClick={handleConfirmDelete}>
-                            Delete
+                            {t('delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

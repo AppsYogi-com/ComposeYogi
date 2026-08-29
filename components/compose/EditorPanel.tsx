@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     ChevronDown,
     ChevronUp,
@@ -21,6 +22,7 @@ import type { Clip } from '@/types';
 type EditorMode = 'piano-roll' | 'drum-sequencer' | 'waveform';
 
 export function EditorPanel() {
+    const t = useTranslations('editor');
     const [mode, setMode] = useState<EditorMode>('piano-roll');
     const selectedClipIds = useUIStore((s) => s.selectedClipIds);
     const toggleEditor = useUIStore((s) => s.toggleEditor);
@@ -61,7 +63,7 @@ export function EditorPanel() {
                         className="h-7 gap-1.5 text-xs"
                     >
                         <Piano className="h-3.5 w-3.5" />
-                        Piano Roll
+                        {t('tabs.piano')}
                     </Button>
                     <Button
                         variant={mode === 'drum-sequencer' ? 'default' : 'ghost'}
@@ -70,7 +72,7 @@ export function EditorPanel() {
                         className="h-7 gap-1.5 text-xs"
                     >
                         <Grid3X3 className="h-3.5 w-3.5" />
-                        Drums
+                        {t('tabs.drum')}
                     </Button>
                     <Button
                         variant={mode === 'waveform' ? 'default' : 'ghost'}
@@ -79,14 +81,14 @@ export function EditorPanel() {
                         className="h-7 gap-1.5 text-xs"
                     >
                         <AudioWaveform className="h-3.5 w-3.5" />
-                        Waveform
+                        {t('tabs.waveform')}
                     </Button>
                 </div>
 
                 <div className="flex items-center gap-2">
                     {selectedClip && (
                         <span className="text-xs text-muted-foreground">
-                            Editing: {selectedClip.name}
+                            {t('editing', { name: selectedClip.name })}
                         </span>
                     )}
                     <Tooltip>
@@ -101,7 +103,10 @@ export function EditorPanel() {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
-                            <p>Close Editor <kbd className="ml-1 text-xs opacity-60">E</kbd></p>
+                            <p>
+                                {t('close')}{' '}
+                                <kbd className="ml-1 text-xs opacity-60">E</kbd>
+                            </p>
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -112,7 +117,7 @@ export function EditorPanel() {
                 {!selectedClip ? (
                     <div className="flex h-full items-center justify-center">
                         <p className="text-sm text-muted-foreground">
-                            Select a clip to edit
+                            {t('emptyState')}
                         </p>
                     </div>
                 ) : (
@@ -138,6 +143,7 @@ function EditorContent({ mode, clip }: { mode: EditorMode; clip: Clip }) {
 
 // Collapsed bar to show editor
 export function EditorCollapsedBar() {
+    const t = useTranslations('editor');
     const toggleEditor = useUIStore((s) => s.toggleEditor);
 
     return (
@@ -147,7 +153,7 @@ export function EditorCollapsedBar() {
                 className="w-full flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
                 <ChevronUp className="h-3 w-3" />
-                <span className="text-2xs tracking-wider">EDITOR</span>
+                <span className="text-2xs tracking-wider">{t('collapsedLabel')}</span>
                 <kbd className="px-1 py-0.5 text-2xs font-mono bg-muted border border-border rounded">E</kbd>
             </button>
         </div>

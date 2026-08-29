@@ -6,6 +6,7 @@
 'use client';
 
 import { useCallback, useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { usePlaybackStore } from '@/lib/store';
 
 const HANDLE_WIDTH = 8; // Width of drag handles
@@ -19,6 +20,7 @@ interface LoopBracesProps {
 }
 
 export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
+    const t = useTranslations('loop');
     const loopEnabled = usePlaybackStore((s) => s.loopEnabled);
     const loopStartBar = usePlaybackStore((s) => s.loopStartBar);
     const loopEndBar = usePlaybackStore((s) => s.loopEndBar);
@@ -151,7 +153,7 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
                     } ${dragMode === 'move' ? 'cursor-grabbing' : ''}`}
                 onMouseDown={handleMiddleMouseDown}
                 onDoubleClick={handleDoubleClick}
-                title={loopEnabled ? 'Loop enabled (double-click to disable)' : 'Loop disabled (double-click to enable)'}
+                title={loopEnabled ? t('enabled') : t('disabled')}
             />
 
             {/* Left bracket/handle */}

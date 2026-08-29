@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     Play,
     Pause,
@@ -30,6 +31,7 @@ import { ExportModal } from './ExportModal';
 import { ImportModal } from './ImportModal';
 import { useTheme } from 'next-themes';
 import { MusicWave } from '@/components/MusicWave';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
 import { audioEngine, recordingManager } from '@/lib/audio';
@@ -78,6 +80,7 @@ export function Transport({
     saveStatus = 'idle',
     saveStatusText = '',
 }: TransportProps) {
+    const t = useTranslations('transport');
     const project = useProjectStore((s) => s.project);
     const setBpm = useProjectStore((s) => s.setBpm);
     const tracks = useProjectStore((s) => s.project?.tracks || []);
@@ -227,7 +230,7 @@ export function Transport({
     return (
         <header className="flex h-transport items-center border-b border-border bg-card">
             {/* Left: Logo + Project name + Save status */}
-            <div className="flex items-center gap-3 px-4">
+            <div className="flex items-center gap-2 px-3 2xl:gap-3 2xl:px-4">
                 <Link href="/" className="flex items-center gap-2 text-accent hover:opacity-80 transition-opacity">
                     <MusicWave barCount={4} color="accent" className="h-5" />
                     <span className="text-sm font-semibold tracking-tight">ComposeYogi</span>
@@ -241,12 +244,12 @@ export function Transport({
                             onClick={onOpenProjects}
                             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                         >
-                            <span className="truncate max-w-[150px]">{project.name}</span>
+                            <span className="truncate max-w-[90px] 2xl:max-w-[150px]">{project.name}</span>
                             <ChevronDown className="h-3.5 w-3.5 opacity-50 group-hover:opacity-100" />
                         </button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                        <p>Open Projects</p>
+                        <p>{t('openProjects')}</p>
                     </TooltipContent>
                 </Tooltip>
 
@@ -272,7 +275,7 @@ export function Transport({
                         </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                        <p>{saveStatusText || 'Auto-saved to browser'}</p>
+                        <p>{saveStatusText || t('autoSaved')}</p>
                     </TooltipContent>
                 </Tooltip>
             </div>
@@ -293,7 +296,10 @@ export function Transport({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
-                                <p>Return to start <kbd className="ml-1 text-xs opacity-60">Enter</kbd></p>
+                                <p>
+                                    {t('returnToStart')}{' '}
+                                    <kbd className="ml-1 text-xs opacity-60">Enter</kbd>
+                                </p>
                             </TooltipContent>
                         </Tooltip>
                     </div>
@@ -317,7 +323,10 @@ export function Transport({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
-                                <p>{isPlaying ? 'Pause' : 'Play'} <kbd className="ml-1 text-xs opacity-60">Space</kbd></p>
+                                <p>
+                                    {isPlaying ? t('pause') : t('play')}{' '}
+                                    <kbd className="ml-1 text-xs opacity-60">Space</kbd>
+                                </p>
                             </TooltipContent>
                         </Tooltip>
 
@@ -332,7 +341,7 @@ export function Transport({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
-                                <p>Stop</p>
+                                <p>{t('stop')}</p>
                             </TooltipContent>
                         </Tooltip>
 
@@ -356,8 +365,8 @@ export function Transport({
                                     {recorderError
                                         ? recorderError
                                         : armedTrack
-                                            ? `Record - ${armedTrack.name}`
-                                            : 'Arm a track to record'}
+                                            ? t('recordTrack', { name: armedTrack.name })
+                                            : t('armToRecord')}
                                     <kbd className="ml-1 text-xs opacity-60">R</kbd>
                                 </p>
                             </TooltipContent>
@@ -378,7 +387,10 @@ export function Transport({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
-                            <p>Loop <kbd className="ml-1 text-xs opacity-60">L</kbd></p>
+                            <p>
+                                {t('loop')}{' '}
+                                <kbd className="ml-1 text-xs opacity-60">L</kbd>
+                            </p>
                         </TooltipContent>
                     </Tooltip>
 
@@ -396,7 +408,7 @@ export function Transport({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
-                            <p>Import Project/MIDI</p>
+                            <p>{t('import')}</p>
                         </TooltipContent>
                     </Tooltip>
 
@@ -414,7 +426,7 @@ export function Transport({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
-                            <p>Export</p>
+                            <p>{t('export')}</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -432,7 +444,7 @@ export function Transport({
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
-                            <p>Musical Time (Bars:Beats:Subdivisions)</p>
+                            <p>{t('musicalTime')}</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -444,7 +456,7 @@ export function Transport({
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
-                            <p>Clock Time (Minutes:Seconds)</p>
+                            <p>{t('clockTime')}</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -457,7 +469,7 @@ export function Transport({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="flex items-center gap-1.5 bg-background rounded-md border border-border/50 px-2 py-1 cursor-default">
-                                <span className="text-xs text-muted-foreground uppercase tracking-wider">BPM</span>
+                                <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('bpm')}</span>
                                 <Input
                                     type="number"
                                     value={localBpm}
@@ -476,7 +488,7 @@ export function Transport({
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
-                            <p>Tempo (Beats Per Minute)</p>
+                            <p>{t('tempo')}</p>
                         </TooltipContent>
                     </Tooltip>
 
@@ -494,14 +506,14 @@ export function Transport({
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent side="bottom">
-                                        <p>Time Signature (click to change)</p>
+                                        <p>{t('timeSignatureHint')}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-4" align="center">
                             <div className="space-y-4">
-                                <h4 className="font-medium text-sm">Time Signature</h4>
+                                <h4 className="font-medium text-sm">{t('timeSignature')}</h4>
 
                                 {/* Common presets */}
                                 <div className="grid grid-cols-4 gap-1">
@@ -529,7 +541,7 @@ export function Transport({
 
                                 {/* Custom input */}
                                 <div>
-                                    <label className="text-xs text-muted-foreground mb-2 block">Custom</label>
+                                    <label className="text-xs text-muted-foreground mb-2 block">{t('custom')}</label>
                                     <div className="flex items-center gap-2">
                                         <Input
                                             type="number"
@@ -561,7 +573,7 @@ export function Transport({
                                                 setShowCustomTimeSignature(false);
                                             }}
                                         >
-                                            Apply
+                                            {t('apply')}
                                         </Button>
                                     </div>
                                 </div>
@@ -586,7 +598,10 @@ export function Transport({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
-                            <p>Metronome <kbd className="ml-1 text-xs opacity-60">M</kbd></p>
+                            <p>
+                                {t('metronome')}{' '}
+                                <kbd className="ml-1 text-xs opacity-60">M</kbd>
+                            </p>
                         </TooltipContent>
                     </Tooltip>
 
@@ -605,7 +620,10 @@ export function Transport({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
-                                <p>Zoom Out <kbd className="ml-1 text-xs opacity-60">-</kbd></p>
+                                <p>
+                                    {t('zoomOut')}{' '}
+                                    <kbd className="ml-1 text-xs opacity-60">-</kbd>
+                                </p>
                             </TooltipContent>
                         </Tooltip>
 
@@ -619,7 +637,10 @@ export function Transport({
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
-                                <p>Reset Zoom <kbd className="ml-1 text-xs opacity-60">⌘0</kbd></p>
+                                <p>
+                                    {t('resetZoom')}{' '}
+                                    <kbd className="ml-1 text-xs opacity-60">⌘0</kbd>
+                                </p>
                             </TooltipContent>
                         </Tooltip>
 
@@ -634,11 +655,16 @@ export function Transport({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
-                                <p>Zoom In <kbd className="ml-1 text-xs opacity-60">+</kbd></p>
+                                <p>
+                                    {t('zoomIn')}{' '}
+                                    <kbd className="ml-1 text-xs opacity-60">+</kbd>
+                                </p>
                             </TooltipContent>
                         </Tooltip>
 
-                        <div className="w-20 px-1">
+                        {/* A convenience duplicate of the -/reset/+ buttons beside it, so
+                            it is the first thing to give way when the header runs out of room. */}
+                        <div className="hidden w-20 px-1 2xl:block">
                             <Slider
                                 value={[zoom]}
                                 onValueChange={([value]) => setZoom(value)}
@@ -653,7 +679,7 @@ export function Transport({
             </div>
 
             {/* Right: Settings */}
-            <div className="flex items-center gap-2 px-4">
+            <div className="flex items-center gap-2 px-3 2xl:px-4">
                 {/* Recording indicator */}
                 {armedTrack && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive">
@@ -675,7 +701,10 @@ export function Transport({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                        <p>Keyboard Shortcuts <kbd className="ml-1 text-xs opacity-60">?</kbd></p>
+                        <p>
+                            {t('shortcuts')}{' '}
+                            <kbd className="ml-1 text-xs opacity-60">?</kbd>
+                        </p>
                     </TooltipContent>
                 </Tooltip>
 
@@ -690,11 +719,13 @@ export function Transport({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                        <p>Audio Settings</p>
+                        <p>{t('settings')}</p>
                     </TooltipContent>
                 </Tooltip>
 
                 <ThemeToggleButton />
+
+                <LanguageSwitcher />
 
                 <KeyboardShortcutsModal
                     isOpen={showShortcutsModal}
@@ -716,6 +747,7 @@ export function Transport({
 }
 
 function ThemeToggleButton() {
+    const t = useTranslations('transport');
     const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -749,7 +781,7 @@ function ThemeToggleButton() {
                 </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-                <p>{isDark ? 'Light mode' : 'Dark mode'}</p>
+                <p>{isDark ? t('lightMode') : t('darkMode')}</p>
             </TooltipContent>
         </Tooltip>
     );

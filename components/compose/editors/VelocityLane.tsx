@@ -19,6 +19,7 @@
 // one undo entry and one reschedule.
 
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { useProjectStore } from '@/lib/store';
 
@@ -75,6 +76,7 @@ export function VelocityLane({
     scrollRef,
     disabled = false,
 }: VelocityLaneProps) {
+    const t = useTranslations('editor.velocity');
     const updateNote = useProjectStore((s) => s.updateNote);
 
     const dragRef = useRef<DragState | null>(null);
@@ -207,7 +209,7 @@ export function VelocityLane({
                 className="flex flex-shrink-0 items-end justify-end border-r border-border pb-1 pr-1.5"
                 style={{ width: gutterWidth }}
             >
-                <span className="text-2xs font-medium text-muted-foreground">vel</span>
+                <span className="text-2xs font-medium text-muted-foreground">{t('label')}</span>
             </div>
 
             {/* Bars — scrolled by the grid, never independently */}
@@ -225,7 +227,7 @@ export function VelocityLane({
                                 key={note.id}
                                 role="slider"
                                 tabIndex={disabled ? -1 : 0}
-                                aria-label={`Velocity ${velocity}`}
+                                aria-label={t('barLabel', { velocity })}
                                 aria-valuenow={velocity}
                                 aria-valuemin={MIN_VELOCITY}
                                 aria-valuemax={MAX_VELOCITY}

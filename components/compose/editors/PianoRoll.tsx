@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
+import { useTranslations } from 'next-intl';
 import { ZoomIn, ZoomOut, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { VelocityLane } from './VelocityLane';
@@ -50,6 +51,8 @@ interface PianoRollProps {
 }
 
 export function PianoRoll({ clip }: PianoRollProps) {
+    const t = useTranslations('editor.piano');
+    const tScales = useTranslations('scales');
     const addNote = useProjectStore((s) => s.addNote);
     const deleteNote = useProjectStore((s) => s.deleteNote);
     const updateNote = useProjectStore((s) => s.updateNote);
@@ -323,7 +326,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 <div className="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-3 py-2">
                     <AlertCircle className="h-4 w-4 text-warning" />
                     <span className="text-xs text-warning">
-                        This is {clip.type === 'audio' ? 'an audio' : 'a drum'} clip. Switch to a MIDI clip to use the piano roll, or change the clip type.
+                        {clip.type === 'audio' ? t('incompatibleAudio') : t('incompatibleDrum')}
                     </span>
                 </div>
             )}
@@ -332,7 +335,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
             <div className="flex items-center gap-3 border-b border-border bg-surface px-3 py-1.5">
                 {/* Snap selector */}
                 <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Snap:</span>
+                    <span className="text-xs text-muted-foreground">{t('snap')}</span>
                     <Select value={snap} onValueChange={(v) => setSnap(v as SnapValue)} disabled={!isCompatible}>
                         <SelectTrigger className="h-7 w-16 text-xs">
                             <SelectValue />
@@ -351,7 +354,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 {/* Velocity every new note is drawn at */}
                 <div className="flex items-center gap-1.5">
                     <label htmlFor="default-velocity" className="text-xs text-muted-foreground">
-                        Velocity:
+                        {t('velocity')}
                     </label>
                     <input
                         id="default-velocity"
@@ -370,9 +373,9 @@ export function PianoRoll({ clip }: PianoRollProps) {
 
                 {/* Scale info */}
                 <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Scale:</span>
+                    <span className="text-xs text-muted-foreground">{t('scale')}</span>
                     <span className="text-xs font-medium">
-                        {musicalKey} {musicalScale}
+                        {musicalKey} {tScales(musicalScale)}
                     </span>
                 </div>
 
@@ -384,7 +387,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                         <ZoomOut className="h-3.5 w-3.5" />
                     </Button>
                     <span className="w-12 text-center text-xs text-muted-foreground">
-                        {Math.round(pixelsPerBeat)}px
+                        {t('zoomLevel', { px: Math.round(pixelsPerBeat) })}
                     </span>
                     <Button variant="ghost" size="icon-sm" onClick={zoomIn}>
                         <ZoomIn className="h-3.5 w-3.5" />

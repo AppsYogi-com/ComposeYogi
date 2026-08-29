@@ -6,6 +6,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Download, CheckCircle, AlertCircle, Loader2, FileJson, Music, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -46,6 +47,7 @@ interface ExportModalProps {
 // ============================================
 
 export function ExportModal({ isOpen, onClose }: ExportModalProps) {
+    const t = useTranslations('export');
     const project = useProjectStore((s) => s.project);
     const [exportState, setExportState] = useState<ExportState>('idle');
     const [progress, setProgress] = useState(0);
@@ -78,7 +80,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
             setExportState('complete');
         } catch (error) {
             console.error('[ExportModal] WAV export failed:', error);
-            setErrorMessage(error instanceof Error ? error.message : 'Export failed');
+            setErrorMessage(error instanceof Error ? error.message : null);
             setExportState('error');
         }
     }, [project]);
@@ -98,7 +100,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
             setExportState('complete');
         } catch (error) {
             console.error('[ExportModal] MP3 export failed:', error);
-            setErrorMessage(error instanceof Error ? error.message : 'Export failed');
+            setErrorMessage(error instanceof Error ? error.message : null);
             setExportState('error');
         }
     }, [project, mp3Quality]);
@@ -111,7 +113,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
             setExportType('midi');
         } catch (error) {
             console.error('[ExportModal] MIDI export failed:', error);
-            setErrorMessage(error instanceof Error ? error.message : 'Export failed');
+            setErrorMessage(error instanceof Error ? error.message : null);
             setExportState('error');
         }
     }, [project]);
@@ -124,7 +126,7 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
             setExportType('json');
         } catch (error) {
             console.error('[ExportModal] JSON export failed:', error);
-            setErrorMessage(error instanceof Error ? error.message : 'Export failed');
+            setErrorMessage(error instanceof Error ? error.message : null);
             setExportState('error');
         }
     }, [project]);
@@ -143,10 +145,10 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Download className="h-5 w-5" />
-                        Export Project
+                        {t('title')}
                     </DialogTitle>
                     <DialogDescription>
-                        Export &quot;{project.name}&quot; in your preferred format
+                        {t('subtitle', { name: project.name })}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -163,8 +165,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                     <FileAudio className="h-5 w-5 text-track-melody" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-medium">WAV Audio</div>
-                                    <div className="text-sm text-muted-foreground">High-quality 16-bit PCM, 44.1 kHz stereo</div>
+                                    <div className="font-medium">{t('wav')}</div>
+                                    <div className="text-sm text-muted-foreground">{t('wavDescription')}</div>
                                 </div>
                             </button>
 
@@ -175,8 +177,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                         <FileAudio className="h-5 w-5 text-track-vocals" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-medium">MP3 Audio</div>
-                                        <div className="text-sm text-muted-foreground">Compressed, smaller file size</div>
+                                        <div className="font-medium">{t('mp3')}</div>
+                                        <div className="text-sm text-muted-foreground">{t('mp3Description')}</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3 pl-14">
@@ -185,18 +187,18 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                         onValueChange={(v) => setMp3Quality(parseInt(v) as Mp3Quality)}
                                     >
                                         <SelectTrigger className="w-[180px] h-8 text-sm">
-                                            <SelectValue placeholder="Quality" />
+                                            <SelectValue placeholder={t('quality')} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {Object.entries(MP3_QUALITY_PRESETS).map(([kbps, preset]) => (
+                                            {Object.keys(MP3_QUALITY_PRESETS).map((kbps) => (
                                                 <SelectItem key={kbps} value={kbps}>
-                                                    {preset.label}
+                                                    {t(`mp3Quality.${kbps}`)}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                     <Button size="sm" onClick={handleExportMp3}>
-                                        Export MP3
+                                        {t('exportMp3')}
                                     </Button>
                                 </div>
                             </div>
@@ -210,8 +212,8 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                     <Music className="h-5 w-5 text-track-bass" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-medium">MIDI File</div>
-                                    <div className="text-sm text-muted-foreground">Standard MIDI for use in other DAWs</div>
+                                    <div className="font-medium">{t('midi')}</div>
+                                    <div className="text-sm text-muted-foreground">{t('midiDescription')}</div>
                                 </div>
                             </button>
 
@@ -224,14 +226,14 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                     <FileJson className="h-5 w-5 text-track-keys" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-medium">Project File (.cyp)</div>
-                                    <div className="text-sm text-muted-foreground">Full project backup, can be re-imported</div>
+                                    <div className="font-medium">{t('json')}</div>
+                                    <div className="text-sm text-muted-foreground">{t('jsonDescription')}</div>
                                 </div>
                             </button>
 
                             <div className="flex justify-end pt-2">
                                 <Button variant="outline" onClick={handleClose}>
-                                    Cancel
+                                    {t('cancel')}
                                 </Button>
                             </div>
                         </div>
@@ -243,23 +245,21 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                             <div className="flex items-center gap-3">
                                 <Loader2 className="h-5 w-5 animate-spin text-accent" />
                                 <span className="text-sm">
-                                    {exportType === 'mp3' && progress < 50
-                                        ? 'Rendering audio...'
-                                        : exportType === 'mp3' && progress >= 50
-                                            ? 'Encoding MP3...'
-                                            : 'Rendering audio...'}
+                                    {exportType === 'mp3' && progress >= 50
+                                        ? t('encoding')
+                                        : t('rendering')}
                                 </span>
                             </div>
 
                             <div className="space-y-2">
                                 <Progress value={progress} className="h-2" />
                                 <p className="text-xs text-muted-foreground text-center">
-                                    {progress}% complete
+                                    {t('progress', { percent: progress })}
                                 </p>
                             </div>
 
                             <p className="text-xs text-muted-foreground">
-                                Please wait while your project is being {exportType === 'mp3' ? 'rendered and encoded' : 'rendered'}. This may take a moment.
+                                {exportType === 'mp3' ? t('pleaseWaitMp3') : t('pleaseWait')}
                             </p>
                         </div>
                     )}
@@ -269,16 +269,16 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                         <div className="space-y-4">
                             <div className="flex items-center gap-3 text-success">
                                 <CheckCircle className="h-5 w-5" />
-                                <span className="font-medium">Export Complete!</span>
+                                <span className="font-medium">{t('complete')}</span>
                             </div>
 
                             <p className="text-sm text-muted-foreground">
-                                Your project has been exported and the download should start automatically.
+                                {t('completeDescription')}
                             </p>
 
                             <div className="flex justify-end">
                                 <Button onClick={handleClose}>
-                                    Done
+                                    {t('done')}
                                 </Button>
                             </div>
                         </div>
@@ -289,19 +289,19 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                         <div className="space-y-4">
                             <div className="flex items-center gap-3 text-destructive">
                                 <AlertCircle className="h-5 w-5" />
-                                <span className="font-medium">Export Failed</span>
+                                <span className="font-medium">{t('failed')}</span>
                             </div>
 
                             <p className="text-sm text-muted-foreground">
-                                {errorMessage || 'An error occurred during export.'}
+                                {errorMessage || t('failedFallback')}
                             </p>
 
                             <div className="flex justify-end gap-2">
                                 <Button variant="outline" onClick={handleClose}>
-                                    Close
+                                    {t('close')}
                                 </Button>
                                 <Button onClick={() => setExportState('idle')}>
-                                    Try Again
+                                    {t('tryAgain')}
                                 </Button>
                             </div>
                         </div>

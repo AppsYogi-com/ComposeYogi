@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The studio speaks Spanish.** Every panel, toolbar, editor, modal, tooltip and
+  toast in `components/compose/` now reads from `messages/{en,es}.json` instead of
+  hardcoded English — transport, browser, inspector, piano roll, drum sequencer,
+  waveform editor, velocity lane, project picker, import/export, latency
+  calibration and the shortcuts dialog. Scale names, track types, effect names and
+  shortcut labels are translated too. Catalogue content owned by `lib/`
+  (instrument, sample and template names) is still English.
+- **An edit that changed nothing no longer costs an undo step.** Every mutation
+  stamps `project.updatedAt`, and the undo history compared it, so a gesture that
+  ended where it began — a velocity drag returned to its start, a clip dragged and
+  dropped back — pushed an empty state onto the stack. It did so only sometimes:
+  two writes inside the same millisecond compared equal, two across a boundary did
+  not. Undo now compares the project's content; the timestamp is still stored and
+  still restored.
+- The Spanish footer read "por el equipo de ComposeYogi equipo".
+- The studio header no longer overflows at 1280px, the narrowest common laptop
+  width. Below 1536px the zoom slider gives way — the −/reset/+ buttons beside it
+  do the same job — and the header's edge padding and project name tighten.
+
+### Added
+
+- A language switcher in the studio header, beside the theme toggle. It also gained
+  the accessible name it never had, on the home page as well.
+
+- `validate:locales` now checks that both locales interpolate the same
+  `{placeholders}` and `<tags>`, not just the same key names. next-intl does not
+  throw on a mismatch — it renders the key path instead of the string, so a
+  dropped or renamed placeholder silently replaces a sentence with
+  `projects.deleteDescription`.
+- `tests/i18n.test.ts` — three build gates so the studio cannot drift back:
+  no user-visible string literal may survive in `components/compose/**`, every
+  message key must have a `useTranslations` caller, and every key a component asks
+  for must exist. `npm run validate:locales` only ever compared the two locale
+  files against each other, never against the app.
+
+### Changed
+
+- `tests/velocity.test.ts` resets the UI store between tests. It shared
+  `defaultVelocity` across the file, so the clamping test left it at 65 and the
+  test asserting the default passed only because vitest happened to run it first —
+  under `--sequence.shuffle` it failed 2 runs in 12.
+
+### Removed
+
+- Message keys nothing read and no screen showed: `app`, `templates` (superseded by
+  `DEMO_TEMPLATES`), `mobile` (no view-only mode exists), `common`, and four unused
+  `errors` entries.
+- A dead duplicate of the track header in `TrackList.tsx`.
+
 ## [1.3.0] - 2026-08-29
 
 The studio gets one visual language, and a build that enforces it.

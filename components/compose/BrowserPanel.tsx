@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     LayoutTemplate,
     Piano,
@@ -56,11 +57,12 @@ const log = createLogger('BrowserPanel');
 // Tab Configuration
 // ============================================
 
-const TABS: { id: BrowserTab; label: string; icon: typeof LayoutTemplate }[] = [
-    { id: 'templates', label: 'Templates', icon: LayoutTemplate },
-    { id: 'instruments', label: 'Instruments', icon: Piano },
-    { id: 'samples', label: 'Samples', icon: Music },
-    { id: 'fx', label: 'FX', icon: Sparkles },
+// Tab ids only — labels come from `browser.tabs.*` so they follow the locale.
+const TABS: { id: BrowserTab; icon: typeof LayoutTemplate }[] = [
+    { id: 'templates', icon: LayoutTemplate },
+    { id: 'instruments', icon: Piano },
+    { id: 'samples', icon: Music },
+    { id: 'fx', icon: Sparkles },
 ];
 
 // ============================================
@@ -72,6 +74,7 @@ const TABS: { id: BrowserTab; label: string; icon: typeof LayoutTemplate }[] = [
 // ============================================
 
 export function BrowserPanel() {
+    const t = useTranslations('browser');
     const [activeTab, setActiveTab] = useState<BrowserTab>('templates');
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['drums', 'user-samples']));
@@ -182,10 +185,10 @@ export function BrowserPanel() {
                             log.debug('Import progress', { stage: progress.stage, progress: progress.progress });
                         },
                     });
-                    toast.success(`Imported "${file.name}"`);
+                    toast.success(t('toast.imported', { name: file.name }));
                 } catch (error) {
-                    const message = error instanceof Error ? error.message : 'Unknown error';
-                    toast.error(`Failed to import "${file.name}": ${message}`);
+                    const message = error instanceof Error ? error.message : t('toast.unknownError');
+                    toast.error(t('toast.importFailed', { name: file.name, message }));
                     log.error('Import failed', { file: file.name, error });
                 }
             }
@@ -198,7 +201,7 @@ export function BrowserPanel() {
                 fileInputRef.current.value = '';
             }
         }
-    }, [loadUserSamples]);
+    }, [loadUserSamples, t]);
 
     const handleUserSampleDrag = useCallback((e: React.DragEvent, sample: UserSample) => {
         e.dataTransfer.setData('application/json', JSON.stringify({
@@ -242,7 +245,7 @@ export function BrowserPanel() {
             URL.revokeObjectURL(url);
             setPreviewingId(null);
             previewAudioRef.current = null;
-            toast.error('Failed to play sample');
+            toast.error(t('toast.playFailed'));
         };
 
         audio.play().catch((err) => {
@@ -250,24 +253,24 @@ export function BrowserPanel() {
             URL.revokeObjectURL(url);
             setPreviewingId(null);
         });
-    }, [previewingId]);
+    }, [previewingId, t]);
 
     const handleDeleteUserSample = useCallback(async (e: React.MouseEvent, sample: UserSample) => {
         e.stopPropagation();
 
-        if (!confirm(`Delete "${sample.name}"? This cannot be undone.`)) {
+        if (!confirm(t('confirmDeleteSample', { name: sample.name }))) {
             return;
         }
 
         try {
             await removeUserSample(sample.id);
-            toast.success(`Deleted "${sample.name}"`);
+            toast.success(t('toast.sampleDeleted', { name: sample.name }));
             await loadUserSamples();
         } catch (error) {
-            toast.error('Failed to delete sample');
+            toast.error(t('toast.deleteFailed'));
             log.error('Delete failed', error);
         }
-    }, [loadUserSamples]);
+    }, [loadUserSamples, t]);
 
     // ========================================
     // Template Click Handler
@@ -317,7 +320,7 @@ export function BrowserPanel() {
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                                 <span className="font-medium text-sm">{template.name}</span>
-                                <span className="text-xs text-muted-foreground">{template.bpm} BPM</span>
+                                <span className="text-xs text-muted-foreground">{t('bpm', { bpm: template.bpm })}</span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                 {template.description}
@@ -336,7 +339,7 @@ export function BrowserPanel() {
                 ))}
                 {filtered.length === 0 && (
                     <p className="py-8 text-center text-sm text-muted-foreground">
-                        No templates found
+                        {t('noTemplates')}
                     </p>
                 )}
             </div>
@@ -405,7 +408,7 @@ export function BrowserPanel() {
                                                             handleInstrumentDoubleClick(instrument);
                                                         }}
                                                         className="opacity-0 group-hover:opacity-100 p-1 hover:bg-surface-elevated rounded transition-all"
-                                                        aria-label="Add Track"
+                                                        aria-label={t('addTrack')}
                                                     >
                                                         <PlusCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                                                     </button>
@@ -467,7 +470,7 @@ export function BrowserPanel() {
                                 )}
                             </span>
                             <FolderOpen className="h-4 w-4 text-accent" />
-                            <span className="font-medium text-accent">My Samples</span>
+                            <span className="font-medium text-accent">{t('mySamples')}</span>
                             <span className="text-xs text-muted-foreground ml-auto">
                                 {userSamples.length}
                             </span>
@@ -476,7 +479,7 @@ export function BrowserPanel() {
                             <div className="ml-4">
                                 {filteredUserSamples.length === 0 ? (
                                     <p className="py-2 px-2 text-xs text-muted-foreground italic">
-                                        No imported samples yet
+                                        {t('noSamples')}
                                     </p>
                                 ) : (
                                     filteredUserSamples.map((sample) => (
@@ -503,7 +506,7 @@ export function BrowserPanel() {
                                             <button
                                                 onClick={(e) => handleDeleteUserSample(e, sample)}
                                                 className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-all"
-                                                aria-label="Delete sample"
+                                                aria-label={t('deleteSample')}
                                             >
                                                 <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                                             </button>
@@ -656,7 +659,7 @@ export function BrowserPanel() {
         <aside className="flex w-browser flex-col border-r border-border bg-surface">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                <h2 className="text-sm font-semibold">Browser</h2>
+                <h2 className="text-sm font-semibold">{t('title')}</h2>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
@@ -669,7 +672,10 @@ export function BrowserPanel() {
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="left">
-                        <p>Close Browser <kbd className="ml-1 text-xs opacity-60">B</kbd></p>
+                        <p>
+                            {t('close')}{' '}
+                            <kbd className="ml-1 text-xs opacity-60">B</kbd>
+                        </p>
                     </TooltipContent>
                 </Tooltip>
             </div>
@@ -693,7 +699,7 @@ export function BrowserPanel() {
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
-                                <p>{tab.label}</p>
+                                <p>{t(`tabs.${tab.id}`)}</p>
                             </TooltipContent>
                         </Tooltip>
                     );
@@ -706,7 +712,7 @@ export function BrowserPanel() {
                     <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <input
                         type="text"
-                        placeholder={`Search ${activeTab}...`}
+                        placeholder={t(`search.${activeTab}`)}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full rounded bg-background py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
@@ -740,17 +746,17 @@ export function BrowserPanel() {
                         {isImporting ? (
                             <>
                                 <Loader2 className="h-4 w-4 animate-spin" />
-                                Importing...
+                                {t('importing')}
                             </>
                         ) : (
                             <>
                                 <Upload className="h-4 w-4" />
-                                Import Audio
+                                {t('importAudio')}
                             </>
                         )}
                     </Button>
                     <p className="mt-1 text-2xs text-muted-foreground text-center">
-                        WAV, MP3, OGG, FLAC, M4A (max 50MB)
+                        {t('importHint')}
                     </p>
                 </div>
             )}
@@ -760,6 +766,7 @@ export function BrowserPanel() {
 
 // Collapsed bar to show browser
 export function BrowserCollapsedBar() {
+    const t = useTranslations('browser');
     const toggleBrowser = useUIStore((s) => s.toggleBrowser);
 
     return (
@@ -769,7 +776,7 @@ export function BrowserCollapsedBar() {
                 className="h-full w-6 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
                 <ChevronRight className="h-3 w-3" />
-                <span className="writing-mode-vertical text-2xs tracking-wider">BROWSER</span>
+                <span className="writing-mode-vertical text-2xs tracking-wider">{t('collapsedLabel')}</span>
                 <kbd className="px-1 py-0.5 text-2xs font-mono bg-muted border border-border rounded">B</kbd>
             </button>
         </div>

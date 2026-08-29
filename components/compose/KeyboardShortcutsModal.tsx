@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { X, Keyboard, RotateCcw } from 'lucide-react';
 import { useUIStore, selectCustomKeyBindings } from '@/lib/store';
 import {
@@ -42,6 +43,7 @@ function ShortcutRow({
     onStopRecording: (hotkeyStr: string) => void;
     onReset: () => void;
 }) {
+    const t = useTranslations('shortcuts');
     const recordRef = useRef<HTMLButtonElement>(null);
     const effectiveKey = getEffectiveKey(definition.id, customBindings);
     const isCustomized = definition.id in customBindings;
@@ -87,7 +89,7 @@ function ShortcutRow({
         return (
             <div className="flex items-center justify-between py-1.5">
                 <span className="text-sm text-foreground">
-                    {definition.label}
+                    {t(`actions.${definition.id}`)}
                 </span>
                 <div className="flex items-center gap-1">
                     {displayKeys.map((key, i) => (
@@ -106,7 +108,7 @@ function ShortcutRow({
     return (
         <div className="flex items-center justify-between py-1.5 group">
             <span className="text-sm text-foreground">
-                {definition.label}
+                {t(`actions.${definition.id}`)}
             </span>
             <div className="flex items-center gap-2">
                 {/* Reset button (only visible for customized shortcuts) */}
@@ -114,7 +116,7 @@ function ShortcutRow({
                     <button
                         onClick={onReset}
                         className="p-1 rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
-                        title="Reset to default"
+                        title={t('resetToDefault')}
                     >
                         <RotateCcw className="w-3 h-3 text-muted-foreground" />
                     </button>
@@ -135,11 +137,11 @@ function ShortcutRow({
                                 : 'hover:bg-muted/60 border border-transparent'
                         }
                     `}
-                    title={isRecording ? 'Press a key combo... (Esc to cancel)' : 'Click to rebind'}
+                    title={isRecording ? t('recordingHint') : t('clickToRebind')}
                 >
                     {isRecording ? (
                         <span className="text-xs text-primary font-medium">
-                            Press keys...
+                            {t('pressKeys')}
                         </span>
                     ) : (
                         displayKeys.map((key, i) => (
@@ -168,6 +170,7 @@ function ShortcutRow({
 // ============================================
 
 export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsModalProps) {
+    const t = useTranslations('shortcuts');
     const customBindings = useUIStore(selectCustomKeyBindings);
     const updateKeyBinding = useUIStore((s) => s.updateKeyBinding);
     const resetKeyBinding = useUIStore((s) => s.resetKeyBinding);
@@ -223,7 +226,10 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
         const conflict = findConflict(hotkeyStr, recordingActionId, customBindings);
         if (conflict) {
             setConflictMessage(
-                `"${hotkeyToDisplayKeys(hotkeyStr).join(' + ')}" is already used by "${conflict.label}"`
+                t('conflictWith', {
+                    keys: hotkeyToDisplayKeys(hotkeyStr).join(' + '),
+                    action: t(`actions.${conflict.id}`),
+                })
             );
             setRecordingActionId(null);
             return;
@@ -238,7 +244,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
         }
 
         setRecordingActionId(null);
-    }, [recordingActionId, customBindings, updateKeyBinding, resetKeyBinding]);
+    }, [recordingActionId, customBindings, updateKeyBinding, resetKeyBinding, t]);
 
     const handleResetAll = useCallback(() => {
         resetAllKeyBindings();
@@ -273,7 +279,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                     <div className="flex items-center gap-3">
                         <Keyboard className="w-5 h-5 text-primary" />
                         <h2 className="text-lg font-semibold text-foreground">
-                            Keyboard Shortcuts
+                            {t('title')}
                         </h2>
                     </div>
                     <div className="flex items-center gap-2">
@@ -281,10 +287,10 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                             <button
                                 onClick={handleResetAll}
                                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded hover:bg-muted transition-colors text-muted-foreground"
-                                title="Reset all shortcuts to defaults"
+                                title={t('resetAllHint')}
                             >
                                 <RotateCcw className="w-3.5 h-3.5" />
-                                Reset All
+                                {t('resetAll')}
                             </button>
                         )}
                         <button
@@ -312,7 +318,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                         return (
                             <div key={cat.id}>
                                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    {cat.label}
+                                    {t(`categories.${cat.id}`)}
                                 </h3>
                                 <div className="space-y-1">
                                     {shortcuts.map((def) => (
@@ -335,19 +341,13 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                 {/* Footer */}
                 <div className="px-6 py-4 border-t border-border">
                     <p className="text-xs text-muted-foreground text-center">
-                        Click a shortcut to rebind it &middot; Press{' '}
-                        <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">
-                            Esc
-                        </kbd>{' '}
-                        to cancel &middot; Press{' '}
-                        <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">
-                            /
-                        </kbd>{' '}
-                        or{' '}
-                        <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">
-                            ?
-                        </kbd>{' '}
-                        anytime to toggle this dialog
+                        {t.rich('footer', {
+                            kbd: (chunks) => (
+                                <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">
+                                    {chunks}
+                                </kbd>
+                            ),
+                        })}
                     </p>
                 </div>
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Check, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { DRUM_BG } from '@/lib/design/track-colors';
@@ -148,6 +149,7 @@ interface DrumSequencerProps {
 }
 
 export function DrumSequencer({ clip }: DrumSequencerProps) {
+    const t = useTranslations('editor.drum');
     const addNote = useProjectStore((s) => s.addNote);
     const deleteNote = useProjectStore((s) => s.deleteNote);
     const updateNote = useProjectStore((s) => s.updateNote);
@@ -382,14 +384,14 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                 <div className="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-3 py-2">
                     <AlertCircle className="h-4 w-4 text-warning" />
                     <span className="text-xs text-warning">
-                        This is an audio clip. Switch to a MIDI or Drum clip to use the drum sequencer, or change the clip type.
+                        {t('incompatible')}
                     </span>
                 </div>
             )}
 
             {/* Toolbar */}
             <div className="flex items-center gap-2 border-b border-border bg-surface px-3 py-1.5">
-                <span className="text-xs text-muted-foreground">Presets:</span>
+                <span className="text-xs text-muted-foreground">{t('presets')}</span>
                 {Object.keys(PATTERN_PRESETS).map((name) => (
                     <Button
                         key={name}
@@ -405,7 +407,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                 ))}
                 <div className="flex-1" />
                 <span className="text-xs text-muted-foreground">
-                    {steps} steps ({clip.lengthBars} bar{clip.lengthBars > 1 ? 's' : ''})
+                    {t('stepCount', { steps, bars: clip.lengthBars })}
                 </span>
                 <Button
                     variant="ghost"
@@ -413,7 +415,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                     className="h-6 text-xs text-destructive hover:text-destructive"
                     onClick={clearAll}
                 >
-                    Clear All
+                    {t('clearAll')}
                 </Button>
             </div>
 
@@ -446,7 +448,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                     </TooltipTrigger>
                                     <TooltipContent side="right">
                                         <p>{sound.name}</p>
-                                        <p className="text-2xs text-muted-foreground">Click to preview</p>
+                                        <p className="text-2xs text-muted-foreground">{t('clickToPreview')}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             ))}
@@ -502,8 +504,15 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                             `}
                                                 aria-label={
                                                     isActive
-                                                        ? `${sound.name} step ${stepIndex + 1}, velocity ${velocity}`
-                                                        : `${sound.name} step ${stepIndex + 1}, empty`
+                                                        ? t('stepActiveLabel', {
+                                                            sound: sound.name,
+                                                            step: stepIndex + 1,
+                                                            velocity,
+                                                        })
+                                                        : t('stepEmptyLabel', {
+                                                            sound: sound.name,
+                                                            step: stepIndex + 1,
+                                                        })
                                                 }
                                                 onClick={() => {
                                                     // A drag already handled this press.
@@ -519,7 +528,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                                 onPointerMove={moveVelocityDrag}
                                                 onPointerUp={endVelocityDrag}
                                                 onPointerCancel={endVelocityDrag}
-                                                title={isActive ? `Velocity ${velocity} — drag up or down` : undefined}
+                                                title={isActive ? t('velocityTooltip', { velocity }) : undefined}
                                             >
                                                 {isActive && (
                                                     <div
@@ -545,7 +554,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                 <div className="flex border-t border-border bg-surface flex-shrink-0">
                     {/* Beat label */}
                     <div className="w-16 flex-shrink-0 flex items-center justify-center border-r border-border h-6">
-                        <span className="text-2xs text-muted-foreground">Beat</span>
+                        <span className="text-2xs text-muted-foreground">{t('beat')}</span>
                     </div>
                     {/* Beat numbers - horizontal scroll synced with grid */}
                     <div
@@ -579,7 +588,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                         flex h-6 items-center justify-center text-2xs border-r border-border
                                         ${isDownbeat ? 'text-foreground font-medium bg-accent/10' : isBeat ? 'text-foreground' : 'text-muted-foreground/30'}
                                     `}
-                                        title={`Beat ${beatNumber}.${subBeat} (Step ${i + 1})`}
+                                        title={t('stepTooltip', { beat: beatNumber, sub: subBeat, step: i + 1 })}
                                     >
                                         {label}
                                     </div>

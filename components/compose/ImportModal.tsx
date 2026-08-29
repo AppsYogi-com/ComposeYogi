@@ -6,6 +6,7 @@
 'use client';
 
 import { useCallback, useState, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     Upload,
     FileJson,
@@ -49,6 +50,7 @@ interface ImportModalProps {
 // ============================================
 
 export function ImportModal({ isOpen, onClose }: ImportModalProps) {
+    const t = useTranslations('import');
     const loadProject = useProjectStore((s) => s.loadProject);
 
     const [importState, setImportState] = useState<ImportState>('idle');
@@ -93,17 +95,17 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
             if (preview) {
                 setMidiPreview(preview);
             } else {
-                setErrorMessage('Failed to read MIDI file');
+                setErrorMessage(t('midiReadFailed'));
                 setImportState('error');
             }
         } else if (extension === 'json' || file.name.endsWith('.cyp.json')) {
             setFileType('json');
             setImportState('previewing');
         } else {
-            setErrorMessage('Unsupported file type. Please select a .mid, .midi, or .cyp.json file.');
+            setErrorMessage(t('unsupported'));
             setImportState('error');
         }
-    }, []);
+    }, [t]);
 
     // Handle file input change
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,12 +158,12 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                 loadProject(result.project);
                 setImportState('complete');
             } else {
-                setErrorMessage(result.error || 'Import failed');
+                setErrorMessage(result.error ?? null);
                 setImportState('error');
             }
         } catch (error) {
             console.error('[ImportModal] Import failed:', error);
-            setErrorMessage(error instanceof Error ? error.message : 'Import failed');
+            setErrorMessage(error instanceof Error ? error.message : null);
             setImportState('error');
         }
     }, [selectedFile, fileType, loadProject]);
@@ -172,10 +174,10 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Upload className="h-5 w-5" />
-                        Import Project
+                        {t('title')}
                     </DialogTitle>
                     <DialogDescription>
-                        Import a ComposeYogi project (.cyp.json) or MIDI file (.mid)
+                        {t('description')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -210,10 +212,10 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                             </div>
 
                             <p className="text-sm font-medium mb-1">
-                                Drop a file here or click to browse
+                                {t('dropzone')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                Supports .cyp.json (ComposeYogi) and .mid (MIDI) files
+                                {t('supported')}
                             </p>
                         </div>
                     )}
@@ -231,7 +233,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium truncate">{selectedFile?.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {fileType === 'midi' ? 'MIDI File' : 'ComposeYogi Project'}
+                                        {fileType === 'midi' ? t('fileTypeMidi') : t('fileTypeProject')}
                                     </p>
                                 </div>
                             </div>
@@ -241,32 +243,33 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                                 <div className="rounded-lg border border-border p-4 space-y-3">
                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                         <div>
-                                            <span className="text-muted-foreground">Name:</span>
+                                            <span className="text-muted-foreground">{t('midiPreview.name')}</span>
                                             <span className="ml-2 font-medium">{midiPreview.name}</span>
                                         </div>
                                         <div>
-                                            <span className="text-muted-foreground">BPM:</span>
+                                            <span className="text-muted-foreground">{t('midiPreview.bpm')}</span>
                                             <span className="ml-2 font-medium">{Math.round(midiPreview.bpm)}</span>
                                         </div>
                                         <div>
-                                            <span className="text-muted-foreground">Tracks:</span>
+                                            <span className="text-muted-foreground">{t('midiPreview.tracks')}</span>
                                             <span className="ml-2 font-medium">{midiPreview.trackCount}</span>
                                         </div>
                                         <div>
-                                            <span className="text-muted-foreground">Notes:</span>
+                                            <span className="text-muted-foreground">{t('midiPreview.notes')}</span>
                                             <span className="ml-2 font-medium">{midiPreview.noteCount.toLocaleString()}</span>
                                         </div>
                                     </div>
 
                                     {midiPreview.tracks.length > 0 && (
                                         <div className="pt-2 border-t border-border">
-                                            <p className="text-xs text-muted-foreground mb-2">Tracks to import:</p>
+                                            <p className="text-xs text-muted-foreground mb-2">{t('midiPreview.tracksToImport')}</p>
                                             <div className="space-y-1 max-h-32 overflow-y-auto">
                                                 {midiPreview.tracks.map((track, i) => (
                                                     <div key={i} className="flex items-center justify-between text-xs">
                                                         <span className="truncate">{track.name}</span>
                                                         <span className="text-muted-foreground ml-2">
-                                                            {track.isDrum ? '🥁' : '🎹'} {track.noteCount} notes
+                                                            {track.isDrum ? '🥁' : '🎹'}{' '}
+                                                            {t('midiPreview.noteCount', { count: track.noteCount })}
                                                         </span>
                                                     </div>
                                                 ))}
@@ -280,7 +283,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                             {fileType === 'json' && (
                                 <div className="rounded-lg border border-border p-4">
                                     <p className="text-sm text-muted-foreground">
-                                        Ready to import. This will create a new project with all tracks and clips.
+                                        {t('ready')}
                                     </p>
                                 </div>
                             )}
@@ -288,11 +291,11 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                             {/* Actions */}
                             <div className="flex justify-end gap-2">
                                 <Button variant="outline" onClick={resetState}>
-                                    Cancel
+                                    {t('cancel')}
                                 </Button>
                                 <Button onClick={handleImport}>
                                     <Upload className="mr-2 h-4 w-4" />
-                                    Import
+                                    {t('import')}
                                 </Button>
                             </div>
                         </div>
@@ -302,7 +305,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                     {importState === 'importing' && (
                         <div className="flex flex-col items-center py-8">
                             <Loader2 className="h-8 w-8 animate-spin text-accent mb-4" />
-                            <p className="text-sm">Importing project...</p>
+                            <p className="text-sm">{t('importing')}</p>
                         </div>
                     )}
 
@@ -311,14 +314,17 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                         <div className="space-y-4">
                             <div className="flex items-center gap-3 text-success">
                                 <CheckCircle className="h-5 w-5" />
-                                <span className="font-medium">Import Complete!</span>
+                                <span className="font-medium">{t('complete')}</span>
                             </div>
 
                             {importResult?.project && (
                                 <div className="rounded-lg bg-muted/50 p-3 text-sm">
                                     <p><strong>{importResult.project.name}</strong></p>
                                     <p className="text-muted-foreground">
-                                        {importResult.project.tracks.length} tracks, {importResult.project.clips.length} clips
+                                        {t('summary', {
+                                            tracks: importResult.project.tracks.length,
+                                            clips: importResult.project.clips.length,
+                                        })}
                                     </p>
                                 </div>
                             )}
@@ -328,7 +334,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                                 <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
                                     <div className="flex items-center gap-2 text-warning mb-2">
                                         <FileWarning className="h-4 w-4" />
-                                        <span className="text-sm font-medium">Warnings</span>
+                                        <span className="text-sm font-medium">{t('warnings')}</span>
                                     </div>
                                     <ul className="text-xs text-muted-foreground space-y-1">
                                         {importResult.warnings.map((warning, i) => (
@@ -340,7 +346,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
 
                             <div className="flex justify-end">
                                 <Button onClick={handleClose}>
-                                    Done
+                                    {t('done')}
                                 </Button>
                             </div>
                         </div>
@@ -351,19 +357,19 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                         <div className="space-y-4">
                             <div className="flex items-center gap-3 text-destructive">
                                 <AlertCircle className="h-5 w-5" />
-                                <span className="font-medium">Import Failed</span>
+                                <span className="font-medium">{t('failed')}</span>
                             </div>
 
                             <p className="text-sm text-muted-foreground">
-                                {errorMessage || 'An error occurred during import.'}
+                                {errorMessage || t('failedFallback')}
                             </p>
 
                             <div className="flex justify-end gap-2">
                                 <Button variant="outline" onClick={handleClose}>
-                                    Close
+                                    {t('close')}
                                 </Button>
                                 <Button onClick={resetState}>
-                                    Try Again
+                                    {t('tryAgain')}
                                 </Button>
                             </div>
                         </div>

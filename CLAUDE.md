@@ -141,6 +141,24 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 ### i18n
 - Locale routes via `app/[locale]/` + middleware; messages in `messages/{en,es}.json`.
 - Every user-visible string needs both locales; `npm run validate:locales` gates the build.
+  It checks key parity, key line numbers, and that both locales interpolate the same
+  `{placeholders}` and `<tags>` — next-intl never throws on a mismatch, it silently renders
+  the key path instead of the string, so `Hola {nombre}` from `Hello {name}` puts
+  `projects.deleteDescription` on screen.
+- `validate:locales` only compares en against es — it cannot tell whether the app *reads*
+  either file. `tests/i18n.test.ts` closes that gap and is what keeps the studio
+  translated: no user-visible literal may survive in `components/compose/**` (JSX text and
+  label attributes, `<kbd>` key names and unit symbols excepted), every key in en.json must
+  have a `useTranslations` caller, and every key a component asks for must exist. Failures
+  print `path:line  offending text`.
+- Message keys follow the component: `transport`, `browser`, `inspector`, `editor.*`,
+  `tracks`, `clips`, `loop`, `visualizer`, `projects`, `export`, `import`, `calibration`,
+  `shortcuts`, `scales`. Shortcut labels are keyed by registry id (`shortcuts.actions.<id>`)
+  so `lib/shortcuts` stays the single source for the ids and the docs table.
+- **Still English, by design:** catalogue content owned by `lib/` — instrument, sample, FX
+  and template names/descriptions (`lib/browser`, `lib/templates`), GM drum names and drum
+  pattern preset names, and `CalibrationProgress.phase`. Translating those means giving the
+  catalogues keys, not editing components; the guard scans JSX only, so it will not flag them.
 
 ---
 

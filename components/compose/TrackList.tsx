@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import * as Tone from 'tone';
 import { useTheme } from 'next-themes';
+import { useTranslations } from 'next-intl';
 import { audioEngine } from '@/lib/audio';
 import { loadSampleAsAudioTake, loadUserSampleAsAudioTake } from '@/lib/audio/sample-loader';
 import {
@@ -702,6 +703,7 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
 }
 
 export function TrackList() {
+    const t = useTranslations('tracks');
     const { resolvedTheme } = useTheme();
     const project = useProjectStore((s) => s.project);
     const addTrack = useProjectStore((s) => s.addTrack);
@@ -995,8 +997,8 @@ export function TrackList() {
     }, [zoom, pixelsPerBeat, beatsPerBar, setZoom, setScrollX]);
 
     const handleAddTrack = useCallback(() => {
-        addTrack('midi', `Track ${(project?.tracks.length || 0) + 1}`);
-    }, [addTrack, project?.tracks.length]);
+        addTrack('midi', t('defaultName', { index: (project?.tracks.length || 0) + 1 }));
+    }, [addTrack, project?.tracks.length, t]);
 
     const handleMuteToggle = useCallback((track: Track) => {
         updateTrack(track.id, { muted: !track.muted });
@@ -1071,7 +1073,7 @@ export function TrackList() {
                                 className="flex w-full items-center justify-center gap-2 border-b border-border py-4 text-sm text-muted-foreground transition-colors hover:bg-surface-elevated hover:text-foreground"
                             >
                                 <Plus className="h-4 w-4" />
-                                Add Track
+                                {t('add')}
                             </button>
                         </div>
                     </SortableContext>
@@ -1168,121 +1170,10 @@ interface TrackHeaderProps {
     onDelete: () => void;
 }
 
-function _TrackHeader({
-    track,
-    isSelected,
-    onSelect,
-    onMuteToggle,
-    onSoloToggle,
-    onArmToggle,
-    onVolumeChange,
-    onDelete,
-}: TrackHeaderProps) {
-    return (
-        <div
-            className={`flex flex-col border-b border-border p-2 transition-colors ${isSelected ? 'bg-accent/10' : 'hover:bg-surface-elevated'
-                }`}
-            style={{ height: TRACK_HEIGHT }}
-            onClick={onSelect}
-        >
-            <div className="flex items-center gap-1">
-                <GripVertical className="h-4 w-4 cursor-grab text-muted-foreground/50" />
-                <div
-                    className="h-3 w-3 rounded-sm"
-                    style={{ backgroundColor: trackColorValue(track.color) }}
-                />
-                <span className="flex-1 truncate text-sm font-medium">
-                    {track.name}
-                </span>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 text-muted-foreground hover:text-destructive"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete();
-                    }}
-                >
-                    <Trash2 className="h-3 w-3" />
-                </Button>
-            </div>
-
-            {/* Active Effects Indicators */}
-            <div className="flex flex-wrap gap-1 mt-1 pl-6 h-[18px] overflow-hidden">
-                {track.effects?.filter((fx) => fx.active).map((fx) => (
-                    <div
-                        key={fx.id}
-                        className="text-2xs font-bold px-1 rounded-xs bg-track-fx/10 text-track-fx border border-track-fx/20 flex items-center justify-center uppercase tracking-wider"
-                        title={`${fx.type} active`}
-                    >
-                        {FX_ABBR[fx.type] || fx.type.substring(0, 3)}
-                    </div>
-                ))}
-            </div>
-
-            <div className="mt-auto flex items-center gap-1">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-6 w-6 ${track.muted ? 'text-destructive' : 'text-muted-foreground'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onMuteToggle();
-                    }}
-                    title="Mute"
-                >
-                    {track.muted ? (
-                        <VolumeX className="h-3.5 w-3.5" />
-                    ) : (
-                        <Volume2 className="h-3.5 w-3.5" />
-                    )}
-                </Button>
-
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-6 w-6 ${track.solo ? 'text-accent' : 'text-muted-foreground'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onSoloToggle();
-                    }}
-                    title="Solo"
-                >
-                    <Headphones className="h-3.5 w-3.5" />
-                </Button>
-
-                {track.type === 'audio' && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-6 w-6 ${track.armed ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onArmToggle();
-                        }}
-                        title={track.armed ? 'Disarm' : 'Arm for recording'}
-                    >
-                        <Mic className="h-3.5 w-3.5" />
-                    </Button>
-                )}
-
-                <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={track.volume}
-                    onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-                    onClick={(e) => e.stopPropagation()}
-                    className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-input [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
-                />
-            </div>
-        </div>
-    );
-}
-
 // Sortable wrapper for TrackHeader with drag-to-reorder
 function SortableTrackHeader(props: TrackHeaderProps) {
+    const t = useTranslations('tracks');
+    const tEffects = useTranslations('inspector.effectTypes');
     const {
         attributes,
         listeners,
@@ -1345,7 +1236,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                             e.stopPropagation();
                             props.onMuteToggle();
                         }}
-                        title="Mute"
+                        title={t('mute')}
                     >
                         {props.track.muted ? (
                             <VolumeX className="h-3.5 w-3.5" />
@@ -1362,7 +1253,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                             e.stopPropagation();
                             props.onSoloToggle();
                         }}
-                        title="Solo"
+                        title={t('solo')}
                     >
                         <Headphones className="h-3.5 w-3.5" />
                     </Button>
@@ -1376,7 +1267,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                                 e.stopPropagation();
                                 props.onArmToggle();
                             }}
-                            title={props.track.armed ? 'Disarm' : 'Arm for recording'}
+                            title={props.track.armed ? t('disarm') : t('arm')}
                         >
                             <Mic className="h-3.5 w-3.5" />
                         </Button>
@@ -1408,7 +1299,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                                         </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p className="capitalize">{fx.type}</p>
+                                        <p>{tEffects(fx.type)}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             ))}
@@ -1422,7 +1313,13 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                                         </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p className="capitalize">{props.track.effects.filter((fx) => fx.active).slice(3).map(fx => fx.type).join(', ')}</p>
+                                        <p>
+                                            {props.track.effects
+                                                .filter((fx) => fx.active)
+                                                .slice(3)
+                                                .map((fx) => tEffects(fx.type))
+                                                .join(', ')}
+                                        </p>
                                     </TooltipContent>
                                 </Tooltip>
                             )}

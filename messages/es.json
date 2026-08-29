@@ -1,9 +1,4 @@
 {
-  "app": {
-    "name": "ComposeYogi",
-    "tagline": "Crea música real. Al instante. En tu navegador.",
-    "description": "El compositor de música en línea más intuitivo del mundo — crea beats profesionales sin instalar nada."
-  },
   "landing": {
     "hero": {
       "title": "Crea música real.",
@@ -69,199 +64,401 @@
       "cta": "Empieza a crear"
     }
   },
-  "templates": {
-    "title": "Elige un punto de partida",
-    "subtitle": "Selecciona una plantilla y empieza a crear inmediatamente",
-    "lofi": {
-      "name": "Lo-Fi Chill",
-      "description": "Beats relajados con teclas jazzy"
-    },
-    "trap": {
-      "name": "Trap Beat",
-      "description": "808s potentes y hi-hats"
-    },
-    "ambient": {
-      "name": "Ambient",
-      "description": "Pads atmosféricos y texturas"
-    },
-    "afro": {
-      "name": "Afro Groove",
-      "description": "Ritmos africanos energéticos"
-    },
-    "pop": {
-      "name": "Pop Starter",
-      "description": "Base pop lista para radio"
-    },
-    "bollywood": {
-      "name": "Bollywood Beats",
-      "description": "Ritmos de dholak con vibras de cine indio"
-    },
-    "reggaeton": {
-      "name": "Reggaeton",
-      "description": "El clásico dembow con calor latino"
-    },
-    "synthwave": {
-      "name": "Synthwave",
-      "description": "Nostalgia de los 80s con sintetizadores retro"
-    },
-    "afrobeats": {
-      "name": "Afrobeats",
-      "description": "Ritmos africanos con energía contagiosa"
-    },
-    "empty": {
-      "name": "Proyecto Vacío",
-      "description": "Empieza desde cero"
-    }
-  },
   "transport": {
+    "openProjects": "Abrir proyectos",
+    "autoSaved": "Guardado automáticamente en el navegador",
+    "returnToStart": "Volver al inicio",
     "play": "Reproducir",
+    "pause": "Pausar",
     "stop": "Detener",
-    "record": "Grabar",
+    "recordTrack": "Grabar - {name}",
+    "armToRecord": "Activa una pista para grabar",
+    "loop": "Bucle",
+    "import": "Importar proyecto/MIDI",
+    "export": "Exportar",
+    "musicalTime": "Tiempo musical (compases:pulsos:subdivisiones)",
+    "clockTime": "Tiempo de reloj (minutos:segundos)",
     "bpm": "BPM",
-    "key": "Tono",
-    "scale": "Escala",
+    "tempo": "Tempo (pulsos por minuto)",
+    "timeSignature": "Compás",
+    "timeSignatureHint": "Compás (clic para cambiar)",
+    "custom": "Personalizado",
+    "apply": "Aplicar",
     "metronome": "Metrónomo",
-    "countIn": "Cuenta atrás",
-    "loop": "Loop",
-    "export": "Exportar"
+    "zoomOut": "Alejar",
+    "resetZoom": "Restablecer zoom",
+    "zoomIn": "Acercar",
+    "shortcuts": "Atajos de teclado",
+    "settings": "Ajustes de audio",
+    "lightMode": "Modo claro",
+    "darkMode": "Modo oscuro"
   },
   "browser": {
-    "templates": "Plantillas",
-    "instruments": "Instrumentos",
-    "samples": "Muestras",
-    "fx": "FX",
-    "search": "Buscar..."
+    "title": "Explorador",
+    "close": "Cerrar explorador",
+    "collapsedLabel": "EXPLORADOR",
+    "tabs": {
+      "templates": "Plantillas",
+      "instruments": "Instrumentos",
+      "samples": "Samples",
+      "fx": "FX"
+    },
+    "search": {
+      "templates": "Buscar plantillas...",
+      "instruments": "Buscar instrumentos...",
+      "samples": "Buscar samples...",
+      "fx": "Buscar efectos..."
+    },
+    "bpm": "{bpm} BPM",
+    "noTemplates": "No se encontraron plantillas",
+    "addTrack": "Añadir pista",
+    "mySamples": "Mis samples",
+    "noSamples": "Aún no hay samples importados",
+    "deleteSample": "Eliminar sample",
+    "confirmDeleteSample": "¿Eliminar \"{name}\"? Esta acción no se puede deshacer.",
+    "importing": "Importando...",
+    "importAudio": "Importar audio",
+    "importHint": "WAV, MP3, OGG, FLAC, M4A (máx. 50 MB)",
+    "toast": {
+      "imported": "\"{name}\" importado",
+      "importFailed": "No se pudo importar \"{name}\": {message}",
+      "unknownError": "Error desconocido",
+      "playFailed": "No se pudo reproducir el sample",
+      "sampleDeleted": "\"{name}\" eliminado",
+      "deleteFailed": "No se pudo eliminar el sample"
+    }
   },
   "inspector": {
+    "title": "Inspector",
+    "collapsedLabel": "INSPECTOR",
+    "emptyState": "Selecciona una pista o un clip para editar",
+    "project": {
+      "title": "Proyecto",
+      "key": "Tonalidad",
+      "scale": "Escala",
+      "timeSignature": "Compás"
+    },
     "track": {
       "title": "Pista",
-      "volume": "Volumen",
-      "pan": "Pan",
-      "preset": "Preset",
-      "color": "Color"
+      "name": "Nombre",
+      "type": "Tipo",
+      "color": "Color",
+      "pan": "Paneo: {value}%"
+    },
+    "trackTypes": {
+      "audio": "Audio",
+      "midi": "MIDI",
+      "drum": "Batería"
+    },
+    "trackColors": {
+      "drums": "Batería",
+      "bass": "Bajo",
+      "keys": "Teclados",
+      "melody": "Melodía",
+      "vocals": "Voces",
+      "fx": "FX"
+    },
+    "effects": {
+      "title": "Efectos",
+      "emptyState": "Arrastra efectos sobre la pista<br></br>para añadirlos",
+      "mix": "Mezcla (wet)",
+      "decay": "Caída",
+      "feedback": "Realimentación",
+      "drive": "Drive"
+    },
+    "effectTypes": {
+      "reverb": "Reverberación",
+      "delay": "Delay",
+      "distortion": "Distorsión",
+      "filter": "Filtro",
+      "compression": "Compresión"
     },
     "clip": {
       "title": "Clip",
-      "energy": "Energía",
-      "groove": "Groove",
-      "brightness": "Brillo",
-      "space": "Espacio",
-      "transpose": "Transponer",
-      "humanize": "Humanizar"
+      "name": "Nombre",
+      "start": "Inicio (compás)",
+      "length": "Duración (compases)"
     }
   },
   "editor": {
+    "close": "Cerrar editor",
+    "collapsedLabel": "EDITOR",
+    "editing": "Editando: {name}",
+    "emptyState": "Selecciona un clip para editar",
+    "tabs": {
+      "piano": "Piano roll",
+      "drum": "Batería",
+      "waveform": "Forma de onda"
+    },
     "drum": {
-      "title": "Secuenciador de Batería",
-      "presets": "Presets"
+      "incompatible": "Este es un clip de audio. Cambia a un clip MIDI o de batería para usar el secuenciador, o cambia el tipo de clip.",
+      "presets": "Presets:",
+      "stepCount": "{steps} pasos ({bars, plural, one {# compás} other {# compases}})",
+      "clearAll": "Borrar todo",
+      "clickToPreview": "Clic para escuchar",
+      "velocityTooltip": "Velocidad {velocity} — arrastra arriba o abajo",
+      "beat": "Pulso",
+      "stepTooltip": "Pulso {beat}.{sub} (paso {step})",
+      "stepActiveLabel": "{sound}, paso {step}, velocidad {velocity}",
+      "stepEmptyLabel": "{sound}, paso {step}, vacío"
     },
     "piano": {
-      "title": "Piano Roll",
-      "quantize": "Cuantizar",
-      "scaleLock": "Bloqueo de Escala"
+      "incompatibleAudio": "Este es un clip de audio. Cambia a un clip MIDI para usar el piano roll, o cambia el tipo de clip.",
+      "incompatibleDrum": "Este es un clip de batería. Cambia a un clip MIDI para usar el piano roll, o cambia el tipo de clip.",
+      "snap": "Ajuste:",
+      "velocity": "Velocidad:",
+      "scale": "Escala:",
+      "zoomLevel": "{px} px"
+    },
+    "velocity": {
+      "label": "vel",
+      "barLabel": "Velocidad {velocity}"
     },
     "waveform": {
-      "title": "Editor de Audio",
-      "trim": "Recortar",
-      "fade": "Fade",
-      "stretch": "Ajustar a BPM"
+      "loading": "Cargando audio...",
+      "errorNoData": "No hay datos de audio disponibles",
+      "errorTakeNotFound": "No se encontró la toma de audio",
+      "errorLoadFailed": "No se pudo cargar el audio",
+      "stop": "Detener",
+      "playSelection": "Reproducir selección",
+      "preview": "Escuchar",
+      "loopSelection": "Repetir selección",
+      "trimToSelection": "Recortar a la selección",
+      "trimToSelectionHint": "Ajustar los tiradores de recorte a la selección",
+      "clearSelection": "Borrar selección",
+      "selectionLength": "Selección: {seconds} s",
+      "duration": "Duración: {seconds} s",
+      "sampleRate": "Frecuencia de muestreo: {hz} Hz",
+      "fadeIn": "Fundido de entrada:",
+      "fadeOut": "Fundido de salida:",
+      "resetAll": "Restablecer todo",
+      "trimStart": "Inicio del recorte: {seconds} s",
+      "trimEnd": "Fin del recorte: {seconds} s",
+      "selectedRange": "Seleccionado: {from} s - {to} s",
+      "selectionHint": "Arrastra los tiradores para recortar • Haz clic y arrastra para seleccionar"
     }
   },
-  "export": {
-    "title": "Exportar Proyecto",
-    "format": "Formato",
-    "wav": "Audio WAV",
-    "wavDescription": "Archivo de audio sin pérdida listo para cualquier DAW",
-    "midi": "Archivo MIDI",
-    "midiDescription": "Formato universal para notas y automatización",
-    "json": "Archivo de Proyecto",
-    "jsonDescription": "Respaldo completo del proyecto con todos los datos",
-    "rendering": "Renderizando...",
-    "download": "Descargar",
+  "tracks": {
+    "add": "Añadir pista",
+    "defaultName": "Pista {index}",
+    "mute": "Silenciar",
+    "solo": "Solo",
+    "arm": "Activar para grabar",
+    "disarm": "Desactivar"
+  },
+  "clips": {
+    "duplicateBadge": "+ Copia"
+  },
+  "loop": {
+    "enabled": "Bucle activado (doble clic para desactivar)",
+    "disabled": "Bucle desactivado (doble clic para activar)"
+  },
+  "visualizer": {
+    "title": "Visualizador",
+    "collapsedLabel": "VISUALIZADOR",
+    "live": "En vivo",
+    "bars": "Barras de frecuencia",
+    "waveform": "Forma de onda",
+    "hide": "Ocultar visualizador"
+  },
+  "projects": {
+    "title": "Proyectos",
+    "description": "Selecciona un proyecto para abrirlo o crea uno nuevo",
+    "new": "Nuevo proyecto",
+    "untitled": "Proyecto sin título",
+    "empty": "Aún no hay proyectos",
+    "emptyHint": "Crea tu primer proyecto arriba",
+    "bpm": "{bpm} BPM",
+    "rename": "Renombrar",
+    "delete": "Eliminar",
     "cancel": "Cancelar",
-    "selectFormat": "Elige un formato de exportación"
+    "deleteTitle": "¿Eliminar proyecto?",
+    "deleteDescription": "¿Seguro que quieres eliminar \"{name}\"? Esta acción no se puede deshacer.",
+    "justNow": "Ahora mismo",
+    "minutesAgo": "hace {minutes} min",
+    "hoursAgo": "hace {hours} h",
+    "daysAgo": "hace {days} d"
+  },
+  "export": {
+    "title": "Exportar proyecto",
+    "subtitle": "Exporta \"{name}\" en el formato que prefieras",
+    "wav": "Audio WAV",
+    "wavDescription": "Alta calidad, PCM de 16 bits, 44,1 kHz estéreo",
+    "mp3": "Audio MP3",
+    "mp3Description": "Comprimido, archivo más pequeño",
+    "mp3Quality": {
+      "128": "Estándar (128 kbps)",
+      "192": "Alta (192 kbps)",
+      "320": "Máxima (320 kbps)"
+    },
+    "quality": "Calidad",
+    "exportMp3": "Exportar MP3",
+    "midi": "Archivo MIDI",
+    "midiDescription": "MIDI estándar para usar en otros DAW",
+    "json": "Archivo de proyecto (.cyp)",
+    "jsonDescription": "Copia completa del proyecto, se puede volver a importar",
+    "cancel": "Cancelar",
+    "rendering": "Renderizando audio...",
+    "encoding": "Codificando MP3...",
+    "progress": "{percent}% completado",
+    "pleaseWait": "Espera mientras se renderiza tu proyecto. Puede tardar un momento.",
+    "pleaseWaitMp3": "Espera mientras se renderiza y se codifica tu proyecto. Puede tardar un momento.",
+    "complete": "¡Exportación completa!",
+    "completeDescription": "Tu proyecto se ha exportado y la descarga debería empezar automáticamente.",
+    "done": "Listo",
+    "failed": "Error al exportar",
+    "failedFallback": "Se produjo un error durante la exportación.",
+    "close": "Cerrar",
+    "tryAgain": "Reintentar"
   },
   "import": {
-    "title": "Importar Proyecto",
-    "description": "Importa un proyecto de ComposeYogi (.cyp.json) o archivo MIDI (.mid)",
-    "dropzone": "Arrastra un archivo aquí o haz clic para buscar",
-    "supported": "Soporta archivos .cyp.json (ComposeYogi) y .mid (MIDI)",
-    "unsupported": "Tipo de archivo no soportado. Por favor selecciona un archivo .mid, .midi o .cyp.json.",
-    "importing": "Importando proyecto...",
-    "complete": "¡Importación Completada!",
-    "failed": "Importación Fallida",
-    "tryAgain": "Intentar de Nuevo",
+    "title": "Importar proyecto",
+    "description": "Importa un proyecto de ComposeYogi (.cyp.json) o un archivo MIDI (.mid)",
+    "dropzone": "Suelta un archivo aquí o haz clic para buscar",
+    "supported": "Admite archivos .cyp.json (ComposeYogi) y .mid (MIDI)",
+    "unsupported": "Tipo de archivo no admitido. Selecciona un archivo .mid, .midi o .cyp.json.",
+    "midiReadFailed": "No se pudo leer el archivo MIDI",
+    "fileTypeMidi": "Archivo MIDI",
+    "fileTypeProject": "Proyecto de ComposeYogi",
     "midiPreview": {
-      "name": "Nombre",
-      "bpm": "BPM",
-      "tracks": "Pistas",
-      "notes": "Notas",
-      "tracksToImport": "Pistas a importar:"
+      "name": "Nombre:",
+      "bpm": "BPM:",
+      "tracks": "Pistas:",
+      "notes": "Notas:",
+      "tracksToImport": "Pistas a importar:",
+      "noteCount": "{count, plural, one {# nota} other {# notas}}"
     },
+    "ready": "Todo listo para importar. Se creará un proyecto nuevo con todas las pistas y clips.",
+    "cancel": "Cancelar",
+    "import": "Importar",
+    "importing": "Importando proyecto...",
+    "complete": "¡Importación completa!",
+    "summary": "{tracks, plural, one {# pista} other {# pistas}}, {clips, plural, one {# clip} other {# clips}}",
     "warnings": "Advertencias",
-    "ready": "Listo para importar. Esto creará un nuevo proyecto con todas las pistas y clips."
+    "done": "Listo",
+    "failed": "Error al importar",
+    "failedFallback": "Se produjo un error durante la importación.",
+    "close": "Cerrar",
+    "tryAgain": "Reintentar"
   },
   "calibration": {
-    "title": "Calibración de Latencia de Audio",
-    "description": "Calibraremos tu audio para asegurar que las grabaciones estén perfectamente alineadas.",
-    "instructions": "Asegúrate de que tus altavoces estén encendidos o los auriculares conectados.",
-    "start": "Iniciar Calibración",
-    "analyzing": "Analizando...",
-    "complete": "Calibración Completada",
-    "latency": "Latencia detectada: {ms}ms",
-    "recalibrate": "Recalibrar",
-    "skip": "Omitir por ahora"
-  },
-  "mobile": {
-    "title": "Modo Solo Lectura",
-    "description": "Abre en escritorio para editar",
-    "playback": "Puedes escuchar este proyecto en móvil",
-    "openDesktop": "Abrir en Escritorio"
-  },
-  "offline": {
-    "badge": "Sin conexión",
-    "message": "Estás trabajando sin conexión. Los cambios se sincronizarán cuando te conectes."
+    "title": "Calibración de latencia",
+    "description": "Calibra la latencia de audio para alinear las grabaciones con precisión. Mide el retardo entre la salida y la entrada de audio.",
+    "systemReported": "Latencia informada por el sistema",
+    "base": "Base:",
+    "output": "Salida:",
+    "start": "Iniciar calibración",
+    "step": "Paso {step} de {total}",
+    "beepsHint": "Deberías oír pitidos cortos. Mantén el entorno en silencio.",
+    "unknownError": "Error desconocido",
+    "instructions": {
+      "title": "Instrucciones de configuración",
+      "speakers": {
+        "title": "Activa los altavoces o auriculares",
+        "body": "Comprueba que la salida de audio funciona y está a un volumen cómodo."
+      },
+      "microphone": {
+        "title": "Coloca el micrófono",
+        "body": "Sitúa el micrófono cerca de los altavoces o auriculares para captar la señal de prueba."
+      },
+      "quiet": {
+        "title": "Entorno silencioso",
+        "body": "Reduce el ruido de fondo para obtener medidas precisas."
+      },
+      "continue": "Continuar"
+    },
+    "result": {
+      "title": "Calibración completa",
+      "roundTrip": "Latencia de ida y vuelta",
+      "inputCompensation": "Compensación de entrada",
+      "outputCompensation": "Compensación de salida",
+      "confidence": "Confianza",
+      "samplesUsed": "Muestras usadas",
+      "retry": "Reintentar",
+      "apply": "Aplicar"
+    },
+    "error": {
+      "title": "Error de calibración",
+      "manualTitle": "Compensación manual de latencia",
+      "manualHint": "Valores habituales: audio USB 10-30 ms, Bluetooth 100-300 ms",
+      "retry": "Reintentar",
+      "useManual": "Usar manual"
+    }
   },
   "shortcuts": {
-    "title": "Atajos de Teclado",
-    "playback": "Reproducción",
-    "editing": "Edición",
-    "view": "Vista",
-    "navigation": "Navegación",
+    "title": "Atajos de teclado",
+    "categories": {
+      "playback": "Reproducción",
+      "editing": "Edición",
+      "view": "Vista",
+      "navigation": "Navegación"
+    },
+    "actions": {
+      "playback": {
+        "playPause": "Reproducir / Pausar",
+        "stop": "Detener y volver al inicio"
+      },
+      "editing": {
+        "undo": "Deshacer",
+        "redo": "Rehacer",
+        "delete": "Eliminar los clips seleccionados",
+        "multiSelect": "Selección múltiple de clips",
+        "duplicateClip": "Duplicar clip"
+      },
+      "view": {
+        "toggleBrowser": "Mostrar u ocultar el explorador",
+        "toggleInspector": "Mostrar u ocultar el inspector",
+        "toggleEditor": "Mostrar u ocultar el editor",
+        "toggleVisualizer": "Mostrar u ocultar el visualizador",
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar",
+        "resetZoom": "Restablecer zoom",
+        "showShortcuts": "Mostrar atajos de teclado"
+      },
+      "navigation": {
+        "seekPosition": "Ir a una posición",
+        "scrollTimeline": "Recorrer la línea de tiempo"
+      }
+    },
     "clickToRebind": "Haz clic para reasignar",
-    "pressKeys": "Presiona teclas...",
-    "escToCancel": "Esc para cancelar",
-    "resetAll": "Restablecer Todo",
-    "resetToDefault": "Restablecer por defecto",
-    "conflictWith": "ya está asignado a",
-    "footer": "Haz clic en un atajo para reasignarlo"
+    "recordingHint": "Pulsa una combinación... (Esc para cancelar)",
+    "pressKeys": "Pulsa las teclas...",
+    "resetToDefault": "Restablecer el valor predeterminado",
+    "resetAll": "Restablecer todo",
+    "resetAllHint": "Restablecer todos los atajos a sus valores predeterminados",
+    "conflictWith": "\"{keys}\" ya lo usa \"{action}\"",
+    "footer": "Haz clic en un atajo para reasignarlo · Pulsa <kbd>Esc</kbd> para cancelar · Pulsa <kbd>/</kbd> o <kbd>?</kbd> en cualquier momento para abrir o cerrar este diálogo"
+  },
+  "scales": {
+    "major": "Mayor",
+    "minor": "Menor (natural)",
+    "harmonicMinor": "Menor armónica",
+    "melodicMinor": "Menor melódica",
+    "dorian": "Dórica",
+    "phrygian": "Frigia",
+    "lydian": "Lidia",
+    "mixolydian": "Mixolidia",
+    "locrian": "Locria",
+    "pentatonicMajor": "Pentatónica mayor",
+    "pentatonicMinor": "Pentatónica menor",
+    "blues": "Blues",
+    "chromatic": "Cromática"
+  },
+  "language": {
+    "label": "Idioma"
+  },
+  "offline": {
+    "message": "Estás trabajando sin conexión. Los cambios se sincronizarán cuando te conectes."
   },
   "errors": {
-    "microphonePermission": "Se requiere permiso del micrófono para grabar",
-    "audioContext": "La reproducción de audio falló. Haz clic para reintentar.",
-    "exportFailed": "La exportación falló. Por favor, intenta de nuevo.",
-    "loadFailed": "Error al cargar el proyecto",
     "boundaryTitle": "Algo salió mal",
     "boundaryDescription": "Tu proyecto está guardado. Al recargar deberías continuar donde lo dejaste.",
     "boundaryReload": "Recargar",
     "boundaryRetry": "Intentar de nuevo"
   },
-  "common": {
-    "save": "Guardar",
-    "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "duplicate": "Duplicar",
-    "rename": "Renombrar",
-    "undo": "Deshacer",
-    "redo": "Rehacer",
-    "close": "Cerrar",
-    "loading": "Cargando...",
-    "saved": "Guardado",
-    "saving": "Guardando..."
-  },
   "footer": {
     "copyright": "© {year} ComposeYogi. Todos los derechos reservados.",
-    "madeWith": "Hecho con ❤️ por el equipo de <company></company> equipo"
+    "madeWith": "Hecho con ❤️ por el equipo de <company></company>"
   },
   "pwa": {
     "install": "Instalar",

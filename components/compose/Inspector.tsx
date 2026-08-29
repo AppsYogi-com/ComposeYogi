@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
     ChevronLeft,
     Sliders,
@@ -26,22 +27,15 @@ import { SCALES, NOTES } from '@/lib/utils';
 import { trackColorValue } from '@/lib/design';
 import type { MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
 
-const TRACK_COLOR_OPTIONS: { value: TrackColor; label: string }[] = [
-    { value: 'drums', label: 'Drums' },
-    { value: 'bass', label: 'Bass' },
-    { value: 'keys', label: 'Keys' },
-    { value: 'melody', label: 'Melody' },
-    { value: 'vocals', label: 'Vocals' },
-    { value: 'fx', label: 'FX' },
-];
+// Option lists carry ids only — the labels come from `inspector.trackColors.*`
+// and `inspector.trackTypes.*`, so a locale change relabels them.
+const TRACK_COLOR_OPTIONS: TrackColor[] = ['drums', 'bass', 'keys', 'melody', 'vocals', 'fx'];
 
-const TRACK_TYPE_OPTIONS: { value: TrackType; label: string }[] = [
-    { value: 'audio', label: 'Audio' },
-    { value: 'midi', label: 'MIDI' },
-    { value: 'drum', label: 'Drum' },
-];
+const TRACK_TYPE_OPTIONS: TrackType[] = ['audio', 'midi', 'drum'];
 
 export function Inspector() {
+    const t = useTranslations('inspector');
+    const tScales = useTranslations('scales');
     const project = useProjectStore((s) => s.project);
     const setKey = useProjectStore((s) => s.setKey);
     const setScale = useProjectStore((s) => s.setScale);
@@ -58,7 +52,7 @@ export function Inspector() {
         <aside className="flex w-inspector flex-col border-l border-border bg-card">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                <h2 className="text-sm font-semibold">Inspector</h2>
+                <h2 className="text-sm font-semibold">{t('title')}</h2>
                 <Button
                     variant="ghost"
                     size="icon-sm"
@@ -70,10 +64,10 @@ export function Inspector() {
 
             <ScrollArea className="flex-1">
                 {/* Project settings section */}
-                <Section title="Project" icon={<Sliders className="h-4 w-4" />}>
+                <Section title={t('project.title')} icon={<Sliders className="h-4 w-4" />}>
                     {/* Key */}
                     <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Key</Label>
+                        <Label className="text-xs text-muted-foreground">{t('project.key')}</Label>
                         <Select
                             value={project?.key || 'C'}
                             onValueChange={(value) => setKey(value as MusicalKey)}
@@ -93,7 +87,7 @@ export function Inspector() {
 
                     {/* Scale */}
                     <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Scale</Label>
+                        <Label className="text-xs text-muted-foreground">{t('project.scale')}</Label>
                         <Select
                             value={project?.scale || 'major'}
                             onValueChange={(value) => setScale(value as MusicalScale)}
@@ -104,7 +98,7 @@ export function Inspector() {
                             <SelectContent>
                                 {SCALES.map((scale) => (
                                     <SelectItem key={scale.id} value={scale.id}>
-                                        {scale.name}
+                                        {tScales(scale.id)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -113,7 +107,7 @@ export function Inspector() {
 
                     {/* Time signature (read-only display) */}
                     <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Time Signature</Label>
+                        <Label className="text-xs text-muted-foreground">{t('project.timeSignature')}</Label>
                         <div className="flex items-center h-8 px-3 rounded-md border border-input bg-background text-sm font-mono">
                             {project?.timeSignature[0]}/{project?.timeSignature[1]}
                         </div>
@@ -122,9 +116,9 @@ export function Inspector() {
 
                 {/* Selected track section */}
                 {selectedTrack && (
-                    <Section title="Track" icon={<Music className="h-4 w-4" />}>
+                    <Section title={t('track.title')} icon={<Music className="h-4 w-4" />}>
                         <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">Name</Label>
+                            <Label className="text-xs text-muted-foreground">{t('track.name')}</Label>
                             <Input
                                 value={selectedTrack.name}
                                 onChange={(e) => {
@@ -137,7 +131,7 @@ export function Inspector() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">Type</Label>
+                            <Label className="text-xs text-muted-foreground">{t('track.type')}</Label>
                             <Select
                                 value={selectedTrack.type}
                                 onValueChange={(value) => {
@@ -151,8 +145,8 @@ export function Inspector() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {TRACK_TYPE_OPTIONS.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                            {opt.label}
+                                        <SelectItem key={opt} value={opt}>
+                                            {t(`trackTypes.${opt}`)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -160,7 +154,7 @@ export function Inspector() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">Color</Label>
+                            <Label className="text-xs text-muted-foreground">{t('track.color')}</Label>
                             <Select
                                 value={selectedTrack.color}
                                 onValueChange={(value) => {
@@ -174,13 +168,13 @@ export function Inspector() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {TRACK_COLOR_OPTIONS.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>
+                                        <SelectItem key={opt} value={opt}>
                                             <div className="flex items-center gap-2">
                                                 <div
                                                     className="w-3 h-3 rounded-full"
-                                                    style={{ backgroundColor: trackColorValue(opt.value) }}
+                                                    style={{ backgroundColor: trackColorValue(opt) }}
                                                 />
-                                                {opt.label}
+                                                {t(`trackColors.${opt}`)}
                                             </div>
                                         </SelectItem>
                                     ))}
@@ -190,7 +184,7 @@ export function Inspector() {
 
                         <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">
-                                Pan: {Math.round((selectedTrack.pan || 0) * 100)}%
+                                {t('track.pan', { value: Math.round((selectedTrack.pan || 0) * 100) })}
                             </Label>
                             <Slider
                                 value={[(selectedTrack.pan || 0) * 50 + 50]}
@@ -210,10 +204,10 @@ export function Inspector() {
 
                 {/* Selected track effects */}
                 {selectedTrack && (
-                    <Section title="Effects" icon={<Sparkles className="h-4 w-4" />}>
+                    <Section title={t('effects.title')} icon={<Sparkles className="h-4 w-4" />}>
                         {(!selectedTrack.effects || selectedTrack.effects.length === 0) ? (
                             <div className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed border-muted rounded-md bg-muted/20">
-                                Drag effects onto the track<br />to add them
+                                {t.rich('effects.emptyState', { br: () => <br /> })}
                             </div>
                         ) : (
                             <div className="space-y-2">
@@ -231,8 +225,8 @@ export function Inspector() {
                                                     </span>
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <div className="text-xs font-medium truncate capitalize">
-                                                        {effect.type}
+                                                    <div className="text-xs font-medium truncate">
+                                                        {t(`effectTypes.${effect.type}`)}
                                                     </div>
                                                 </div>
                                             </div>
@@ -251,7 +245,7 @@ export function Inspector() {
                                             {/* Common Wet/Dry Control */}
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
-                                                    <Label className="text-2xs text-muted-foreground">Mix (Wet)</Label>
+                                                    <Label className="text-2xs text-muted-foreground">{t('effects.mix')}</Label>
                                                     <span className="text-2xs font-mono">
                                                         {Math.round((effect.params.wet ?? 0.5) * 100)}%
                                                     </span>
@@ -273,7 +267,7 @@ export function Inspector() {
                                             {effect.type === 'reverb' && (
                                                 <div className="space-y-1.5">
                                                     <div className="flex items-center justify-between">
-                                                        <Label className="text-2xs text-muted-foreground">Decay</Label>
+                                                        <Label className="text-2xs text-muted-foreground">{t('effects.decay')}</Label>
                                                         <span className="text-2xs font-mono">{effect.params.decay ?? 1.5}s</span>
                                                     </div>
                                                     <Slider
@@ -293,7 +287,7 @@ export function Inspector() {
                                             {effect.type === 'delay' && (
                                                 <div className="space-y-1.5">
                                                     <div className="flex items-center justify-between">
-                                                        <Label className="text-2xs text-muted-foreground">Feedback</Label>
+                                                        <Label className="text-2xs text-muted-foreground">{t('effects.feedback')}</Label>
                                                         <span className="text-2xs font-mono">{Math.round((effect.params.feedback ?? 0.5) * 100)}%</span>
                                                     </div>
                                                     <Slider
@@ -313,7 +307,7 @@ export function Inspector() {
                                             {effect.type === 'distortion' && (
                                                 <div className="space-y-1.5">
                                                     <div className="flex items-center justify-between">
-                                                        <Label className="text-2xs text-muted-foreground">Drive</Label>
+                                                        <Label className="text-2xs text-muted-foreground">{t('effects.drive')}</Label>
                                                         <span className="text-2xs font-mono">{Math.round((effect.params.distortion ?? 0.4) * 100)}%</span>
                                                     </div>
                                                     <Slider
@@ -339,9 +333,9 @@ export function Inspector() {
 
                 {/* Selected clip section */}
                 {selectedClip && (
-                    <Section title="Clip" icon={<Clock className="h-4 w-4" />}>
+                    <Section title={t('clip.title')} icon={<Clock className="h-4 w-4" />}>
                         <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">Name</Label>
+                            <Label className="text-xs text-muted-foreground">{t('clip.name')}</Label>
                             <Input
                                 value={selectedClip.name}
                                 onChange={(e) => {
@@ -355,7 +349,7 @@ export function Inspector() {
 
                         <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1.5">
-                                <Label className="text-xs text-muted-foreground">Start (Bar)</Label>
+                                <Label className="text-xs text-muted-foreground">{t('clip.start')}</Label>
                                 <Input
                                     type="number"
                                     value={selectedClip.startBar}
@@ -369,7 +363,7 @@ export function Inspector() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs text-muted-foreground">Length (Bars)</Label>
+                                <Label className="text-xs text-muted-foreground">{t('clip.length')}</Label>
                                 <Input
                                     type="number"
                                     value={selectedClip.lengthBars}
@@ -391,7 +385,7 @@ export function Inspector() {
                     <div className="flex flex-col items-center justify-center py-12 text-center px-4">
                         <Hash className="mb-2 h-8 w-8 text-muted-foreground/30" />
                         <p className="text-sm text-muted-foreground">
-                            Select a track or clip to edit
+                            {t('emptyState')}
                         </p>
                     </div>
                 )}
@@ -426,6 +420,7 @@ function Section({ title, icon, children }: SectionProps) {
 
 // Collapsed bar to show inspector
 export function InspectorCollapsedBar() {
+    const t = useTranslations('inspector');
     const toggleInspector = useUIStore((s) => s.toggleInspector);
 
     return (
@@ -435,7 +430,7 @@ export function InspectorCollapsedBar() {
                 className="h-full w-6 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
                 <ChevronLeft className="h-3 w-3" />
-                <span className="writing-mode-vertical text-2xs tracking-wider">INSPECTOR</span>
+                <span className="writing-mode-vertical text-2xs tracking-wider">{t('collapsedLabel')}</span>
                 <kbd className="px-1 py-0.5 text-2xs font-mono bg-muted border border-border rounded">I</kbd>
             </button>
         </div>

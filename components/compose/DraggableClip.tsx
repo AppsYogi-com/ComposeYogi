@@ -6,6 +6,7 @@
 'use client';
 
 import { useRef, useCallback, useEffect, useState, useMemo, memo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { getAudioTake, audioEngine } from '@/lib/audio';
 import { AudioClip } from './AudioClip';
@@ -28,6 +29,7 @@ interface DraggableClipProps {
 }
 
 function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: DraggableClipProps) {
+    const t = useTranslations('clips');
     const updateClip = useProjectStore((s) => s.updateClip);
     const resizeClip = useProjectStore((s) => s.resizeClip);
     const duplicateClip = useProjectStore((s) => s.duplicateClip);
@@ -337,7 +339,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                 >
                     {/* Duplication indicator on ghost */}
                     <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-sm bg-foreground/90 px-1.5 py-0.5 text-2xs font-medium text-background shadow-clip">
-                        + Copy
+                        {t('duplicateBadge')}
                     </div>
                     <div className="flex h-full flex-col p-1 px-2">
                         <span className="truncate text-2xs font-medium text-clip-foreground/90">

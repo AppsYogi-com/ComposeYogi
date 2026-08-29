@@ -1,9 +1,4 @@
 {
-  "app": {
-    "name": "ComposeYogi",
-    "tagline": "Make real music. Instantly. In your browser.",
-    "description": "The world's most intuitive online music composer — create professional beats without installing anything."
-  },
   "landing": {
     "hero": {
       "title": "Make real music.",
@@ -69,117 +64,252 @@
       "cta": "Start creating"
     }
   },
-  "templates": {
-    "title": "Choose a starting point",
-    "subtitle": "Pick a template and start creating immediately",
-    "lofi": {
-      "name": "Lo-Fi Chill",
-      "description": "Relaxed beats with jazzy keys"
-    },
-    "trap": {
-      "name": "Trap Beat",
-      "description": "Hard-hitting 808s and hi-hats"
-    },
-    "ambient": {
-      "name": "Ambient",
-      "description": "Atmospheric pads and textures"
-    },
-    "afro": {
-      "name": "Afro Groove",
-      "description": "Energetic African rhythms"
-    },
-    "pop": {
-      "name": "Pop Starter",
-      "description": "Radio-ready pop foundation"
-    },
-    "bollywood": {
-      "name": "Bollywood Beats",
-      "description": "Dholak-driven grooves with filmi vibes"
-    },
-    "reggaeton": {
-      "name": "Reggaeton",
-      "description": "Classic dembow riddim with Latin heat"
-    },
-    "synthwave": {
-      "name": "Synthwave",
-      "description": "80s nostalgia with neon-soaked synths"
-    },
-    "afrobeats": {
-      "name": "Afrobeats",
-      "description": "West African rhythms with infectious energy"
-    },
-    "empty": {
-      "name": "Empty Project",
-      "description": "Start from scratch"
-    }
-  },
   "transport": {
+    "openProjects": "Open Projects",
+    "autoSaved": "Auto-saved to browser",
+    "returnToStart": "Return to start",
     "play": "Play",
+    "pause": "Pause",
     "stop": "Stop",
-    "record": "Record",
-    "bpm": "BPM",
-    "key": "Key",
-    "scale": "Scale",
-    "metronome": "Metronome",
-    "countIn": "Count-in",
+    "recordTrack": "Record - {name}",
+    "armToRecord": "Arm a track to record",
     "loop": "Loop",
-    "export": "Export"
+    "import": "Import Project/MIDI",
+    "export": "Export",
+    "musicalTime": "Musical Time (Bars:Beats:Subdivisions)",
+    "clockTime": "Clock Time (Minutes:Seconds)",
+    "bpm": "BPM",
+    "tempo": "Tempo (Beats Per Minute)",
+    "timeSignature": "Time Signature",
+    "timeSignatureHint": "Time Signature (click to change)",
+    "custom": "Custom",
+    "apply": "Apply",
+    "metronome": "Metronome",
+    "zoomOut": "Zoom Out",
+    "resetZoom": "Reset Zoom",
+    "zoomIn": "Zoom In",
+    "shortcuts": "Keyboard Shortcuts",
+    "settings": "Audio Settings",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode"
   },
   "browser": {
-    "templates": "Templates",
-    "instruments": "Instruments",
-    "samples": "Samples",
-    "fx": "FX",
-    "search": "Search..."
+    "title": "Browser",
+    "close": "Close Browser",
+    "collapsedLabel": "BROWSER",
+    "tabs": {
+      "templates": "Templates",
+      "instruments": "Instruments",
+      "samples": "Samples",
+      "fx": "FX"
+    },
+    "search": {
+      "templates": "Search templates...",
+      "instruments": "Search instruments...",
+      "samples": "Search samples...",
+      "fx": "Search effects..."
+    },
+    "bpm": "{bpm} BPM",
+    "noTemplates": "No templates found",
+    "addTrack": "Add Track",
+    "mySamples": "My Samples",
+    "noSamples": "No imported samples yet",
+    "deleteSample": "Delete sample",
+    "confirmDeleteSample": "Delete \"{name}\"? This cannot be undone.",
+    "importing": "Importing...",
+    "importAudio": "Import Audio",
+    "importHint": "WAV, MP3, OGG, FLAC, M4A (max 50MB)",
+    "toast": {
+      "imported": "Imported \"{name}\"",
+      "importFailed": "Failed to import \"{name}\": {message}",
+      "unknownError": "Unknown error",
+      "playFailed": "Failed to play sample",
+      "sampleDeleted": "Deleted \"{name}\"",
+      "deleteFailed": "Failed to delete sample"
+    }
   },
   "inspector": {
+    "title": "Inspector",
+    "collapsedLabel": "INSPECTOR",
+    "emptyState": "Select a track or clip to edit",
+    "project": {
+      "title": "Project",
+      "key": "Key",
+      "scale": "Scale",
+      "timeSignature": "Time Signature"
+    },
     "track": {
       "title": "Track",
-      "volume": "Volume",
-      "pan": "Pan",
-      "preset": "Preset",
-      "color": "Color"
+      "name": "Name",
+      "type": "Type",
+      "color": "Color",
+      "pan": "Pan: {value}%"
+    },
+    "trackTypes": {
+      "audio": "Audio",
+      "midi": "MIDI",
+      "drum": "Drum"
+    },
+    "trackColors": {
+      "drums": "Drums",
+      "bass": "Bass",
+      "keys": "Keys",
+      "melody": "Melody",
+      "vocals": "Vocals",
+      "fx": "FX"
+    },
+    "effects": {
+      "title": "Effects",
+      "emptyState": "Drag effects onto the track<br></br>to add them",
+      "mix": "Mix (Wet)",
+      "decay": "Decay",
+      "feedback": "Feedback",
+      "drive": "Drive"
+    },
+    "effectTypes": {
+      "reverb": "Reverb",
+      "delay": "Delay",
+      "distortion": "Distortion",
+      "filter": "Filter",
+      "compression": "Compression"
     },
     "clip": {
       "title": "Clip",
-      "energy": "Energy",
-      "groove": "Groove",
-      "brightness": "Brightness",
-      "space": "Space",
-      "transpose": "Transpose",
-      "humanize": "Humanize"
+      "name": "Name",
+      "start": "Start (Bar)",
+      "length": "Length (Bars)"
     }
   },
   "editor": {
+    "close": "Close Editor",
+    "collapsedLabel": "EDITOR",
+    "editing": "Editing: {name}",
+    "emptyState": "Select a clip to edit",
+    "tabs": {
+      "piano": "Piano Roll",
+      "drum": "Drums",
+      "waveform": "Waveform"
+    },
     "drum": {
-      "title": "Drum Sequencer",
-      "presets": "Presets"
+      "incompatible": "This is an audio clip. Switch to a MIDI or Drum clip to use the drum sequencer, or change the clip type.",
+      "presets": "Presets:",
+      "stepCount": "{steps} steps ({bars, plural, one {# bar} other {# bars}})",
+      "clearAll": "Clear All",
+      "clickToPreview": "Click to preview",
+      "velocityTooltip": "Velocity {velocity} — drag up or down",
+      "beat": "Beat",
+      "stepTooltip": "Beat {beat}.{sub} (Step {step})",
+      "stepActiveLabel": "{sound} step {step}, velocity {velocity}",
+      "stepEmptyLabel": "{sound} step {step}, empty"
     },
     "piano": {
-      "title": "Piano Roll",
-      "quantize": "Quantize",
-      "scaleLock": "Scale Lock"
+      "incompatibleAudio": "This is an audio clip. Switch to a MIDI clip to use the piano roll, or change the clip type.",
+      "incompatibleDrum": "This is a drum clip. Switch to a MIDI clip to use the piano roll, or change the clip type.",
+      "snap": "Snap:",
+      "velocity": "Velocity:",
+      "scale": "Scale:",
+      "zoomLevel": "{px}px"
+    },
+    "velocity": {
+      "label": "vel",
+      "barLabel": "Velocity {velocity}"
     },
     "waveform": {
-      "title": "Audio Editor",
-      "trim": "Trim",
-      "fade": "Fade",
-      "stretch": "Stretch to BPM"
+      "loading": "Loading audio...",
+      "errorNoData": "No audio data available",
+      "errorTakeNotFound": "Audio take not found",
+      "errorLoadFailed": "Failed to load audio",
+      "stop": "Stop",
+      "playSelection": "Play Selection",
+      "preview": "Preview",
+      "loopSelection": "Loop Selection",
+      "trimToSelection": "Trim to Selection",
+      "trimToSelectionHint": "Set trim handles to selection bounds",
+      "clearSelection": "Clear Selection",
+      "selectionLength": "Selection: {seconds}s",
+      "duration": "Duration: {seconds}s",
+      "sampleRate": "Sample Rate: {hz}Hz",
+      "fadeIn": "Fade In:",
+      "fadeOut": "Fade Out:",
+      "resetAll": "Reset All",
+      "trimStart": "Trim Start: {seconds}s",
+      "trimEnd": "Trim End: {seconds}s",
+      "selectedRange": "Selected: {from}s - {to}s",
+      "selectionHint": "Drag handles to trim • Click & drag to select"
     }
+  },
+  "tracks": {
+    "add": "Add Track",
+    "defaultName": "Track {index}",
+    "mute": "Mute",
+    "solo": "Solo",
+    "arm": "Arm for recording",
+    "disarm": "Disarm"
+  },
+  "clips": {
+    "duplicateBadge": "+ Copy"
+  },
+  "loop": {
+    "enabled": "Loop enabled (double-click to disable)",
+    "disabled": "Loop disabled (double-click to enable)"
+  },
+  "visualizer": {
+    "title": "Visualizer",
+    "collapsedLabel": "VISUALISER",
+    "live": "Live",
+    "bars": "Frequency Bars",
+    "waveform": "Waveform",
+    "hide": "Hide Visualizer"
+  },
+  "projects": {
+    "title": "Projects",
+    "description": "Select a project to open or create a new one",
+    "new": "New Project",
+    "untitled": "Untitled Project",
+    "empty": "No projects yet",
+    "emptyHint": "Create your first project above",
+    "bpm": "{bpm} BPM",
+    "rename": "Rename",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "deleteTitle": "Delete Project?",
+    "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "justNow": "Just now",
+    "minutesAgo": "{minutes}m ago",
+    "hoursAgo": "{hours}h ago",
+    "daysAgo": "{days}d ago"
   },
   "export": {
     "title": "Export Project",
-    "format": "Format",
+    "subtitle": "Export \"{name}\" in your preferred format",
     "wav": "WAV Audio",
-    "wavDescription": "Lossless audio file ready for any DAW",
+    "wavDescription": "High-quality 16-bit PCM, 44.1 kHz stereo",
+    "mp3": "MP3 Audio",
+    "mp3Description": "Compressed, smaller file size",
+    "mp3Quality": {
+      "128": "Standard (128 kbps)",
+      "192": "High (192 kbps)",
+      "320": "Maximum (320 kbps)"
+    },
+    "quality": "Quality",
+    "exportMp3": "Export MP3",
     "midi": "MIDI File",
-    "midiDescription": "Universal format for notes and automation",
-    "json": "Project File",
-    "jsonDescription": "Full project backup with all data",
-    "rendering": "Rendering...",
-    "download": "Download",
+    "midiDescription": "Standard MIDI for use in other DAWs",
+    "json": "Project File (.cyp)",
+    "jsonDescription": "Full project backup, can be re-imported",
     "cancel": "Cancel",
-    "selectFormat": "Choose an export format"
+    "rendering": "Rendering audio...",
+    "encoding": "Encoding MP3...",
+    "progress": "{percent}% complete",
+    "pleaseWait": "Please wait while your project is being rendered. This may take a moment.",
+    "pleaseWaitMp3": "Please wait while your project is being rendered and encoded. This may take a moment.",
+    "complete": "Export Complete!",
+    "completeDescription": "Your project has been exported and the download should start automatically.",
+    "done": "Done",
+    "failed": "Export Failed",
+    "failedFallback": "An error occurred during export.",
+    "close": "Close",
+    "tryAgain": "Try Again"
   },
   "import": {
     "title": "Import Project",
@@ -187,77 +317,144 @@
     "dropzone": "Drop a file here or click to browse",
     "supported": "Supports .cyp.json (ComposeYogi) and .mid (MIDI) files",
     "unsupported": "Unsupported file type. Please select a .mid, .midi, or .cyp.json file.",
+    "midiReadFailed": "Failed to read MIDI file",
+    "fileTypeMidi": "MIDI File",
+    "fileTypeProject": "ComposeYogi Project",
+    "midiPreview": {
+      "name": "Name:",
+      "bpm": "BPM:",
+      "tracks": "Tracks:",
+      "notes": "Notes:",
+      "tracksToImport": "Tracks to import:",
+      "noteCount": "{count, plural, one {# note} other {# notes}}"
+    },
+    "ready": "Ready to import. This will create a new project with all tracks and clips.",
+    "cancel": "Cancel",
+    "import": "Import",
     "importing": "Importing project...",
     "complete": "Import Complete!",
-    "failed": "Import Failed",
-    "tryAgain": "Try Again",
-    "midiPreview": {
-      "name": "Name",
-      "bpm": "BPM",
-      "tracks": "Tracks",
-      "notes": "Notes",
-      "tracksToImport": "Tracks to import:"
-    },
+    "summary": "{tracks, plural, one {# track} other {# tracks}}, {clips, plural, one {# clip} other {# clips}}",
     "warnings": "Warnings",
-    "ready": "Ready to import. This will create a new project with all tracks and clips."
+    "done": "Done",
+    "failed": "Import Failed",
+    "failedFallback": "An error occurred during import.",
+    "close": "Close",
+    "tryAgain": "Try Again"
   },
   "calibration": {
-    "title": "Audio Latency Calibration",
-    "description": "We'll calibrate your audio to ensure recordings are perfectly aligned.",
-    "instructions": "Make sure your speakers are on or headphones connected.",
+    "title": "Latency Calibration",
+    "description": "Calibrate audio latency for precise recording alignment. This measures the delay between your audio output and input.",
+    "systemReported": "System-Reported Latency",
+    "base": "Base:",
+    "output": "Output:",
     "start": "Start Calibration",
-    "analyzing": "Analyzing...",
-    "complete": "Calibration Complete",
-    "latency": "Detected latency: {ms}ms",
-    "recalibrate": "Recalibrate",
-    "skip": "Skip for now"
-  },
-  "mobile": {
-    "title": "View-Only Mode",
-    "description": "Open on desktop to edit",
-    "playback": "You can listen to this project on mobile",
-    "openDesktop": "Open on Desktop"
-  },
-  "offline": {
-    "badge": "Offline",
-    "message": "You're working offline. Changes will sync when connected."
+    "step": "Step {step} of {total}",
+    "beepsHint": "You should hear short beeps. Keep your environment quiet.",
+    "unknownError": "Unknown error",
+    "instructions": {
+      "title": "Setup Instructions",
+      "speakers": {
+        "title": "Enable Speakers or Headphones",
+        "body": "Make sure your audio output is working and at a comfortable volume."
+      },
+      "microphone": {
+        "title": "Position Your Microphone",
+        "body": "Place your microphone near your speakers/headphones to capture the test signal."
+      },
+      "quiet": {
+        "title": "Quiet Environment",
+        "body": "Minimize background noise for accurate measurements."
+      },
+      "continue": "Continue"
+    },
+    "result": {
+      "title": "Calibration Complete",
+      "roundTrip": "Round-trip Latency",
+      "inputCompensation": "Input Compensation",
+      "outputCompensation": "Output Compensation",
+      "confidence": "Confidence",
+      "samplesUsed": "Samples Used",
+      "retry": "Retry",
+      "apply": "Apply"
+    },
+    "error": {
+      "title": "Calibration Failed",
+      "manualTitle": "Manual Latency Compensation",
+      "manualHint": "Common values: USB audio 10-30ms, Bluetooth 100-300ms",
+      "retry": "Retry",
+      "useManual": "Use Manual"
+    }
   },
   "shortcuts": {
     "title": "Keyboard Shortcuts",
-    "playback": "Playback",
-    "editing": "Editing",
-    "view": "View",
-    "navigation": "Navigation",
+    "categories": {
+      "playback": "Playback",
+      "editing": "Editing",
+      "view": "View",
+      "navigation": "Navigation"
+    },
+    "actions": {
+      "playback": {
+        "playPause": "Play / Pause",
+        "stop": "Stop and return to start"
+      },
+      "editing": {
+        "undo": "Undo",
+        "redo": "Redo",
+        "delete": "Delete selected clips",
+        "multiSelect": "Multi-select clips",
+        "duplicateClip": "Duplicate clip"
+      },
+      "view": {
+        "toggleBrowser": "Toggle browser panel",
+        "toggleInspector": "Toggle inspector panel",
+        "toggleEditor": "Toggle editor panel",
+        "toggleVisualizer": "Toggle visualizer",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "resetZoom": "Reset zoom",
+        "showShortcuts": "Show keyboard shortcuts"
+      },
+      "navigation": {
+        "seekPosition": "Seek to position",
+        "scrollTimeline": "Navigate timeline"
+      }
+    },
     "clickToRebind": "Click to rebind",
+    "recordingHint": "Press a key combo... (Esc to cancel)",
     "pressKeys": "Press keys...",
-    "escToCancel": "Esc to cancel",
-    "resetAll": "Reset All",
     "resetToDefault": "Reset to default",
-    "conflictWith": "is already used by",
-    "footer": "Click a shortcut to rebind it"
+    "resetAll": "Reset All",
+    "resetAllHint": "Reset all shortcuts to defaults",
+    "conflictWith": "\"{keys}\" is already used by \"{action}\"",
+    "footer": "Click a shortcut to rebind it · Press <kbd>Esc</kbd> to cancel · Press <kbd>/</kbd> or <kbd>?</kbd> anytime to toggle this dialog"
+  },
+  "scales": {
+    "major": "Major",
+    "minor": "Minor (Natural)",
+    "harmonicMinor": "Harmonic Minor",
+    "melodicMinor": "Melodic Minor",
+    "dorian": "Dorian",
+    "phrygian": "Phrygian",
+    "lydian": "Lydian",
+    "mixolydian": "Mixolydian",
+    "locrian": "Locrian",
+    "pentatonicMajor": "Pentatonic Major",
+    "pentatonicMinor": "Pentatonic Minor",
+    "blues": "Blues",
+    "chromatic": "Chromatic"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "offline": {
+    "message": "You're working offline. Changes will sync when connected."
   },
   "errors": {
-    "microphonePermission": "Microphone permission required for recording",
-    "audioContext": "Audio playback failed. Click to retry.",
-    "exportFailed": "Export failed. Please try again.",
-    "loadFailed": "Failed to load project",
     "boundaryTitle": "Something went wrong",
     "boundaryDescription": "Your project is saved. Reloading should pick up where you left off.",
     "boundaryReload": "Reload",
     "boundaryRetry": "Try again"
-  },
-  "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "duplicate": "Duplicate",
-    "rename": "Rename",
-    "undo": "Undo",
-    "redo": "Redo",
-    "close": "Close",
-    "loading": "Loading...",
-    "saved": "Saved",
-    "saving": "Saving..."
   },
   "footer": {
     "copyright": "© {year} ComposeYogi. All rights reserved.",

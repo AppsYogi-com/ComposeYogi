@@ -6,6 +6,7 @@
 // ============================================
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     Activity,
     AlertCircle,
@@ -45,6 +46,7 @@ export function LatencyCalibrationModal({
     onClose,
     onCalibrationComplete,
 }: LatencyCalibrationModalProps) {
+    const t = useTranslations('calibration');
     const [state, setState] = useState<CalibrationState>('idle');
     const [progress, setProgress] = useState<CalibrationProgress | null>(null);
     const [result, setResult] = useState<LatencyCalibrationResult | null>(null);
@@ -111,7 +113,7 @@ export function LatencyCalibrationModal({
                     <div className="flex items-center gap-3">
                         <Activity className="w-5 h-5 text-primary" />
                         <h2 className="text-lg font-semibold text-foreground">
-                            Latency Calibration
+                            {t('title')}
                         </h2>
                     </div>
                     <button
@@ -147,7 +149,7 @@ export function LatencyCalibrationModal({
 
                     {state === 'error' && result && (
                         <ErrorView
-                            error={result.error || 'Unknown error'}
+                            error={result.error || t('unknownError')}
                             onRetry={handleStartCalibration}
                             manualLatency={manualLatency}
                             onManualChange={setManualLatency}
@@ -165,6 +167,7 @@ export function LatencyCalibrationModal({
 // ============================================
 
 function IdleView({ onStart }: { onStart: () => void }) {
+    const t = useTranslations('calibration');
     const systemLatency = latencyCalibrator.constructor.prototype.constructor.getSystemLatency
         ? { baseLatency: 0, outputLatency: 0 }
         : { baseLatency: 0, outputLatency: 0 };
@@ -176,24 +179,23 @@ function IdleView({ onStart }: { onStart: () => void }) {
                     <Headphones className="w-8 h-8 text-primary" />
                 </div>
                 <p className="text-muted-foreground">
-                    Calibrate audio latency for precise recording alignment.
-                    This measures the delay between your audio output and input.
+                    {t('description')}
                 </p>
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                 <h4 className="text-sm font-medium text-foreground">
-                    System-Reported Latency
+                    {t('systemReported')}
                 </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                        <span className="text-muted-foreground">Base: </span>
+                        <span className="text-muted-foreground">{t('base')} </span>
                         <span className="text-foreground">
                             {systemLatency.baseLatency.toFixed(1)} ms
                         </span>
                     </div>
                     <div>
-                        <span className="text-muted-foreground">Output: </span>
+                        <span className="text-muted-foreground">{t('output')} </span>
                         <span className="text-foreground">
                             {systemLatency.outputLatency.toFixed(1)} ms
                         </span>
@@ -206,13 +208,15 @@ function IdleView({ onStart }: { onStart: () => void }) {
                 className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
             >
                 <Play className="w-4 h-4" />
-                Start Calibration
+                {t('start')}
             </button>
         </div>
     );
 }
 
 function InstructionsView({ onContinue }: { onContinue: () => void }) {
+    const t = useTranslations('calibration.instructions');
+
     return (
         <div className="space-y-6">
             <div className="text-center">
@@ -220,7 +224,7 @@ function InstructionsView({ onContinue }: { onContinue: () => void }) {
                     <Settings2 className="w-8 h-8 text-warning" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground mb-2">
-                    Setup Instructions
+                    {t('title')}
                 </h3>
             </div>
 
@@ -231,10 +235,10 @@ function InstructionsView({ onContinue }: { onContinue: () => void }) {
                     </div>
                     <div>
                         <h4 className="font-medium text-foreground">
-                            Enable Speakers or Headphones
+                            {t('speakers.title')}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                            Make sure your audio output is working and at a comfortable volume.
+                            {t('speakers.body')}
                         </p>
                     </div>
                 </div>
@@ -245,10 +249,10 @@ function InstructionsView({ onContinue }: { onContinue: () => void }) {
                     </div>
                     <div>
                         <h4 className="font-medium text-foreground">
-                            Position Your Microphone
+                            {t('microphone.title')}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                            Place your microphone near your speakers/headphones to capture the test signal.
+                            {t('microphone.body')}
                         </p>
                     </div>
                 </div>
@@ -259,10 +263,10 @@ function InstructionsView({ onContinue }: { onContinue: () => void }) {
                     </div>
                     <div>
                         <h4 className="font-medium text-foreground">
-                            Quiet Environment
+                            {t('quiet.title')}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                            Minimize background noise for accurate measurements.
+                            {t('quiet.body')}
                         </p>
                     </div>
                 </div>
@@ -273,13 +277,15 @@ function InstructionsView({ onContinue }: { onContinue: () => void }) {
                 className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
             >
                 <Play className="w-4 h-4" />
-                Continue
+                {t('continue')}
             </button>
         </div>
     );
 }
 
 function CalibratingView({ progress }: { progress: CalibrationProgress }) {
+    const t = useTranslations('calibration');
+
     return (
         <div className="space-y-6 text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -291,7 +297,7 @@ function CalibratingView({ progress }: { progress: CalibrationProgress }) {
                     {progress.phase}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                    Step {progress.step} of {progress.totalSteps}
+                    {t('step', { step: progress.step, total: progress.totalSteps })}
                 </p>
             </div>
 
@@ -304,7 +310,7 @@ function CalibratingView({ progress }: { progress: CalibrationProgress }) {
             </div>
 
             <p className="text-sm text-muted-foreground">
-                You should hear short beeps. Keep your environment quiet.
+                {t('beepsHint')}
             </p>
         </div>
     );
@@ -319,6 +325,7 @@ function CompleteView({
     onAccept: () => void;
     onRetry: () => void;
 }) {
+    const t = useTranslations('calibration.result');
     const confidenceColor =
         result.confidence > 0.7
             ? 'text-success'
@@ -333,37 +340,37 @@ function CompleteView({
                     <CheckCircle className="w-8 h-8 text-success" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground">
-                    Calibration Complete
+                    {t('title')}
                 </h3>
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Round-trip Latency</span>
+                    <span className="text-muted-foreground">{t('roundTrip')}</span>
                     <span className="font-mono font-medium text-foreground">
                         {result.roundTripLatencyMs} ms
                     </span>
                 </div>
                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Input Compensation</span>
+                    <span className="text-muted-foreground">{t('inputCompensation')}</span>
                     <span className="font-mono text-foreground">
                         {result.inputLatencyMs} ms
                     </span>
                 </div>
                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Output Compensation</span>
+                    <span className="text-muted-foreground">{t('outputCompensation')}</span>
                     <span className="font-mono text-foreground">
                         {result.outputLatencyMs} ms
                     </span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-border">
-                    <span className="text-muted-foreground">Confidence</span>
+                    <span className="text-muted-foreground">{t('confidence')}</span>
                     <span className={`font-medium ${confidenceColor}`}>
                         {Math.round(result.confidence * 100)}%
                     </span>
                 </div>
                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Samples Used</span>
+                    <span className="text-muted-foreground">{t('samplesUsed')}</span>
                     <span className="text-foreground">
                         {result.sampleCount}
                     </span>
@@ -375,13 +382,13 @@ function CompleteView({
                     onClick={onRetry}
                     className="flex-1 py-3 px-4 border border-border hover:bg-muted text-foreground font-medium rounded-lg transition-colors"
                 >
-                    Retry
+                    {t('retry')}
                 </button>
                 <button
                     onClick={onAccept}
                     className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors"
                 >
-                    Apply
+                    {t('apply')}
                 </button>
             </div>
         </div>
@@ -401,6 +408,8 @@ function ErrorView({
     onManualChange: (value: number) => void;
     onUseManual: () => void;
 }) {
+    const t = useTranslations('calibration.error');
+
     return (
         <div className="space-y-6">
             <div className="text-center">
@@ -408,7 +417,7 @@ function ErrorView({
                     <AlertCircle className="w-8 h-8 text-destructive" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground">
-                    Calibration Failed
+                    {t('title')}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     {error}
@@ -417,7 +426,7 @@ function ErrorView({
 
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                 <h4 className="text-sm font-medium text-foreground">
-                    Manual Latency Compensation
+                    {t('manualTitle')}
                 </h4>
                 <div className="flex items-center gap-3">
                     <input
@@ -436,7 +445,7 @@ function ErrorView({
                     </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    Common values: USB audio 10-30ms, Bluetooth 100-300ms
+                    {t('manualHint')}
                 </p>
             </div>
 
@@ -445,13 +454,13 @@ function ErrorView({
                     onClick={onRetry}
                     className="flex-1 py-3 px-4 border border-border hover:bg-muted text-foreground font-medium rounded-lg transition-colors"
                 >
-                    Retry
+                    {t('retry')}
                 </button>
                 <button
                     onClick={onUseManual}
                     className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors"
                 >
-                    Use Manual
+                    {t('useManual')}
                 </button>
             </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { Languages, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,9 +11,15 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { locales, localeNames, localeFlags, localeSymbols, type Locale } from '@/config/i18n';
 
 export function LanguageSwitcher() {
+    const t = useTranslations('language');
     const params = useParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -26,11 +33,18 @@ export function LanguageSwitcher() {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm">
-                    <Languages className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon-sm" aria-label={t('label')}>
+                            <Languages className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                    <p>{t('label')}</p>
+                </TooltipContent>
+            </Tooltip>
             <DropdownMenuContent align="end">
                 {locales.map((locale) => (
                     <DropdownMenuItem

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
+import { useTranslations } from 'next-intl';
 import {
     ZoomIn,
     ZoomOut,
@@ -44,6 +45,7 @@ interface TrimHandles {
 // ============================================
 
 export function WaveformEditor({ clip }: WaveformEditorProps) {
+    const t = useTranslations('editor.waveform');
     const project = useProjectStore((s) => s.project);
     const updateClip = useProjectStore((s) => s.updateClip);
 
@@ -104,7 +106,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
     useEffect(() => {
         async function loadAudio() {
             if (!clip.activeTakeId) {
-                setError('No audio data');
+                setError(t('errorNoData'));
                 setIsLoading(false);
                 return;
             }
@@ -114,7 +116,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                 const take = getAudioTake(clip.activeTakeId);
 
                 if (!take) {
-                    setError('Audio take not found');
+                    setError(t('errorTakeNotFound'));
                     setIsLoading(false);
                     return;
                 }
@@ -136,7 +138,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
 
             } catch (err) {
                 console.error('[WaveformEditor] Failed to load audio:', err);
-                setError('Failed to load audio');
+                setError(t('errorLoadFailed'));
             } finally {
                 setIsLoading(false);
             }
@@ -294,10 +296,10 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
         const secondsVisible = duration * zoom;
         const markerInterval = secondsVisible > 10 ? 1 : 0.5;
 
-        for (let t = 0; t <= duration; t += markerInterval) {
-            const x = (t / duration) * displayWidth;
+        for (let time = 0; time <= duration; time += markerInterval) {
+            const x = (time / duration) * displayWidth;
             ctx.fillRect(x, displayHeight - 15, 1, 5);
-            ctx.fillText(`${t.toFixed(1)}s`, x + 3, displayHeight - 3);
+            ctx.fillText(`${time.toFixed(1)}s`, x + 3, displayHeight - 3);
         }
 
         // Playhead
@@ -566,7 +568,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
             <div className="flex h-full items-center justify-center">
                 <div className="text-center">
                     <div className="mb-2 h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent mx-auto" />
-                    <p className="text-sm text-muted-foreground">Loading audio...</p>
+                    <p className="text-sm text-muted-foreground">{t('loading')}</p>
                 </div>
             </div>
         );
@@ -578,7 +580,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                 <div className="text-center">
                     <Volume2 className="mx-auto mb-2 h-12 w-12 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
-                        {error || 'No audio data available'}
+                        {error ?? t('errorNoData')}
                     </p>
                 </div>
             </div>
@@ -607,7 +609,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        {isPlaying ? 'Stop' : selection ? 'Play Selection' : 'Preview'}
+                        {isPlaying ? t('stop') : selection ? t('playSelection') : t('preview')}
                     </TooltipContent>
                 </Tooltip>
 
@@ -623,7 +625,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                                 <Repeat className="h-3.5 w-3.5" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Loop Selection</TooltipContent>
+                        <TooltipContent>{t('loopSelection')}</TooltipContent>
                     </Tooltip>
                 )}
 
@@ -641,10 +643,10 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                                     className="h-7 gap-1.5 text-xs"
                                 >
                                     <Scissors className="h-3.5 w-3.5" />
-                                    Trim to Selection
+                                    {t('trimToSelection')}
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Set trim handles to selection bounds</TooltipContent>
+                            <TooltipContent>{t('trimToSelectionHint')}</TooltipContent>
                         </Tooltip>
 
                         <Tooltip>
@@ -657,13 +659,15 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                                     <X className="h-3.5 w-3.5" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Clear Selection</TooltipContent>
+                            <TooltipContent>{t('clearSelection')}</TooltipContent>
                         </Tooltip>
 
                         <div className="h-4 w-px bg-border" />
 
                         <span className="text-xs text-muted-foreground">
-                            Selection: {Math.abs(selection.end - selection.start).toFixed(2)}s
+                            {t('selectionLength', {
+                                seconds: Math.abs(selection.end - selection.start).toFixed(2),
+                            })}
                         </span>
 
                         <div className="h-4 w-px bg-border" />
@@ -672,15 +676,15 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
 
                 {/* Info */}
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>Duration: {effectiveDuration.toFixed(2)}s</span>
-                    <span>Sample Rate: {audioBuffer.sampleRate}Hz</span>
+                    <span>{t('duration', { seconds: effectiveDuration.toFixed(2) })}</span>
+                    <span>{t('sampleRate', { hz: audioBuffer.sampleRate })}</span>
                 </div>
 
                 <div className="flex-1" />
 
                 {/* Fade controls */}
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Fade In:</span>
+                    <span className="text-xs text-muted-foreground">{t('fadeIn')}</span>
                     <Slider
                         value={[fadeIn]}
                         onValueChange={([v]) => setFadeIn(v)}
@@ -694,7 +698,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Fade Out:</span>
+                    <span className="text-xs text-muted-foreground">{t('fadeOut')}</span>
                     <Slider
                         value={[fadeOut]}
                         onValueChange={([v]) => setFadeOut(v)}
@@ -716,7 +720,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                             <RotateCcw className="h-3.5 w-3.5" />
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Reset All</TooltipContent>
+                    <TooltipContent>{t('resetAll')}</TooltipContent>
                 </Tooltip>
 
                 {/* Zoom */}
@@ -749,16 +753,19 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
             {/* Info bar */}
             <div className="flex items-center justify-between border-t border-border bg-surface px-3 py-1">
                 <span className="text-xs text-muted-foreground">
-                    Trim Start: {trimHandles.startOffset.toFixed(2)}s
+                    {t('trimStart', { seconds: trimHandles.startOffset.toFixed(2) })}
                 </span>
                 <span className="text-xs text-muted-foreground">
                     {selection
-                        ? `Selected: ${Math.min(selection.start, selection.end).toFixed(2)}s - ${Math.max(selection.start, selection.end).toFixed(2)}s`
-                        : 'Drag handles to trim • Click & drag to select'
+                        ? t('selectedRange', {
+                            from: Math.min(selection.start, selection.end).toFixed(2),
+                            to: Math.max(selection.start, selection.end).toFixed(2),
+                        })
+                        : t('selectionHint')
                     }
                 </span>
                 <span className="text-xs text-muted-foreground">
-                    Trim End: {trimHandles.endOffset.toFixed(2)}s
+                    {t('trimEnd', { seconds: trimHandles.endOffset.toFixed(2) })}
                 </span>
             </div>
         </div>

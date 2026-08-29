@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from 'next-themes';
+import { useTranslations } from 'next-intl';
 import { Activity, AudioWaveform, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,7 @@ const BAR_COUNT = 64;
 const BAR_GAP = 2;
 
 export function AudioVisualizer() {
+    const t = useTranslations('visualizer');
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number | null>(null);
     const [mode, setMode] = useState<VisualizerMode>('bars');
@@ -214,12 +216,12 @@ export function AudioVisualizer() {
             <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Visualizer
+                        {t('title')}
                     </span>
                     {isPlaying && (
                         <span className="flex items-center gap-1 text-xs text-primary">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                            Live
+                            {t('live')}
                         </span>
                     )}
                 </div>
@@ -238,7 +240,7 @@ export function AudioVisualizer() {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="top">
-                            <p>Frequency Bars</p>
+                            <p>{t('bars')}</p>
                         </TooltipContent>
                     </Tooltip>
 
@@ -254,7 +256,7 @@ export function AudioVisualizer() {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="top">
-                            <p>Waveform</p>
+                            <p>{t('waveform')}</p>
                         </TooltipContent>
                     </Tooltip>
 
@@ -270,7 +272,10 @@ export function AudioVisualizer() {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="top">
-                            <p>Hide Visualizer <kbd className="ml-1 text-xs opacity-60">V</kbd></p>
+                            <p>
+                                {t('hide')}{' '}
+                                <kbd className="ml-1 text-xs opacity-60">V</kbd>
+                            </p>
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -288,6 +293,7 @@ export function AudioVisualizer() {
 
 // Collapsed bar to show visualizer
 export function VisualizerCollapsedBar() {
+    const t = useTranslations('visualizer');
     const toggleVisualizer = useUIStore((s) => s.toggleVisualizer);
 
     return (
@@ -297,7 +303,7 @@ export function VisualizerCollapsedBar() {
                 className="w-full flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
                 <ChevronUp className="h-3 w-3" />
-                <span className="text-2xs tracking-wider">VISUALISER</span>
+                <span className="text-2xs tracking-wider">{t('collapsedLabel')}</span>
                 <kbd className="px-1 py-0.5 text-2xs font-mono bg-muted border border-border rounded">V</kbd>
             </button>
         </div>
