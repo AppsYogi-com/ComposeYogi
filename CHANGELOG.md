@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-29
+
+Hardening release. No new surface area — this is about the studio behaving the
+way a studio has to, and about making the codebase safe for contributors.
+
+### Fixed
+
+#### Audio correctness
+- **Export now sounds exactly like playback.** Live playback and offline export
+  were two separate implementations of the same scheduling logic and had
+  drifted: bypassed effects were skipped on export but still applied during
+  playback, the master chain used a different gain with no limiter live, and
+  reverb impulse responses were awaited offline but not live. Both paths now
+  share one scheduler (`lib/audio/scheduler.ts`).
+- **Solo now works.** The function existed but nothing ever called it. Solo is
+  applied live and honoured on export, as are mute and track faders.
+- Switching a clip's active audio take now triggers a reschedule, instead of
+  continuing to play the previous take (#22, reported by @develephant)
+- Splitting a clip measured the cut at four beats per bar regardless of the
+  project's time signature, so a split in 3/4 or 7/8 sent notes to the wrong
+  side of the cut
+- Saving a project stamped its clips with the project id but not its tracks, so
+  a project whose tracks carried an older id reloaded with no tracks at all
+- Track headers scrolled independently of their lanes, so past a screenful of
+  tracks the names lined up against the wrong lanes
+- The studio was excluded from search engines by `robots.txt`
+
+#### Templates and instruments
+- Clicking a template in the browser panel created tracks with no clips — a
+  silent, empty project. Templates now load their full arrangement.
+- The instrument browser and the audio engine kept hand-mirrored registries that
+  could drift apart (the cause of the duplicate-euphonium bug, #20). The browser
+  list is now derived from the engine's, and a missing entry fails the build.
+
+### Added
+- First test suite: 75 tests covering the scheduler, project store, persistence
+  round-trips and clip virtualization (Vitest + fake-indexeddb)
+- Continuous integration — types, lint, locale parity, tests and a production
+  build now run on every push and pull request
+- Ordered IndexedDB migrations (`lib/persistence/migrations.ts`), with tests for
+  fresh installs and stepwise upgrades
+- Error boundaries around each studio panel and at the route level, so a crash
+  no longer blanks the page
+- `ARCHITECTURE.md` — how the engine, state and persistence fit together
+
+### Changed
+- **Mixer moves are instant.** Volume, pan, mute and solo now ramp the existing
+  audio nodes instead of tearing down and rebuilding the entire playback
+  schedule. Measured on a 256-clip project: zero reschedules where previously
+  every fader movement rebuilt all 256 clips.
+- Clips are virtualized — a lane mounts only what the viewport can show plus a
+  buffer. The same 256-clip project mounts 80 elements instead of 256.
+- Metronome state lived in two contradictory places; it now lives in the
+  playback store alone
+- `config/app.ts` carried limits, zoom levels, track colours and a template list
+  that had all drifted from the code. It now holds identity and links only, and
+  points at the real source of truth for everything else.
+- README no longer duplicates the roadmap or the keyboard-shortcut list; both
+  have one home (ROADMAP.md and the in-app reference panel)
+
 ---
 
 ## [1.1.0] - 2026-03-08

@@ -46,12 +46,12 @@ A free, open-source music composition tool for beat-making, loops, and arrangeme
 - 🎹 **Multi-track Timeline** — Audio, MIDI, and Drum tracks with drag-and-drop clips
 - 🎼 **Piano Roll Editor** — Full-featured MIDI note editor with scale lock
 - 🥁 **Drum Sequencer** — Step sequencer with pattern presets (Four on Floor, Hip Hop, Trap, etc.)
-- 🎸 **Built-in Instruments** — Synths, bass, keys, leads, and pads powered by Tone.js
+- 🎸 **64 Built-in Instruments** — Synths, bass, keys, leads, pads, drum kits, strings, wind and idiophones, powered by Tone.js
 - 📊 **Real-time Visualizer** — Frequency bars and waveform display
 - 🎚️ **Mixer Controls** — Volume, pan, mute, and solo per track
 - ⏺️ **Audio Recording** — Record directly from your microphone with latency calibration
-- 💾 **Local-first Storage** — Auto-save to IndexedDB, works offline
-- 🎵 **MIDI Export** — Export your compositions to MIDI files
+- 💾 **Local-first Storage** — Auto-save to IndexedDB, installable, works fully offline
+- 🎵 **Export Anywhere** — WAV, MP3, MIDI, or a portable JSON project file
 - ⌨️ **Keyboard Shortcuts** — Professional workflow with hotkeys
 - 🌙 **Dark/Light Theme** — Easy on the eyes
 - 🌍 **Internationalization** — English and Spanish supported
@@ -170,60 +170,39 @@ composeyogi.com/
 │   └── canvas/             # Canvas renderers
 ├── hooks/                  # Custom React hooks
 ├── types/                  # TypeScript definitions
+├── tests/                  # Vitest suites
 └── messages/               # i18n translation files
 ```
 
+**[ARCHITECTURE.md](ARCHITECTURE.md)** goes deeper: how scheduling, state and
+persistence actually work, and which invariants a change must not break.
+
 ## Keyboard Shortcuts
+
+Press <kbd>/</kbd> in the studio for the full, always-current list — it renders
+from the shortcut registry in `lib/shortcuts/`, and every shortcut is rebindable
+from that same panel.
+
+The ones worth knowing before you open it:
 
 | Action | Shortcut |
 |--------|----------|
-| Play/Pause | `Space` |
-| Stop (Return to start) | `Enter` |
-| Toggle Record | `R` |
-| Toggle Metronome | `M` |
-| Toggle Loop | `L` |
-| Undo | `Cmd/Ctrl + Z` |
-| Redo | `Cmd/Ctrl + Shift + Z` |
-| Duplicate Clip | `Cmd/Ctrl + D` |
-| Delete Selection | `Delete` / `Backspace` |
-| Toggle Browser | `B` |
-| Toggle Editor | `E` |
-| Toggle Inspector | `I` |
-| Toggle Visualizer | `V` |
-| Zoom In | `+` / `=` |
-| Zoom Out | `-` |
+| Play / Pause | <kbd>Space</kbd> |
+| Stop (return to start) | <kbd>Enter</kbd> |
+| Record | <kbd>R</kbd> |
+| Loop | <kbd>L</kbd> |
+| Undo / Redo | <kbd>Cmd/Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Shift</kbd> + <kbd>Z</kbd> |
+| Shortcut reference | <kbd>/</kbd> |
 
-## Development Roadmap
+## Roadmap
 
-> 📍 **See our [detailed roadmap](ROADMAP.md)** for the full picture of what's coming next!
+**[ROADMAP.md](ROADMAP.md)** is the single source of truth for what has shipped
+and what is coming next. It is kept in step with every release, so this README
+does not repeat it.
 
-### Phase 1.0 — MVP (Complete)
-
-- [x] Core DAW with multi-track timeline
-- [x] Audio engine with Tone.js (play, stop, seek, loop)
-- [x] MIDI and Drum clip editors
-- [x] Recording with latency calibration
-- [x] IndexedDB persistence with auto-save
-- [x] MIDI export
-- [x] Keyboard shortcuts
-- [x] Dark/Light theme
-- [x] i18n (English, Spanish)
-
-### Phase 1.5 — Cloud Sync (Planned)
-
-- [ ] User authentication (Firebase/supabase)
-- [ ] Cloud project sync
-- [ ] Share links for projects
-- [ ] WAV export
-- [ ] Additional templates
-
-### Phase 2.0 — Pro Features (Future)
-
-- [ ] Multi-take recording with comping
-- [ ] Automation lanes
-- [ ] Collaboration features
-- [ ] Remix/fork system
-- [ ] Time-stamped comments
+Shipped so far: a full multi-track studio with recording and latency
+calibration, 64 instruments, piano roll and drum sequencer, MIDI/WAV/MP3/JSON
+export, offline PWA support, and local-first persistence with autosave.
 
 ## Contributing
 
@@ -235,9 +214,14 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 npm run dev          # Start dev server with Turbopack
 npm run build        # Production build
 npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run type-check   # TypeScript type checking
+npm test             # Run the test suite (Vitest)
+npm run check        # Locales + types + lint + tests — what CI runs
 ```
+
+New to the codebase? **[ARCHITECTURE.md](ARCHITECTURE.md)** explains how the
+audio engine, state and persistence fit together, and where the sharp edges are.
+Issues labelled [`good first issue`](https://github.com/AppsYogi-com/ComposeYogi/labels/good%20first%20issue)
+are scoped to be picked up without reading the whole thing first.
 
 ## License
 

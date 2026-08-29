@@ -63,6 +63,8 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
 | `npm run type-check` | Run TypeScript type checking |
+| `npm test` | Run the test suite (Vitest) |
+| `npm run check` | Locales + types + lint + tests — exactly what CI runs |
 
 ## Project Structure
 
@@ -102,15 +104,26 @@ composeyogi.com/
 ### Testing Your Changes
 
 ```bash
-# Type check
-npm run type-check
+# Everything CI will run: locale parity, types, lint and tests
+npm run check
 
-# Lint
-npm run lint
-
-# Build to ensure no errors
+# And confirm it builds
 npm run build
 ```
+
+Add tests for what you change. Tests live in `tests/` and run on Vitest with
+`fake-indexeddb`, so store and persistence code is exercised as written rather
+than mocked.
+
+**If your change touches the audio engine**, the scheduler tests are the ones
+that matter. `tests/scheduler.test.ts` holds a golden snapshot of the render
+plan that both live playback and offline export schedule from. A change to
+scheduling behaviour should move that snapshot — if it doesn't, either the
+change is a no-op or it has broken the guarantee that an export sounds like the
+playback. Update the snapshot deliberately and say so in the PR.
+
+Read [ARCHITECTURE.md](ARCHITECTURE.md) before changing audio, state or
+persistence — it documents the invariants a change must not break.
 
 ## Pull Request Process
 
