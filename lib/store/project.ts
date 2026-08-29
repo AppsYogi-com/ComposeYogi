@@ -578,6 +578,11 @@ const projectStoreBase = (
         const splitPoint = atBar - original.startBar;
         if (splitPoint <= 0 || splitPoint >= original.lengthBars) return null;
 
+        // Notes are stored in beats, so the cut has to be measured with the
+        // project's own beats-per-bar — not an assumed 4/4.
+        const beatsPerBar = state.project.timeSignature[0];
+        const splitBeat = splitPoint * beatsPerBar;
+
         const firstClip: Clip = {
             ...original,
             lengthBars: splitPoint,
@@ -590,17 +595,17 @@ const projectStoreBase = (
             startBar: atBar,
             lengthBars: original.lengthBars - splitPoint,
             notes: original.notes
-                ?.filter((n) => n.startBeat >= splitPoint * 4) // 4 beats per bar
+                ?.filter((n) => n.startBeat >= splitBeat)
                 .map((n) => ({
                     ...n,
                     id: uuid(),
-                    startBeat: n.startBeat - splitPoint * 4,
+                    startBeat: n.startBeat - splitBeat,
                 })),
         };
 
         // Filter notes for first clip
         if (firstClip.notes) {
-            firstClip.notes = firstClip.notes.filter((n) => n.startBeat < splitPoint * 4);
+            firstClip.notes = firstClip.notes.filter((n) => n.startBeat < splitBeat);
         }
 
         set((s) => ({

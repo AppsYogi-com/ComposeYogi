@@ -107,6 +107,96 @@ export function effectiveTrackGain(track: Track, allTracks: Track[]): number {
 }
 
 // ============================================
+// Render Plan
+// ============================================
+//
+// What gets scheduled, where, and how loud — computed once and consumed by both
+// the live and offline paths. Sharing the *primitives* stops the two from
+// drifting on how a note is played; sharing the plan stops them drifting on
+// which notes get played at all.
+
+export type RenderClipKind = 'audio' | 'midi';
+
+export interface PlannedClip {
+    clipId: string;
+    trackId: string;
+    kind: RenderClipKind;
+    startSeconds: number;
+    /** False when the clip is on a muted or non-soloed track. */
+    audible: boolean;
+}
+
+export interface PlannedTrack {
+    trackId: string;
+    /** Fader value after solo/mute resolution — 0 means silent. */
+    gain: number;
+    pan: number;
+    audible: boolean;
+    /** Effects that will actually be built (bypassed ones are excluded). */
+    activeEffects: TrackEffect[];
+}
+
+export interface RenderPlan {
+    bpm: number;
+    beatsPerBar: number;
+    /** Musical length in seconds, excluding any export tail. */
+    durationSeconds: number;
+    tracks: PlannedTrack[];
+    clips: PlannedClip[];
+}
+
+/** Clips with no sound to make (empty notes, no take) are left out of the plan. */
+function plannedClipKind(clip: Clip): RenderClipKind | null {
+    if (clip.type === 'audio') {
+        return clip.activeTakeId ? 'audio' : null;
+    }
+    if (clip.type === 'midi' || clip.type === 'drum') {
+        return clip.notes?.length ? 'midi' : null;
+    }
+    return null;
+}
+
+export function buildRenderPlan(project: Project): RenderPlan {
+    const beatsPerBar = project.timeSignature[0];
+    const bpm = project.bpm;
+
+    const tracks: PlannedTrack[] = project.tracks.map((track) => ({
+        trackId: track.id,
+        gain: effectiveTrackGain(track, project.tracks),
+        pan: track.pan,
+        audible: isTrackAudible(track, project.tracks),
+        activeEffects: (track.effects || []).filter((effect) => effect.active),
+    }));
+
+    const trackById = new Map(tracks.map((t) => [t.trackId, t]));
+
+    const clips: PlannedClip[] = [];
+    for (const clip of project.clips) {
+        const kind = plannedClipKind(clip);
+        if (!kind) continue;
+
+        const plannedTrack = trackById.get(clip.trackId);
+        if (!plannedTrack) continue; // orphaned clip, no track to play it on
+
+        clips.push({
+            clipId: clip.id,
+            trackId: clip.trackId,
+            kind,
+            startSeconds: barsToSeconds(clip.startBar, bpm, beatsPerBar),
+            audible: plannedTrack.audible,
+        });
+    }
+
+    return {
+        bpm,
+        beatsPerBar,
+        durationSeconds: barsToSeconds(projectEndBar(project), bpm, beatsPerBar),
+        tracks,
+        clips,
+    };
+}
+
+// ============================================
 // Instrument Resolution
 // ============================================
 

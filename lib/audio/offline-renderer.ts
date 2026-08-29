@@ -15,10 +15,8 @@ import { encodeAudioBufferToMp3, type Mp3Quality } from './mp3-encoder';
 import {
     MASTER_GAIN,
     MASTER_LIMITER_THRESHOLD_DB,
-    barsToSeconds,
     buildEffectChain,
-    effectiveTrackGain,
-    projectEndBar,
+    buildRenderPlan,
     scheduleAudioClip,
     scheduleMidiClip,
 } from './scheduler';
@@ -107,9 +105,7 @@ function writeString(view: DataView, offset: number, str: string): void {
  * Musical length of the project plus a tail for reverb/delay decay.
  */
 export function getRenderDuration(project: Project, tailSeconds = DEFAULT_TAIL_SECONDS): number {
-    const beatsPerBar = project.timeSignature[0];
-    const endBar = projectEndBar(project);
-    return barsToSeconds(endBar, project.bpm, beatsPerBar) + tailSeconds;
+    return buildRenderPlan(project).durationSeconds + tailSeconds;
 }
 
 /**
@@ -126,12 +122,17 @@ export async function renderProjectToAudioBuffer(
 ): Promise<AudioBuffer> {
     const { tailSeconds = DEFAULT_TAIL_SECONDS } = options;
 
-    const beatsPerBar = project.timeSignature[0];
-    const duration = getRenderDuration(project, tailSeconds);
+    // Same plan the live path schedules from — solo, mute, FX bypass and clip
+    // start times are all resolved here, once, for both.
+    const plan = buildRenderPlan(project);
+    const duration = plan.durationSeconds + tailSeconds;
 
     if (duration <= tailSeconds) {
         throw new Error('Project has no clips to export');
     }
+
+    const clipsById = new Map(project.clips.map((c) => [c.id, c]));
+    const tracksById = new Map(project.tracks.map((t) => [t.id, t]));
 
     onProgress?.(0);
 
@@ -146,35 +147,46 @@ export async function renderProjectToAudioBuffer(
         const masterGain = new Tone.Gain(MASTER_GAIN);
         masterGain.connect(masterLimiter);
 
-        for (const track of project.tracks) {
-            // Solo-aware: exporting while a track is soloed exports the solo.
-            const trackGain = effectiveTrackGain(track, project.tracks);
-            if (trackGain === 0) continue;
+        // Track entry points, keyed by track id
+        const entries = new Map<string, Tone.Gain>();
 
-            const panner = new Tone.Panner(track.pan);
+        for (const plannedTrack of plan.tracks) {
+            // Silent tracks are skipped entirely: nothing to render, and it
+            // keeps the offline graph small on big projects.
+            if (!plannedTrack.audible) continue;
+
+            const track = tracksById.get(plannedTrack.trackId);
+            if (!track) continue;
+
+            const panner = new Tone.Panner(plannedTrack.pan);
             panner.connect(masterGain);
 
-            const gain = new Tone.Gain(trackGain);
+            const gain = new Tone.Gain(plannedTrack.gain);
             gain.connect(panner);
 
             // Track entry point; the effect chain is wired entry -> … -> gain.
             const entry = new Tone.Gain(1);
-            await buildEffectChain(track.effects, entry, gain);
+            await buildEffectChain(plannedTrack.activeEffects, entry, gain);
 
-            const trackClips = project.clips.filter((c) => c.trackId === track.id);
+            entries.set(plannedTrack.trackId, entry);
+        }
 
-            for (const clip of trackClips) {
-                const startSeconds = barsToSeconds(clip.startBar, project.bpm, beatsPerBar);
+        for (const plannedClip of plan.clips) {
+            if (!plannedClip.audible) continue;
 
-                if (clip.type === 'audio' && clip.activeTakeId) {
-                    await scheduleAudioClip(clip, entry, startSeconds);
-                } else if ((clip.type === 'midi' || clip.type === 'drum') && clip.notes) {
-                    await scheduleMidiClip(clip, track, entry, startSeconds, {
-                        transport,
-                        bpm: project.bpm,
-                        beatsPerBar,
-                    });
-                }
+            const entry = entries.get(plannedClip.trackId);
+            const clip = clipsById.get(plannedClip.clipId);
+            const track = tracksById.get(plannedClip.trackId);
+            if (!entry || !clip || !track) continue;
+
+            if (plannedClip.kind === 'audio') {
+                await scheduleAudioClip(clip, entry, plannedClip.startSeconds);
+            } else {
+                await scheduleMidiClip(clip, track, entry, plannedClip.startSeconds, {
+                    transport,
+                    bpm: plan.bpm,
+                    beatsPerBar: plan.beatsPerBar,
+                });
             }
         }
 
