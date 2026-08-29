@@ -48,7 +48,7 @@ export function PWAInstallPrompt() {
     // iOS instructions modal
     if (showIOSInstructions) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-4">
                 <div className="max-w-sm rounded-lg bg-card p-6 shadow-xl">
                     <h3 className="mb-4 text-lg font-semibold">{t('iosTitle')}</h3>
                     <p className="mb-4 text-sm text-muted-foreground">

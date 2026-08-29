@@ -1,0 +1,109 @@
+/* ============================================
+   ComposeYogi — Artboard chrome
+   ============================================
+
+   Layout and labelling for the reference sheets in this folder. Every colour
+   here comes from tokens.css, which is generated from lib/design/tokens.ts —
+   so an artboard cannot show a palette the product no longer has.
+
+   These pages open straight from disk. No build step, on purpose: a design
+   reference nobody can open is a design reference nobody checks. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+    /* The app injects these two via next/font; here they come from Google. */
+    --font-inter: 'Inter';
+    --font-jetbrains-mono: 'JetBrains Mono';
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 48px 40px 80px;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+.sheet { max-width: 1120px; margin: 0 auto; }
+
+/* --- Titling ------------------------------------------------------------ */
+
+.masthead { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
+.masthead h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+.masthead .theme {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--accent));
+    border: 1px solid hsl(var(--accent) / 0.4);
+    border-radius: 999px;
+    padding: 3px 10px;
+}
+.lede { color: hsl(var(--muted-foreground)); max-width: 62ch; margin: 0 0 40px; }
+
+h2 {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    margin: 44px 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid hsl(var(--border));
+}
+h2:first-of-type { margin-top: 0; }
+.note { color: hsl(var(--muted-foreground)); font-size: 12.5px; margin: 10px 0 18px; max-width: 68ch; }
+
+/* --- Grids -------------------------------------------------------------- */
+
+.grid { display: grid; gap: 12px; margin-top: 18px; align-items: start; }
+.grid.c6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.grid.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* --- Swatches ----------------------------------------------------------- */
+
+.swatch {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: hsl(var(--surface));
+}
+.swatch .fill { height: 64px; display: flex; align-items: flex-end; padding: 8px; }
+.swatch .meta { padding: 8px 10px 10px; }
+.swatch .name { font-size: 12px; font-weight: 600; }
+.swatch .val {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: hsl(var(--muted-foreground));
+    margin-top: 2px;
+}
+.swatch .on { font-size: 11px; font-weight: 600; }
+
+/* --- Specimen cards ----------------------------------------------------- */
+
+.card {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--surface));
+    padding: 16px;
+}
+.card > .label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 12px;
+}
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.dim { color: hsl(var(--muted-foreground)); }

@@ -161,7 +161,7 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
                 style={{ width: HANDLE_WIDTH }}
                 onMouseDown={handleLeftMouseDown}
             >
-                <div className="w-0.5 h-3 bg-white/70 rounded-full" />
+                <div className="w-0.5 h-3 bg-clip-foreground/70 rounded-full" />
             </div>
 
             {/* Right bracket/handle */}
@@ -171,7 +171,7 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
                 style={{ width: HANDLE_WIDTH }}
                 onMouseDown={handleRightMouseDown}
             >
-                <div className="w-0.5 h-3 bg-white/70 rounded-full" />
+                <div className="w-0.5 h-3 bg-clip-foreground/70 rounded-full" />
             </div>
 
             {/* Loop region indicator line at bottom */}

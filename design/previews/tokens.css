@@ -1,0 +1,159 @@
+/*
+ * Generated from lib/design/tokens.ts by scripts/generate-design-tokens.js.
+ * Do not edit — run `npm run design:tokens`.
+ *
+ * Standalone copy of the design tokens for the artboards in this folder,
+ * which open directly in a browser without the app build.
+ */
+:root {
+    /* Typography */
+    --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    /* Shape — one base; sm/md/lg/xl derive from it in tailwind.config.ts */
+    --radius: 0.5rem;
+
+    /* Motion — the design language is 120–160ms */
+    --motion-instant: 80ms;
+    --motion-fast: 120ms;
+    --motion-base: 150ms;
+    --motion-slow: 240ms;
+    --ease-out: cubic-bezier(0.2, 0, 0, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Elevation */
+    --shadow-clip: 0 2px 8px rgb(0 0 0 / 0.30);
+    --shadow-clip-hover: 0 4px 12px rgb(0 0 0 / 0.40);
+    --shadow-panel: 0 4px 16px rgb(0 0 0 / 0.50);
+    --shadow-modal: 0 16px 48px rgb(0 0 0 / 0.60);
+
+    /* ---- Light theme ---- */
+    /* Ground and elevation — background < surface < surface-elevated. Nothing sits on nothing. */
+    --background: 40 20% 99%;
+    --foreground: 30 10% 10%;
+    --surface: 38 16% 96%;
+    --surface-elevated: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 30 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 10% 10%;
+
+    /* Brand — Amber is "this is on". Never use it for a resting control. */
+    --primary: 32 95% 44%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 32 95% 44%;
+    --accent-foreground: 0 0% 100%;
+    --secondary: 38 14% 93%;
+    --secondary-foreground: 30 10% 10%;
+    --muted: 38 14% 93%;
+    --muted-foreground: 32 6% 42%;
+
+    /* Lines — border for structure, input for fields, ring for focus only. */
+    --border: 36 12% 87%;
+    --input: 36 12% 87%;
+    --ring: 32 95% 44%;
+
+    /* State — Meaning, not decoration — pick by what happened, never by hue. */
+    --destructive: 358 68% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 60% 32%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 40%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 82% 45%;
+    --info-foreground: 0 0% 100%;
+
+    /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
+    --playhead: 358 75% 50%;
+
+    /* Fixed surfaces — Identical in both themes on purpose — nothing here has a theme to invert against. */
+    --scrim: 30 8% 4%;
+    --clip-foreground: 40 15% 98%;
+    --piano-white: 40 12% 92%;
+    --piano-white-foreground: 30 8% 28%;
+    --piano-black: 30 6% 16%;
+    --piano-black-foreground: 35 6% 62%;
+
+    /* Track roles — The categorical scale. Reused anywhere things need telling apart. */
+    --track-drums: 358 68% 50%;
+    --track-bass: 232 62% 52%;
+    --track-keys: 272 52% 54%;
+    --track-melody: 145 55% 34%;
+    --track-vocals: 315 58% 48%;
+    --track-fx: 190 78% 34%;
+
+    /* Drum families — The sequencer lane rail, grouped the way a drummer groups a kit. */
+    --drum-kick: 358 66% 48%;
+    --drum-snare: 12 70% 46%;
+    --drum-tom: 272 48% 52%;
+    --drum-hat: 45 85% 38%;
+    --drum-cymbal: 190 72% 36%;
+    --drum-perc: 145 48% 34%;
+    --drum-other: 30 5% 45%;
+}
+
+/* ---- Dark theme (the primary design target) ---- */
+.dark {
+    /* Ground and elevation — background < surface < surface-elevated. Nothing sits on nothing. */
+    --background: 30 6% 7%;
+    --foreground: 35 12% 95%;
+    --surface: 30 5% 10%;
+    --surface-elevated: 30 5% 14%;
+    --card: 30 5% 10%;
+    --card-foreground: 35 12% 95%;
+    --popover: 30 5% 12%;
+    --popover-foreground: 35 12% 95%;
+
+    /* Brand — Amber is "this is on". Never use it for a resting control. */
+    --primary: 35 100% 55%;
+    --primary-foreground: 30 25% 8%;
+    --accent: 35 100% 55%;
+    --accent-foreground: 30 25% 8%;
+    --secondary: 30 5% 16%;
+    --secondary-foreground: 35 10% 95%;
+    --muted: 30 4% 20%;
+    --muted-foreground: 32 6% 62%;
+
+    /* Lines — border for structure, input for fields, ring for focus only. */
+    --border: 30 5% 19%;
+    --input: 30 5% 16%;
+    --ring: 35 100% 55%;
+
+    /* State — Meaning, not decoration — pick by what happened, never by hue. */
+    --destructive: 358 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 62% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 45 95% 55%;
+    --warning-foreground: 40 40% 10%;
+    --info: 210 85% 60%;
+    --info-foreground: 0 0% 100%;
+
+    /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
+    --playhead: 358 85% 62%;
+
+    /* Fixed surfaces — Identical in both themes on purpose — nothing here has a theme to invert against. */
+    --scrim: 30 8% 4%;
+    --clip-foreground: 40 15% 98%;
+    --piano-white: 40 12% 92%;
+    --piano-white-foreground: 30 8% 28%;
+    --piano-black: 30 6% 16%;
+    --piano-black-foreground: 35 6% 62%;
+
+    /* Track roles — The categorical scale. Reused anywhere things need telling apart. */
+    --track-drums: 358 72% 62%;
+    --track-bass: 232 70% 64%;
+    --track-keys: 272 60% 68%;
+    --track-melody: 145 55% 48%;
+    --track-vocals: 315 65% 64%;
+    --track-fx: 190 75% 48%;
+
+    /* Drum families — The sequencer lane rail, grouped the way a drummer groups a kit. */
+    --drum-kick: 358 70% 58%;
+    --drum-snare: 12 75% 58%;
+    --drum-tom: 272 55% 62%;
+    --drum-hat: 50 88% 58%;
+    --drum-cymbal: 190 70% 52%;
+    --drum-perc: 145 50% 48%;
+    --drum-other: 30 5% 50%;
+}

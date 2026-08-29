@@ -77,7 +77,9 @@ const config: Config = {
                 // Transport
                 playhead: token('playhead'),
 
-                // Instrument surfaces
+                // Fixed surfaces
+                scrim: token('scrim'),
+                'clip-foreground': token('clip-foreground'),
                 piano: {
                     white: token('piano-white'),
                     'white-foreground': token('piano-white-foreground'),

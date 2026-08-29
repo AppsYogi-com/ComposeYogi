@@ -9,6 +9,7 @@ First off, thank you for considering contributing to ComposeYogi! 🎵
 - [Development Setup](#development-setup)
 - [Project Structure](#project-structure)
 - [Making Changes](#making-changes)
+- [Design](#design)
 - [Pull Request Process](#pull-request-process)
 - [Style Guide](#style-guide)
 - [Reporting Bugs](#reporting-bugs)
@@ -91,6 +92,13 @@ composeyogi.com/
 1. **Check existing issues** to see if someone is already working on it
 2. **Open an issue** to discuss major changes before implementing
 3. **Keep changes focused** — one feature/fix per PR
+
+Looking for somewhere to start? Issues labelled
+[`good first issue`](https://github.com/AppsYogi-com/ComposeYogi/labels/good%20first%20issue)
+are scoped so you can pick one up without reading the whole codebase — each
+names the files to touch and what "done" means. Comment on it and it's yours.
+[ARCHITECTURE.md](ARCHITECTURE.md) explains how the engine fits together when
+you need the bigger picture.
 
 ### Development Guidelines
 
@@ -206,9 +214,44 @@ export function Button({ children, onClick, variant = 'primary' }: ButtonProps) 
 
 ### Tailwind CSS
 
-- Use the design system colors defined in `tailwind.config.ts`
+- Every colour, radius, duration and shadow comes from the design system — see
+  [Design](#design) below
 - Prefer utility classes over custom CSS
 - Use `cn()` helper from `lib/utils.ts` for conditional classes
+
+## Design
+
+**UI changes must comply with [`design/`](design/README.md).** This is a
+Definition-of-Done criterion, not a preference — read it before building
+anything visual. It is short, and most of it is a reference you will only need
+once.
+
+The short version:
+
+- Colour, type, shape, motion and elevation all come from
+  [`lib/design/tokens.ts`](lib/design/tokens.ts). Nothing else defines them.
+- No raw Tailwind palette classes (`bg-yellow-500`), no hex literals, no
+  off-scale values like `text-[13px]`. `npm run check` fails on all three.
+- Never build a class name by interpolation — `bg-track-${role}` produces no
+  CSS at all, because Tailwind extracts class names from source text. Use the
+  static maps in [`lib/design/track-colors.ts`](lib/design/track-colors.ts).
+- State colours (`destructive`, `success`, `warning`, `info`) mean state.
+  Anything merely categorical uses the track scale instead.
+- **Check both themes.** The tests cannot see a value that reads in one and
+  vanishes in the other, and that has already shipped here more than once.
+
+Changing a token:
+
+```bash
+# 1. Edit lib/design/tokens.ts
+npm run design:tokens      # rewrites globals.css, manifest.json and design/README.md
+npm run design:artboards   # optional — re-exports the reference PNGs (needs Chrome)
+```
+
+Never hand-edit a generated block.
+
+[`design/previews/`](design/previews/) holds live HTML artboards you can open in
+a browser to see the whole system at once — press `t` to switch themes.
 
 ## Reporting Bugs
 

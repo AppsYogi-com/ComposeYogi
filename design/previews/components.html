@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComposeYogi — Components</title>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./artboard.css">
+<style>
+/* ============================================
+   Component specimens
+   ============================================
+   Every rule below reads a token. Nothing here has its own colour, radius,
+   duration or shadow — if a specimen looks wrong, the token is wrong. */
+
+.btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+    background: hsl(var(--surface-elevated));
+    color: hsl(var(--foreground));
+    font: 500 13px/1 var(--font-sans);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--ease-out);
+}
+.btn.primary { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); border-color: transparent; }
+.btn.ghost { background: transparent; border-color: transparent; color: hsl(var(--muted-foreground)); }
+.btn.danger { background: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); border-color: transparent; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Transport — 48px of chrome, the app's tallest fixed rail */
+.transport {
+    display: flex; align-items: center; gap: 8px;
+    height: 48px; padding: 0 12px;
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+}
+.tbtn {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border: 0; border-radius: calc(var(--radius) - 2px);
+    background: transparent; color: hsl(var(--foreground));
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--ease-out);
+}
+.tbtn.on { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.tbtn.rec { color: hsl(var(--destructive)); }
+.readout {
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+    font-size: 15px; padding: 0 10px;
+    color: hsl(var(--foreground));
+}
+.divider { width: 1px; height: 24px; background: hsl(var(--border)); }
+
+/* Track header */
+.track {
+    display: flex; flex-direction: column; gap: 8px;
+    width: 180px; padding: 10px;
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+}
+.track .top { display: flex; align-items: center; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: calc(var(--radius) - 4px); flex: none; }
+.track .name { font-size: 13px; font-weight: 500; flex: 1; }
+.fader { -webkit-appearance: none; appearance: none; height: 4px; width: 100%; border-radius: 999px; background: hsl(var(--input)); }
+.fader::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 999px; background: hsl(var(--primary)); }
+.fxbadge {
+    font: 700 10px/1 var(--font-sans); letter-spacing: 0.08em;
+    padding: 3px 4px; border-radius: calc(var(--radius) - 6px);
+    background: hsl(var(--track-fx) / 0.15);
+    color: hsl(var(--track-fx));
+    border: 1px solid hsl(var(--track-fx) / 0.3);
+}
+
+/* Clips */
+.lane {
+    position: relative; height: 72px;
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+    overflow: hidden;
+}
+.clip {
+    position: absolute; inset: 4px;
+    border-radius: calc(var(--radius) - 4px);
+    box-shadow: var(--shadow-clip);
+    font: 500 10px/1 var(--font-sans);
+    color: hsl(var(--background)); padding: 5px 6px;
+    transition: box-shadow var(--motion-base) var(--ease-out);
+}
+.clip.hover { box-shadow: var(--shadow-clip-hover); }
+.clip.selected { box-shadow: 0 0 0 2px hsl(var(--ring)), 0 0 16px hsl(var(--ring) / 0.55), var(--shadow-clip-hover); filter: brightness(1.2); }
+.clip.muted { opacity: 0.4; }
+
+/* Sequencer + piano roll */
+.steps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+.step { aspect-ratio: 1; border-radius: calc(var(--radius) - 6px); background: hsl(var(--muted) / 0.3); }
+.step.on { background: hsl(var(--drum-kick)); }
+.step.beat { background: hsl(var(--muted) / 0.55); }
+.keys { display: flex; flex-direction: column; width: 92px; border-radius: calc(var(--radius) - 4px); overflow: hidden; }
+.key { height: 20px; font: 500 10px/20px var(--font-sans); text-align: right; padding-right: 6px; }
+.key.w { background: hsl(var(--piano-white)); color: hsl(var(--piano-white-foreground)); border-bottom: 1px solid rgb(0 0 0 / 0.15); }
+.key.b { background: hsl(var(--piano-black)); color: hsl(var(--piano-black-foreground)); border-bottom: 1px solid rgb(0 0 0 / 0.4); }
+
+/* Fields */
+.field {
+    height: 32px; padding: 0 10px; width: 100%;
+    background: hsl(var(--input));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+    color: hsl(var(--foreground)); font: 400 13px/1 var(--font-sans);
+}
+.field.focus { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+
+/* Status */
+.banner {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: calc(var(--radius) - 2px);
+    font-size: 12.5px;
+}
+.banner.warning { background: hsl(var(--warning) / 0.1); border: 1px solid hsl(var(--warning) / 0.3); color: hsl(var(--warning)); }
+.banner.success { background: hsl(var(--success) / 0.1); border: 1px solid hsl(var(--success) / 0.3); color: hsl(var(--success)); }
+.banner.info    { background: hsl(var(--info) / 0.1);    border: 1px solid hsl(var(--info) / 0.3);    color: hsl(var(--info)); }
+.banner.danger  { background: hsl(var(--destructive) / 0.1); border: 1px solid hsl(var(--destructive) / 0.3); color: hsl(var(--destructive)); }
+.kbd {
+    font: 500 10px/1 var(--font-mono); padding: 3px 5px;
+    background: hsl(var(--muted)); border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 6px); color: hsl(var(--muted-foreground));
+}
+
+/* Panels */
+.panel { background: hsl(var(--surface)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); box-shadow: var(--shadow-panel); overflow: hidden; }
+.panel .head { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font: 600 11px/1 var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+.panel .body { padding: 12px; }
+.item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: calc(var(--radius) - 2px); font-size: 13px; }
+.item.sel { background: hsl(var(--accent) / 0.12); color: hsl(var(--accent)); }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="masthead">
+    <h1>Components</h1>
+    <span class="theme" id="theme-label">dark</span>
+  </div>
+  <p class="lede">
+    The studio's parts, built only from tokens. Press <span class="kbd">T</span> to switch themes —
+    anything that breaks when you do is a token used in the wrong role.
+  </p>
+
+  <h2>Transport</h2>
+  <p class="note">48px of fixed chrome. Amber marks what is on; the record button is the only thing in the product that animates on a timer.</p>
+  <div class="transport" style="margin-top:18px">
+    <button class="tbtn">&#9198;</button>
+    <button class="tbtn on">&#9654;</button>
+    <button class="tbtn">&#9632;</button>
+    <button class="tbtn rec">&#9679;</button>
+    <div class="divider"></div>
+    <span class="readout">017.3.2</span>
+    <span class="readout dim">00:48.21</span>
+    <div class="divider"></div>
+    <span class="readout">128.0</span>
+    <span class="dim" style="font-size:12px">BPM</span>
+    <div class="divider"></div>
+    <button class="tbtn on" title="Loop">&#8635;</button>
+    <button class="tbtn" title="Metronome">&#9834;</button>
+  </div>
+
+  <h2>Buttons</h2>
+  <p class="note">Four intents. A resting control never wears the accent.</p>
+  <div class="row" style="margin-top:18px">
+    <button class="btn primary">Export</button>
+    <button class="btn">Add track</button>
+    <button class="btn ghost">Cancel</button>
+    <button class="btn danger">Delete clip</button>
+    <button class="btn" disabled>Unavailable</button>
+  </div>
+
+  <h2>Track headers</h2>
+  <p class="note">One lookup drives the dot, the clip and the browser row. Six roles, spread so that none of them can be mistaken for the accent.</p>
+  <div class="grid c4" style="margin-top:18px">
+    <div class="track"><div class="top"><span class="dot" style="background:hsl(var(--track-drums))"></span><span class="name">Drums</span><span class="fxbadge">REV</span></div><input class="fader" type="range" value="78"></div>
+    <div class="track"><div class="top"><span class="dot" style="background:hsl(var(--track-bass))"></span><span class="name">Sub Bass</span></div><input class="fader" type="range" value="64"></div>
+    <div class="track"><div class="top"><span class="dot" style="background:hsl(var(--track-keys))"></span><span class="name">E-Piano</span><span class="fxbadge">DLY</span></div><input class="fader" type="range" value="52"></div>
+    <div class="track"><div class="top"><span class="dot" style="background:hsl(var(--track-melody))"></span><span class="name">Melody</span></div><input class="fader" type="range" value="70"></div>
+  </div>
+
+  <h2>Clip states</h2>
+  <p class="note">Selection is a ring in the focus colour, not a white glow — so it holds in either theme.</p>
+  <div class="grid c4" style="margin-top:18px">
+    <div><div class="lane"><div class="clip" style="background:hsl(var(--track-drums))">Lo-Fi Beat</div></div><div class="label" style="margin-top:8px">rest</div></div>
+    <div><div class="lane"><div class="clip hover" style="background:hsl(var(--track-keys))">Dusty Keys</div></div><div class="label" style="margin-top:8px">hover</div></div>
+    <div><div class="lane"><div class="clip selected" style="background:hsl(var(--track-bass))">Deep Sub</div></div><div class="label" style="margin-top:8px">selected</div></div>
+    <div><div class="lane"><div class="clip muted" style="background:hsl(var(--track-melody))">Chill Melody</div></div><div class="label" style="margin-top:8px">muted</div></div>
+  </div>
+
+  <h2>Editors</h2>
+  <p class="note">The two dense surfaces. Steps and notes use the smallest radius; the piano keeps its own black and white in both themes.</p>
+  <div class="grid c2" style="margin-top:18px; align-items:start">
+    <div class="card">
+      <div class="label">Drum sequencer &middot; one lane, 16 steps</div>
+      <div class="steps">
+        <div class="step on"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        <div class="step beat"></div><div class="step"></div><div class="step on"></div><div class="step"></div>
+        <div class="step on"></div><div class="step"></div><div class="step"></div><div class="step"></div>
+        <div class="step beat"></div><div class="step"></div><div class="step on"></div><div class="step"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">Piano roll &middot; key rail</div>
+      <div class="keys">
+        <div class="key w">C4</div><div class="key b">B3</div><div class="key w">A3</div>
+        <div class="key b">G&#9839;3</div><div class="key w">G3</div><div class="key b">F&#9839;3</div><div class="key w">F3</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Fields</h2>
+  <p class="note">Focus is always visible: 2px ring, 2px offset. Never removed, only replaced by something at least as loud.</p>
+  <div class="grid c3" style="margin-top:18px; align-items:start">
+    <div class="card"><div class="label">rest</div><input class="field" value="Untitled Project"></div>
+    <div class="card"><div class="label">focused</div><input class="field focus" value="Lo-Fi Study"></div>
+    <div class="card"><div class="label">numeric</div><input class="field mono" value="128.0"></div>
+  </div>
+
+  <h2>Status</h2>
+  <p class="note">State colours are reserved for state. Anything merely categorical takes the track scale instead.</p>
+  <div class="grid c2" style="margin-top:18px; align-items:start">
+    <div class="banner success">&#10003;&nbsp; Exported Lo-Fi Study.wav</div>
+    <div class="banner warning">&#9888;&nbsp; You are offline. Your project is saved on this device.</div>
+    <div class="banner info">&#9432;&nbsp; MIDI export carries notes, not instruments.</div>
+    <div class="banner danger">&#9888;&nbsp; Deleting this track removes 4 clips.</div>
+  </div>
+
+  <h2>Panels</h2>
+  <p class="note">Chrome recedes, content does not. Selection in a list is an accent wash, never a fill.</p>
+  <div class="grid c3" style="margin-top:18px; align-items:start">
+    <div class="panel">
+      <div class="head">Browser</div>
+      <div class="body">
+        <div class="item sel"><span class="dot" style="background:hsl(var(--track-keys))"></span> Rhodes Mk I</div>
+        <div class="item"><span class="dot" style="background:hsl(var(--track-bass))"></span> Sub Bass</div>
+        <div class="item"><span class="dot" style="background:hsl(var(--track-drums))"></span> Boom Bap Kit</div>
+        <div class="item"><span class="dot" style="background:hsl(var(--track-fx))"></span> Tape Delay</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="head">Inspector</div>
+      <div class="body">
+        <div class="label" style="margin-bottom:6px">Key</div>
+        <input class="field" value="C minor" style="margin-bottom:12px">
+        <div class="label" style="margin-bottom:6px">Time signature</div>
+        <input class="field mono" value="4/4">
+      </div>
+    </div>
+    <div class="panel">
+      <div class="head">Shortcuts</div>
+      <div class="body">
+        <div class="item"><span class="kbd">Space</span> <span class="dim">Play / pause</span></div>
+        <div class="item"><span class="kbd">B</span> <span class="dim">Browser</span></div>
+        <div class="item"><span class="kbd">E</span> <span class="dim">Editor</span></div>
+        <div class="item"><span class="kbd">&#8984;Z</span> <span class="dim">Undo</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Theme comes from ?theme=light so the export script can capture both without
+// driving the page, and `t` toggles it for anyone reading interactively.
+const root = document.documentElement;
+const wanted = new URLSearchParams(location.search).get('theme');
+if (wanted === 'light') root.classList.remove('dark');
+
+function label() {
+  document.getElementById('theme-label').textContent =
+    root.classList.contains('dark') ? 'dark' : 'light';
+}
+label();
+document.addEventListener('keydown', (e) => {
+  if (e.key === 't') { root.classList.toggle('dark'); label(); }
+});
+</script>
+</body>
+</html>
