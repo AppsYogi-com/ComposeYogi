@@ -167,7 +167,9 @@ composeyogi.com/
 │   ├── audio/              # Tone.js wrappers, recording, export
 │   ├── store/              # Zustand stores
 │   ├── persistence/        # IndexedDB operations
-│   └── canvas/             # Canvas renderers
+│   ├── canvas/             # Canvas renderers
+│   └── design/             # Design tokens — the source of every colour
+├── design/                 # The design system: rules, artboards, previews
 ├── hooks/                  # Custom React hooks
 ├── types/                  # TypeScript definitions
 ├── tests/                  # Vitest suites
@@ -222,6 +224,11 @@ New to the codebase? **[ARCHITECTURE.md](ARCHITECTURE.md)** explains how the
 audio engine, state and persistence fit together, and where the sharp edges are.
 Issues labelled [`good first issue`](https://github.com/AppsYogi-com/ComposeYogi/labels/good%20first%20issue)
 are scoped to be picked up without reading the whole thing first.
+
+Building anything visual? **[design/](design/README.md)** is the design system —
+tokens, usage rules and artboards. Every colour, radius and duration in the
+product comes from one source, and `npm run check` fails if a component invents
+its own. Read it before you start; it will save you a review round.
 
 ## License
 

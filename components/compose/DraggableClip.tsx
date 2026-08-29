@@ -338,7 +338,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                         + Copy
                     </div>
                     <div className="flex h-full flex-col p-1 px-2">
-                        <span className="truncate text-2xs font-medium text-white/90">
+                        <span className="truncate text-2xs font-medium text-clip-foreground/90">
                             {clip.name}
                         </span>
                     </div>
@@ -369,7 +369,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                         }`}
                     style={{ cursor: 'ew-resize' }}
                 >
-                    <div className="absolute inset-y-1 left-0.5 w-0.5 rounded-full bg-white/50" />
+                    <div className="absolute inset-y-1 left-0.5 w-0.5 rounded-full bg-clip-foreground/50" />
                 </div>
 
                 {/* Right resize handle - visible on hover/select */}
@@ -378,7 +378,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                         }`}
                     style={{ cursor: 'ew-resize' }}
                 >
-                    <div className="absolute inset-y-1 right-0.5 w-0.5 rounded-full bg-white/50" />
+                    <div className="absolute inset-y-1 right-0.5 w-0.5 rounded-full bg-clip-foreground/50" />
                 </div>
 
                 {/* Clip content */}
@@ -396,7 +396,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                     />
                 ) : (
                     <div className="flex h-full flex-col p-1 px-2">
-                        <span className="truncate text-2xs font-medium text-white/90">
+                        <span className="truncate text-2xs font-medium text-clip-foreground/90">
                             {clip.name}
                         </span>
                         {/* MIDI/Drum pattern preview would go here */}

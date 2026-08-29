@@ -36,6 +36,7 @@
     "test:watch": "vitest",
     "validate:locales": "node scripts/validate-locales.js",
     "design:tokens": "node scripts/generate-design-tokens.js",
+    "design:artboards": "node scripts/export-artboards.js",
     "validate:tokens": "node scripts/generate-design-tokens.js --check",
     "prebuild": "npm run validate:locales && npm run validate:tokens && npm run type-check && npm run lint:warn",
     "check": "npm run validate:locales && npm run validate:tokens && npm run type-check && npm run lint && npm run test"

@@ -380,8 +380,8 @@ export function PianoRoll({ clip }: PianoRollProps) {
                                 className={`
                                     flex-shrink-0 flex items-center justify-end pr-1.5 text-2xs font-medium transition-all
                                     ${isBlack
-                                        ? 'bg-piano-black text-piano-black-foreground border-b border-black/40'
-                                        : 'bg-piano-white text-piano-white-foreground border-b border-black/15'
+                                        ? 'bg-piano-black text-piano-black-foreground border-b border-scrim/40'
+                                        : 'bg-piano-white text-piano-white-foreground border-b border-scrim/15'
                                     }
                                     ${isInScale(pitch) ? '' : 'opacity-40'}
                                     hover:brightness-110 active:brightness-90
@@ -563,7 +563,7 @@ const NoteBlock = memo(function NoteBlock({
         >
             {/* Resize handle (right edge) */}
             <div
-                className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/50 active:bg-white/70"
+                className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-clip-foreground/50 active:bg-clip-foreground/70"
                 onMouseDown={onResizeStart}
             />
         </div>

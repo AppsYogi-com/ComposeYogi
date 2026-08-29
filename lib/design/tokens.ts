@@ -72,7 +72,11 @@ export interface ThemeColors {
     /** The playhead. Deliberately the one red that is never a button. */
     playhead: Hsl;
 
-    // Instrument surfaces — see the note on the piano keys in DARK below.
+    // Fixed surfaces — see the note in DARK below.
+    /** Modal scrims and any wash that darkens what is behind it. */
+    scrim: Hsl;
+    /** Labels and handles drawn on top of a filled colour: clips, braces, notes. */
+    'clip-foreground': Hsl;
     'piano-white': Hsl;
     'piano-white-foreground': Hsl;
     'piano-black': Hsl;
@@ -142,6 +146,12 @@ export const DARK: ThemeColors = {
     // themes. They are still tokens rather than literals: a fixed colour that
     // is deliberately fixed belongs in the system, where the decision is
     // visible, not scattered through a component as `bg-zinc-800`.
+    // Fixed in both themes, and for the same reason: a scrim darkens whatever
+    // is behind it, and a clip label sits on a saturated colour rather than on
+    // a theme surface. Neither has anything to invert against.
+    scrim: '30 8% 4%',
+    'clip-foreground': '40 15% 98%',
+
     'piano-white': '40 12% 92%',
     'piano-white-foreground': '30 8% 28%',
     'piano-black': '30 6% 16%',
@@ -206,6 +216,12 @@ export const LIGHT: ThemeColors = {
     playhead: '358 75% 50%',
 
     // Identical to the dark theme — see the note in DARK.
+    // Fixed in both themes, and for the same reason: a scrim darkens whatever
+    // is behind it, and a clip label sits on a saturated colour rather than on
+    // a theme surface. Neither has anything to invert against.
+    scrim: '30 8% 4%',
+    'clip-foreground': '40 15% 98%',
+
     'piano-white': '40 12% 92%',
     'piano-white-foreground': '30 8% 28%',
     'piano-black': '30 6% 16%',
@@ -402,9 +418,10 @@ export const COLOR_GROUPS: { title: string; note: string; tokens: (keyof ThemeCo
         tokens: ['playhead'],
     },
     {
-        title: 'Instrument surfaces',
-        note: 'Fixed in both themes on purpose — a piano does not restyle.',
+        title: 'Fixed surfaces',
+        note: 'Identical in both themes on purpose — nothing here has a theme to invert against.',
         tokens: [
+            'scrim', 'clip-foreground',
             'piano-white', 'piano-white-foreground',
             'piano-black', 'piano-black-foreground',
         ],

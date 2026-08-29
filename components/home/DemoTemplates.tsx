@@ -43,8 +43,8 @@ export function DemoTemplates() {
                         </div>
 
                         {/* Play overlay on hover */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl">
-                            <div className="flex items-center gap-1.5 text-white text-sm font-semibold">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-scrim/60 backdrop-blur-sm rounded-xl">
+                            <div className="flex items-center gap-1.5 text-clip-foreground text-sm font-semibold">
                                 <Play className="h-5 w-5 fill-current" />
                                 {t('playButton')}
                             </div>

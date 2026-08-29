@@ -70,7 +70,9 @@
         /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
         --playhead: 358 75% 50%;
 
-        /* Instrument surfaces — Fixed in both themes on purpose — a piano does not restyle. */
+        /* Fixed surfaces — Identical in both themes on purpose — nothing here has a theme to invert against. */
+        --scrim: 30 8% 4%;
+        --clip-foreground: 40 15% 98%;
         --piano-white: 40 12% 92%;
         --piano-white-foreground: 30 8% 28%;
         --piano-black: 30 6% 16%;
@@ -134,7 +136,9 @@
         /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
         --playhead: 358 85% 62%;
 
-        /* Instrument surfaces — Fixed in both themes on purpose — a piano does not restyle. */
+        /* Fixed surfaces — Identical in both themes on purpose — nothing here has a theme to invert against. */
+        --scrim: 30 8% 4%;
+        --clip-foreground: 40 15% 98%;
         --piano-white: 40 12% 92%;
         --piano-white-foreground: 30 8% 28%;
         --piano-black: 30 6% 16%;

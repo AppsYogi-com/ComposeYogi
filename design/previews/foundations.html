@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComposeYogi — Foundations</title>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./artboard.css">
+</head>
+<body>
+<div class="sheet">
+
+  <div class="masthead">
+    <h1>Foundations</h1>
+    <span class="theme" id="theme-label">dark</span>
+  </div>
+  <p class="lede">
+    Nothing on this page is written into its markup. The swatches, scales and
+    specimens are all built from <code class="mono">tokens.json</code> and read back from
+    the browser's own computed styles &mdash; both generated from
+    <code class="mono">lib/design/tokens.ts</code>. Press <b>T</b> to switch themes.
+    If something here looks wrong, the token is wrong.
+  </p>
+
+  <div id="sheet"></div>
+
+</div>
+
+<script>
+// ============================================
+// The artboard builds itself
+// ============================================
+//
+// Enumerating the tokens at runtime is the point: a hand-written swatch list
+// stops showing new tokens the moment someone adds one, which is the same class
+// of drift that made the track palette disagree with itself in the first place.
+
+const root = document.documentElement;
+const wanted = new URLSearchParams(location.search).get('theme');
+if (wanted === 'light') root.classList.remove('dark');
+
+const el = (tag, cls, text) => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
+
+function section(title, note) {
+  const frag = document.createDocumentFragment();
+  frag.append(el('h2', null, title));
+  if (note) frag.append(el('p', 'note', note));
+  return frag;
+}
+
+function grid(columns, children) {
+  const node = el('div', 'grid c' + columns);
+  children.forEach((child) => node.append(child));
+  return node;
+}
+
+function swatch(name) {
+  const card = el('div', 'swatch');
+  const fill = el('div', 'fill');
+  fill.style.background = 'hsl(var(--' + name + '))';
+  const meta = el('div', 'meta');
+  meta.append(el('div', 'name', name));
+  const value = el('div', 'val');
+  value.dataset.token = name;
+  meta.append(value);
+  card.append(fill, meta);
+  return card;
+}
+
+function specimen(label, body, caption) {
+  const card = el('div', 'card');
+  card.append(el('div', 'label', label));
+  card.append(body);
+  if (caption) card.append(el('div', 'val dim', caption));
+  return card;
+}
+
+function build(tokens) {
+  const sheet = document.getElementById('sheet');
+
+  for (const group of tokens.groups) {
+    sheet.append(section(group.title, group.note));
+    sheet.append(grid(6, group.tokens.map(swatch)));
+  }
+
+  sheet.append(section(
+    'Type scale',
+    'Inter for everything read, JetBrains Mono for everything counted. text-xs is the DAW default; text-2xs is the floor.'
+  ));
+  sheet.append(grid(3, Object.entries(tokens.type).map(([step, meta]) => {
+    const line = el('div', null, 'Make real music');
+    line.style.fontSize = meta.size;
+    line.style.lineHeight = meta.leading;
+    return specimen('text-' + step + ' · ' + meta.size, line, meta.use);
+  })));
+
+  sheet.append(section(
+    'Counting type',
+    'Tabular figures, so digits stop jittering as the transport runs.'
+  ));
+  sheet.append(grid(4, [
+    ['Bar : beat : tick', '017.3.2'],
+    ['Timecode', '00:48.21'],
+    ['Tempo', '128.0'],
+    ['Gain', '-6.0 dB'],
+  ].map(([label, value]) => {
+    const line = el('div', 'mono', value);
+    line.style.fontSize = '22px';
+    return specimen(label, line);
+  })));
+
+  sheet.append(section(
+    'Shape',
+    'One base, four derivations, chosen by what the thing is — not by how round it should look.'
+  ));
+  sheet.append(grid(6, Object.entries(tokens.radius).map(([step, value]) => {
+    const chip = el('div');
+    chip.style.cssText =
+      'height:56px;background:hsl(var(--accent));border-radius:' + value + ';margin-bottom:10px';
+    const card = el('div', 'card');
+    card.style.textAlign = 'center';
+    card.append(chip, el('div', 'label', 'rounded-' + step));
+    card.lastChild.style.margin = '0';
+    return card;
+  })));
+
+  sheet.append(section(
+    'Motion',
+    '120–160ms is the design language. 80ms exists for grid interactions where 120ms already reads as lag.'
+  ));
+  sheet.append(grid(4, Object.entries(tokens.motion).map(([name, value]) => {
+    const line = el('div', 'mono', value);
+    line.style.fontSize = '20px';
+    return specimen('duration-' + name, line);
+  })));
+  sheet.append(grid(2, Object.entries(tokens.easing).map(([name, value]) => {
+    const line = el('div', 'mono dim', value);
+    line.style.fontSize = '13px';
+    return specimen(name === 'inOut' ? 'ease-in-out' : 'ease-out', line);
+  })));
+
+  sheet.append(section('Elevation', 'Four steps. Depth, not decoration — same depth, same shadow.'));
+  sheet.append(grid(4, Object.entries(tokens.elevation).map(([name, value]) => {
+    const block = el('div');
+    block.style.cssText =
+      'height:56px;background:hsl(var(--surface-elevated));border-radius:var(--radius);' +
+      'box-shadow:' + value + ';margin-bottom:12px';
+    const card = el('div', 'card');
+    card.style.background = 'hsl(var(--background))';
+    card.append(block, el('div', 'label', 'shadow-' + name));
+    card.lastChild.style.margin = '0';
+    return card;
+  })));
+
+  sheet.append(section('Layout', 'Fixed chrome dimensions. Spacing is Tailwind’s default 4px scale and is not redefined.'));
+  sheet.append(grid(4, Object.entries(tokens.layout).map(([name, value]) => {
+    const line = el('div', 'mono', value);
+    line.style.fontSize = '20px';
+    return specimen(name, line);
+  })));
+}
+
+// Captions show what the browser actually computed, not a number written into
+// the page — so the artboard cannot claim a colour it is not showing.
+function refresh() {
+  const styles = getComputedStyle(root);
+  document.querySelectorAll('[data-token]').forEach((node) => {
+    node.textContent = styles.getPropertyValue('--' + node.dataset.token).trim();
+  });
+  document.getElementById('theme-label').textContent =
+    root.classList.contains('dark') ? 'dark' : 'light';
+}
+
+fetch('./tokens.json')
+  .then((response) => response.json())
+  .then((tokens) => { build(tokens); refresh(); })
+  .catch(() => {
+    document.getElementById('sheet').append(
+      el('p', 'note', 'Could not load tokens.json — serve this folder over HTTP rather than opening the file directly.')
+    );
+  });
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 't') { root.classList.toggle('dark'); refresh(); }
+});
+</script>
+</body>
+</html>

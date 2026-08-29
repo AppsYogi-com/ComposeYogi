@@ -72,17 +72,21 @@ describe('colour lives in the token system', () => {
     ].join('|');
 
     it('uses no raw Tailwind palette classes', () => {
+        // `white` and `black` are in here too: they have no numeric suffix, so a
+        // palette-only pattern misses them, and `bg-black/60` is exactly as much
+        // an untracked colour as `bg-zinc-900`.
         const hits = scan(
             new RegExp(
                 `\\b(?:bg|text|border|from|to|via|ring|divide|fill|stroke|placeholder)` +
-                `-(?:${PALETTE})-[0-9]{2,3}\\b`,
+                `-(?:(?:${PALETTE})-[0-9]{2,3}|white|black)\\b`,
                 'g'
             )
         );
         expect(
             hits,
             'Use a semantic token instead: destructive / success / warning / info for state, ' +
-            'or the track scale for things that need telling apart. See design/README.md.'
+            'the track scale for things that need telling apart, scrim for an overlay, ' +
+            'or clip-foreground for a label on a filled colour. See design/README.md.'
         ).toEqual([]);
     });
 

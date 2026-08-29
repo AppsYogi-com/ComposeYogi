@@ -23,9 +23,15 @@ const ROOT = path.join(__dirname, '..');
 const TOKENS_TS = path.join(ROOT, 'lib', 'design', 'tokens.ts');
 const GLOBALS_CSS = path.join(ROOT, 'app', 'globals.css');
 const MANIFEST = path.join(ROOT, 'public', 'manifest.json');
+const DESIGN_README = path.join(ROOT, 'design', 'README.md');
+const PREVIEW_CSS = path.join(ROOT, 'design', 'previews', 'tokens.css');
+const PREVIEW_JSON = path.join(ROOT, 'design', 'previews', 'tokens.json');
 
 const BEGIN = '/* === BEGIN generated design tokens — npm run design:tokens === */';
 const END = '/* === END generated design tokens === */';
+
+const DOC_BEGIN = '<!-- === BEGIN generated token reference === -->';
+const DOC_END = '<!-- === END generated token reference === -->';
 
 // ============================================
 // Load the TypeScript token module
@@ -131,20 +137,154 @@ function build(tokens) {
 // ============================================
 
 function splice(css, block) {
-    const start = css.indexOf(BEGIN);
-    const end = css.indexOf(END);
+    return spliceMarkers(css, block, BEGIN, END, 'app/globals.css');
+}
 
-    if (start === -1 || end === -1) {
-        throw new Error(
-            `app/globals.css is missing the generated token markers.\n` +
-            `Expected to find:\n  ${BEGIN}\n  ${END}`
-        );
-    }
-    if (end < start) {
-        throw new Error('The END marker appears before the BEGIN marker in app/globals.css.');
+// ============================================
+// Standalone token stylesheet for the artboards
+// ============================================
+//
+// design/previews/*.html open straight from disk with no build step, so they
+// need the tokens as plain CSS. Same source, so an artboard cannot show a
+// palette the product no longer has.
+
+function previewCss(tokens) {
+    // Everything before the `:root {` line is the markers and the CSS file's own
+    // header; the artboards get their own. The wrapping @layer base goes too —
+    // this is not a Tailwind project, so that layer would be undeclared here.
+    const generated = build(tokens);
+    const block = generated
+        .slice(generated.indexOf('    :root {'), generated.lastIndexOf('}\n' + END))
+        .split('\n')
+        .map((line) => (line.startsWith('    ') ? line.slice(4) : line))
+        .join('\n');
+
+    return [
+        '/*',
+        ' * Generated from lib/design/tokens.ts by scripts/generate-design-tokens.js.',
+        ' * Do not edit — run `npm run design:tokens`.',
+        ' *',
+        ' * Standalone copy of the design tokens for the artboards in this folder,',
+        ' * which open directly in a browser without the app build.',
+        ' */',
+        block.trimEnd(),
+        '',
+    ].join('\n');
+}
+
+// ============================================
+// Machine-readable tokens for the artboards
+// ============================================
+//
+// design/previews/foundations.html builds itself from this rather than having
+// swatches written into its markup. An artboard with a hand-authored list of
+// tokens is an artboard that silently stops showing new ones — which is exactly
+// the drift this whole pipeline exists to prevent.
+
+function previewJson(tokens) {
+    const { COLOR_GROUPS, RADIUS, MOTION, EASING, ELEVATION, LAYOUT, TYPE_SCALE } = tokens;
+    return JSON.stringify(
+        {
+            _generated: 'lib/design/tokens.ts — do not edit, run `npm run design:tokens`',
+            groups: COLOR_GROUPS,
+            type: TYPE_SCALE,
+            radius: RADIUS,
+            motion: MOTION,
+            easing: { out: EASING.out, inOut: EASING.inOut },
+            elevation: ELEVATION,
+            layout: LAYOUT,
+        },
+        null,
+        4
+    ) + '\n';
+}
+
+// ============================================
+// The token reference in design/README.md
+// ============================================
+//
+// The design doc's tables are the third generated surface. A hand-maintained
+// table of colour values is the most reliable way to end up with documentation
+// that quietly describes a product you no longer ship.
+
+function swatch(hslToHex, hsl) {
+    const hex = hslToHex(hsl);
+    // GitHub renders a colour chip for a bare hex in backticks inside a table.
+    return `\`${hex}\``;
+}
+
+function docBlock(tokens) {
+    const { DARK, LIGHT, COLOR_GROUPS, RADIUS, MOTION, EASING, ELEVATION, LAYOUT, TYPE_SCALE, hslToHex } = tokens;
+    const out = [DOC_BEGIN, ''];
+
+    out.push('### Colour tokens', '');
+    for (const group of COLOR_GROUPS) {
+        out.push(`#### ${group.title}`, '', `*${group.note}*`, '');
+        out.push('| Token | Class | Dark | Light |');
+        out.push('|---|---|---|---|');
+        for (const name of group.tokens) {
+            out.push(
+                `| \`--${name}\` | \`${name}\` | ${swatch(hslToHex, DARK[name])} ` +
+                `\`${DARK[name]}\` | ${swatch(hslToHex, LIGHT[name])} \`${LIGHT[name]}\` |`
+            );
+        }
+        out.push('');
     }
 
-    return css.slice(0, start) + block + css.slice(end + END.length);
+    out.push('### Type scale', '');
+    out.push('| Step | Size | Line height | Use |');
+    out.push('|---|---|---|---|');
+    for (const [step, meta] of Object.entries(TYPE_SCALE)) {
+        out.push(`| \`text-${step}\` | ${meta.size} | ${meta.leading} | ${meta.use} |`);
+    }
+    out.push('');
+
+    out.push('### Shape scale', '');
+    out.push('| Step | Value |');
+    out.push('|---|---|');
+    for (const [step, value] of Object.entries(RADIUS)) {
+        out.push(`| \`rounded-${step}\` | \`${value}\` |`);
+    }
+    out.push('');
+
+    out.push('### Motion tokens', '');
+    out.push('| Token | Value |');
+    out.push('|---|---|');
+    for (const [name, value] of Object.entries(MOTION)) {
+        out.push(`| \`duration-${name}\` | ${value} |`);
+    }
+    out.push(`| \`ease-out\` | \`${EASING.out}\` |`);
+    out.push(`| \`ease-in-out\` | \`${EASING.inOut}\` |`);
+    out.push('');
+
+    out.push('### Elevation tokens', '');
+    out.push('| Token | Value |');
+    out.push('|---|---|');
+    for (const [name, value] of Object.entries(ELEVATION)) {
+        out.push(`| \`shadow-${name}\` | \`${value}\` |`);
+    }
+    out.push('');
+
+    out.push('### Layout constants', '');
+    out.push('| Token | Value |');
+    out.push('|---|---|');
+    for (const [name, value] of Object.entries(LAYOUT)) {
+        out.push(`| \`${name}\` | ${value} |`);
+    }
+    out.push('');
+
+    out.push(DOC_END);
+    return out.join('\n');
+}
+
+function spliceMarkers(text, block, begin, end, file) {
+    const start = text.indexOf(begin);
+    const stop = text.indexOf(end);
+    if (start === -1 || stop === -1) {
+        throw new Error(`${file} is missing the generated markers:\n  ${begin}\n  ${end}`);
+    }
+    if (stop < start) throw new Error(`${file} has its END marker before its BEGIN marker.`);
+    return text.slice(0, start) + block + text.slice(stop + end.length);
 }
 
 // ============================================
@@ -175,12 +315,24 @@ function main() {
     const nextCss = splice(css, build(tokens));
     const manifest = manifestUpdate(tokens);
 
+    const doc = fs.readFileSync(DESIGN_README, 'utf8');
+    const nextDoc = spliceMarkers(doc, docBlock(tokens), DOC_BEGIN, DOC_END, 'design/README.md');
+
+    const css2 = fs.existsSync(PREVIEW_CSS) ? fs.readFileSync(PREVIEW_CSS, 'utf8') : '';
+    const nextCss2 = previewCss(tokens);
+
+    const json = fs.existsSync(PREVIEW_JSON) ? fs.readFileSync(PREVIEW_JSON, 'utf8') : '';
+    const nextJson = previewJson(tokens);
+
     const stale = [];
     if (nextCss !== css) stale.push('app/globals.css');
     if (manifest.next !== manifest.current) stale.push('public/manifest.json');
+    if (nextDoc !== doc) stale.push('design/README.md');
+    if (nextCss2 !== css2) stale.push('design/previews/tokens.css');
+    if (nextJson !== json) stale.push('design/previews/tokens.json');
 
     if (stale.length === 0) {
-        console.log('✓ app/globals.css and public/manifest.json match lib/design/tokens.ts');
+        console.log('✓ Every generated file matches lib/design/tokens.ts');
         return;
     }
 
@@ -192,6 +344,9 @@ function main() {
 
     if (nextCss !== css) fs.writeFileSync(GLOBALS_CSS, nextCss);
     if (manifest.next !== manifest.current) fs.writeFileSync(MANIFEST, manifest.next);
+    if (nextDoc !== doc) fs.writeFileSync(DESIGN_README, nextDoc);
+    if (nextCss2 !== css2) fs.writeFileSync(PREVIEW_CSS, nextCss2);
+    if (nextJson !== json) fs.writeFileSync(PREVIEW_JSON, nextJson);
     console.log(`✓ Wrote design tokens into ${stale.join(', ')}`);
 }
 

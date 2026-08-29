@@ -245,7 +245,7 @@ export const AudioClip = memo(function AudioClip({
     return (
         <div className="relative h-full w-full overflow-hidden">
             {/* Clip name */}
-            <span className="absolute left-1 top-0.5 z-10 truncate text-2xs font-medium text-white/90 drop-shadow-sm">
+            <span className="absolute left-1 top-0.5 z-10 truncate text-2xs font-medium text-clip-foreground/90 drop-shadow-sm">
                 {clip.name}
             </span>
 
@@ -258,15 +258,15 @@ export const AudioClip = memo(function AudioClip({
 
             {/* Loading state */}
             {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <div className="h-3 w-3 animate-spin rounded-full border border-white/50 border-t-transparent" />
+                <div className="absolute inset-0 flex items-center justify-center bg-scrim/20">
+                    <div className="h-3 w-3 animate-spin rounded-full border border-clip-foreground/50 border-t-transparent" />
                 </div>
             )}
 
             {/* Error state */}
             {error && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xs text-white/50">{error}</span>
+                    <span className="text-2xs text-clip-foreground/50">{error}</span>
                 </div>
             )}
         </div>
