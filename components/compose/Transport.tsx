@@ -24,7 +24,6 @@ import {
     Keyboard,
     ZoomIn,
     ZoomOut,
-    Minus,
 } from 'lucide-react';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { ExportModal } from './ExportModal';
@@ -89,6 +88,9 @@ export function Transport({
         isCountingIn,
         countInBars,
         toggleLoop,
+        metronomeEnabled,
+        metronomeVolume,
+        toggleMetronome: toggleMetronomeState,
     } = usePlaybackStore();
 
     // Zoom controls
@@ -101,7 +103,6 @@ export function Transport({
     const zoomPercentage = Math.round((zoom / 80) * 100);
 
     const [displayTime, setDisplayTime] = useState(0);
-    const [metronomeEnabled, setMetronomeEnabled] = useState(false);
     const [localBpm, setLocalBpm] = useState(project?.bpm || 120);
     const [isRecorderReady, setIsRecorderReady] = useState(false);
     const [recorderError, setRecorderError] = useState<string | null>(null);
@@ -176,10 +177,10 @@ export function Transport({
         if (metronomeEnabled) {
             audioEngine.stopMetronome();
         } else {
-            audioEngine.startMetronome();
+            audioEngine.startMetronome(metronomeVolume);
         }
-        setMetronomeEnabled(!metronomeEnabled);
-    }, [metronomeEnabled, isAudioReady]);
+        toggleMetronomeState();
+    }, [metronomeEnabled, metronomeVolume, toggleMetronomeState, isAudioReady]);
 
     const handleRecord = useCallback(async () => {
         if (!isAudioReady) return;
@@ -600,7 +601,7 @@ export function Transport({
                                     size="icon-sm"
                                     onClick={zoomOut}
                                 >
-                                    <Minus className="h-3.5 w-3.5" />
+                                    <ZoomOut className="h-3.5 w-3.5" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">

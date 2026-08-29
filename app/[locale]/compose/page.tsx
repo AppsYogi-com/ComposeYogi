@@ -144,7 +144,9 @@ function ComposePageContent() {
         }
     }, [isAudioReady]);
 
-    // Schedule clips when project changes or before playing
+    // Schedule clips when project changes or before playing.
+    // Held in a ref as well so the reschedule effect can stay keyed to the
+    // scheduling hashes below instead of re-firing on every project mutation.
     const scheduleClips = useCallback(async () => {
         if (project && isAudioReady) {
             await playoutManager.scheduleProject(project);
@@ -152,25 +154,40 @@ function ComposePageContent() {
         }
     }, [project, isAudioReady]);
 
-    // Calculate a hash of clip notes for change detection
-    // Include note content (pitch, beat, duration, velocity) so edits trigger rescheduling
+    const scheduleClipsRef = useRef(scheduleClips);
+    scheduleClipsRef.current = scheduleClips;
+
+    // Hash of everything that changes how a clip *sounds*. If a new feature
+    // affects clip audio, it must appear here or playback goes silently stale.
     const clipNotesHash = project?.clips.map(c => {
         const noteHash = c.notes?.map(n => `${n.pitch}.${n.startBeat}.${n.duration}.${n.velocity}`).join(';') || '';
-        return `${c.id}:${c.startBar}:${c.lengthBars}:${c.instrumentPreset || ''}:${noteHash}`;
+        // activeTakeId included so switching an audio take reschedules (#22)
+        return `${c.id}:${c.type}:${c.startBar}:${c.lengthBars}:${c.instrumentPreset || ''}:${c.activeTakeId || ''}:${c.trimStart || 0}:${c.trimEnd || 0}:${c.fadeIn || 0}:${c.fadeOut || 0}:${noteHash}`;
     }).join(',') || '';
+
+    // Track identity/instrument changes also require a reschedule (the synth is
+    // built at schedule time), but volume/pan/mute/solo deliberately do not.
+    const trackScheduleHash = project?.tracks.map(t =>
+        `${t.id}:${t.instrumentPreset || ''}:${t.color}`
+    ).join('|') || '';
 
     // Calculate hash for track effects to detect changes
     const trackEffectsHash = project?.tracks.map(t =>
-        `${t.id}:${(t.effects || []).map(e => `${e.id}-${JSON.stringify(e.params)}`).join(',')}`
+        `${t.id}:${(t.effects || []).map(e => `${e.id}-${e.active}-${JSON.stringify(e.params)}`).join(',')}`
+    ).join('|') || '';
+
+    // Mixer state — applied live, never by rescheduling
+    const mixerHash = project?.tracks.map(t =>
+        `${t.id}:${t.volume}:${t.pan}:${t.muted ? 1 : 0}:${t.solo ? 1 : 0}`
     ).join('|') || '';
 
     // Re-schedule clips when project clips or notes change
     useEffect(() => {
-        if (isAudioReady && project) {
-            scheduleClips();
+        if (isAudioReady) {
+            void scheduleClipsRef.current();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAudioReady, project?.clips.length, clipNotesHash, scheduleClips]);
+    }, [isAudioReady, project?.clips.length, clipNotesHash, trackScheduleHash]);
 
     // Sync track effects
     useEffect(() => {
@@ -181,6 +198,16 @@ function ComposePageContent() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [trackEffectsHash, isAudioReady]); // Only re-run if effects structure changes
+
+    // Sync mixer state (volume, pan, mute, solo) — ramps existing nodes instead
+    // of tearing down and rebuilding the schedule, so faders and solo are
+    // instant and never interrupt playback.
+    useEffect(() => {
+        if (project && isAudioReady) {
+            playoutManager.applyMixState(project.tracks);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mixerHash, isAudioReady]);
 
     // Sync BPM with audio engine
     useEffect(() => {

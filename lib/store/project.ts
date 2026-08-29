@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import { v4 as uuid } from 'uuid';
-import { TEMPLATES } from '@/lib/browser';
+import { loadDemoTemplate } from '@/lib/templates';
 import type {
     Project,
     Track,
@@ -132,88 +132,79 @@ const projectStoreBase = (
 
     // Project lifecycle
     createProject: (name, templateId) => {
+        // Templates carry real music: load the full arrangement (tracks, clips,
+        // notes and FX) rather than an empty shell of tracks.
+        if (templateId) {
+            const templateProject = loadDemoTemplate(templateId);
+            if (templateProject) {
+                const project = name ? { ...templateProject, name } : templateProject;
+                set(() => ({
+                    project,
+                    hasUnsavedChanges: true,
+                    lastSaved: null,
+                }));
+                return project;
+            }
+        }
+
         const project = createDefaultProject(name);
 
-        // Find template if provided
-        const template = templateId ? TEMPLATES.find(t => t.id === templateId) : null;
-
-        if (template) {
-            project.bpm = template.bpm;
-            project.key = template.key as MusicalKey;
-            project.scale = template.scale as MusicalScale;
-
-            project.tracks = template.tracks.map((t, index) => ({
+        // Add default starter tracks
+        const defaultTracks: Track[] = [
+            {
                 id: uuid(),
                 projectId: project.id,
-                name: t.name,
-                type: t.type,
-                color: t.color,
-                instrumentPreset: t.instrumentId,
+                name: 'Drums',
+                type: 'drum',
+                color: 'drums',
+                volume: 0.85,
+                pan: 0,
+                muted: false,
+                solo: false,
+                armed: false,
+                order: 0,
+            },
+            {
+                id: uuid(),
+                projectId: project.id,
+                name: 'Bass',
+                type: 'midi',
+                color: 'bass',
                 volume: 0.8,
                 pan: 0,
                 muted: false,
                 solo: false,
                 armed: false,
-                order: index,
-            }));
-        } else {
-            // Add default starter tracks
-            const defaultTracks: Track[] = [
-                {
-                    id: uuid(),
-                    projectId: project.id,
-                    name: 'Drums',
-                    type: 'drum',
-                    color: 'drums',
-                    volume: 0.85,
-                    pan: 0,
-                    muted: false,
-                    solo: false,
-                    armed: false,
-                    order: 0,
-                },
-                {
-                    id: uuid(),
-                    projectId: project.id,
-                    name: 'Bass',
-                    type: 'midi',
-                    color: 'bass',
-                    volume: 0.8,
-                    pan: 0,
-                    muted: false,
-                    solo: false,
-                    armed: false,
-                    order: 1,
-                },
-                {
-                    id: uuid(),
-                    projectId: project.id,
-                    name: 'Keys',
-                    type: 'midi',
-                    color: 'keys',
-                    volume: 0.75,
-                    pan: 0,
-                    muted: false,
-                    solo: false,
-                    armed: false,
-                    order: 2,
-                },
-                {
-                    id: uuid(),
-                    projectId: project.id,
-                    name: 'Melody',
-                    type: 'midi',
-                    color: 'melody',
-                    volume: 0.7,
-                    pan: 0,
-                    muted: false,
-                    solo: false,
-                    armed: false,
-                    order: 3,
-                },
-            ];
-            project.tracks = defaultTracks;
-        }
+                order: 1,
+            },
+            {
+                id: uuid(),
+                projectId: project.id,
+                name: 'Keys',
+                type: 'midi',
+                color: 'keys',
+                volume: 0.75,
+                pan: 0,
+                muted: false,
+                solo: false,
+                armed: false,
+                order: 2,
+            },
+            {
+                id: uuid(),
+                projectId: project.id,
+                name: 'Melody',
+                type: 'midi',
+                color: 'melody',
+                volume: 0.7,
+                pan: 0,
+                muted: false,
+                solo: false,
+                armed: false,
+                order: 3,
+            },
+        ];
+        project.tracks = defaultTracks;
 
         set(() => ({
             project,

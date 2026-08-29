@@ -4,7 +4,7 @@
 
 import { v4 as uuid } from 'uuid';
 import type { Project, Track, Clip, Note, TrackEffect } from '@/types';
-import { getDemoTemplate, type DemoTemplate } from './demo-templates';
+import { DEMO_TEMPLATES, getDemoTemplate, type DemoTemplate } from './demo-templates';
 
 /**
  * Loads a demo template and converts it to a full Project object
@@ -98,8 +98,6 @@ export function loadDemoTemplate(templateId: string): Project | null {
  * Get all available demo template metadata (for display in UI)
  */
 export function getDemoTemplateList() {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { DEMO_TEMPLATES } = require('./demo-templates');
     return DEMO_TEMPLATES.map((t: DemoTemplate) => ({
         id: t.id,
         name: t.name,

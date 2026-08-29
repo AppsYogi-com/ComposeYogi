@@ -3,6 +3,9 @@
 // Templates, Instruments, Samples, FX
 // ============================================
 
+import { SYNTH_PRESETS, SYNTH_PRESET_IDS, type SynthPresetId } from '@/lib/audio/synth-presets';
+import { DEMO_TEMPLATES } from '@/lib/templates/demo-templates';
+
 import type { TrackType, TrackColor } from '@/types';
 
 // ============================================
@@ -63,635 +66,151 @@ export interface FXPreset {
 // ============================================
 // Templates Data
 // ============================================
+//
+// Derived from DEMO_TEMPLATES — the single source of truth for template
+// content. The browser panel only needs the summary fields; clicking a card
+// loads the full arrangement (tracks *and* clips) through loadDemoTemplate.
+// Before this was derived, the panel had its own parallel list and loading a
+// template produced a silent project with no music in it.
 
-export const TEMPLATES: TemplateItem[] = [
-    {
-        id: 'lofi-chill',
-        name: 'Lo-Fi Chill',
-        emoji: '🎧',
-        description: 'Relaxed beats with dusty piano and vinyl crackle',
-        genre: 'Lo-Fi',
-        bpm: 85,
-        key: 'C',
-        scale: 'minor',
-        tracks: [
-            { name: 'Drums', type: 'drum', color: 'drums' },
-            { name: 'E-Piano', type: 'midi', color: 'keys', instrumentId: 'electric-piano' },
-            { name: 'Sub Bass', type: 'midi', color: 'bass', instrumentId: 'sub-bass' },
-            { name: 'Vinyl Any', type: 'midi', color: 'fx', instrumentId: 'warm-pad' },
-        ]
-    },
-    {
-        id: 'trap-beat',
-        name: 'Trap Beat',
-        emoji: '🔥',
-        description: 'Hard-hitting 808s with rolling hi-hats',
-        genre: 'Trap',
-        bpm: 140,
-        key: 'F',
-        scale: 'minor',
-        tracks: [
-            { name: 'Trap Drums', type: 'drum', color: 'drums' },
-            { name: '808 Bass', type: 'midi', color: 'bass', instrumentId: 'sub-bass' },
-            { name: 'Pluck', type: 'midi', color: 'melody', instrumentId: 'basic-synth' },
-            { name: 'Dark Pad', type: 'midi', color: 'fx', instrumentId: 'string-pad' },
-        ]
-    },
-    {
-        id: 'ambient',
-        name: 'Ambient',
-        emoji: '🌊',
-        description: 'Ethereal pads and gentle textures',
-        genre: 'Ambient',
-        bpm: 70,
-        key: 'A',
-        scale: 'major',
-        tracks: [
-            { name: 'Atmosphere', type: 'midi', color: 'fx', instrumentId: 'warm-pad' },
-            { name: 'Strings', type: 'midi', color: 'keys', instrumentId: 'string-pad' },
-            { name: 'Soft Keys', type: 'midi', color: 'keys', instrumentId: 'electric-piano' },
-        ]
-    },
-    {
-        id: 'afro-groove',
-        name: 'Afro Groove',
-        emoji: '💃',
-        description: 'Energetic rhythms with percussive elements',
-        genre: 'Afrobeats',
-        bpm: 105,
-        key: 'G',
-        scale: 'major',
-        tracks: [
-            { name: 'Afro Perc', type: 'drum', color: 'drums' },
-            { name: 'Log Drum', type: 'midi', color: 'bass', instrumentId: 'synth-bass' },
-            { name: 'Chords', type: 'midi', color: 'keys', instrumentId: 'bright-piano' },
-            { name: 'Lead', type: 'midi', color: 'melody', instrumentId: 'saw-lead' },
-        ]
-    },
-    {
-        id: 'pop-starter',
-        name: 'Pop Starter',
-        emoji: '🎵',
-        description: 'Modern pop foundation with catchy hooks',
-        genre: 'Pop',
-        bpm: 120,
-        key: 'C',
-        scale: 'major',
-        tracks: [
-            { name: 'Pop Drums', type: 'drum', color: 'drums' },
-            { name: 'Bass Guitar', type: 'midi', color: 'bass', instrumentId: 'synth-bass' },
-            { name: 'Piano', type: 'midi', color: 'keys', instrumentId: 'bright-piano' },
-            { name: 'Top Line', type: 'midi', color: 'melody', instrumentId: 'basic-synth' },
-        ]
-    },
-    {
-        id: 'edm-drop',
-        name: 'EDM Drop',
-        emoji: '⚡',
-        description: 'High-energy build-ups and drops',
-        genre: 'EDM',
-        bpm: 128,
-        key: 'A',
-        scale: 'minor',
-        tracks: [
-            { name: 'Big Drums', type: 'drum', color: 'drums' },
-            { name: 'Super Saw', type: 'midi', color: 'melody', instrumentId: 'saw-lead' },
-            { name: 'Sub Bass', type: 'midi', color: 'bass', instrumentId: 'sub-bass' },
-            { name: 'Growl', type: 'midi', color: 'fx', instrumentId: 'square-lead' },
-        ]
-    },
-];
+export const TEMPLATES: TemplateItem[] = DEMO_TEMPLATES.map((template) => ({
+    id: template.id,
+    name: template.name,
+    emoji: template.emoji,
+    description: template.description,
+    genre: template.genre,
+    bpm: template.bpm,
+    key: template.key,
+    scale: template.scale,
+    tracks: template.tracks.map((track) => ({
+        name: track.name,
+        type: track.type,
+        color: track.color,
+        instrumentId: track.instrumentPreset,
+    })),
+}));
 
 // ============================================
 // Instruments Data
 // ============================================
 
-export const INSTRUMENTS: InstrumentItem[] = [
+/**
+ * Browser-only metadata for each instrument: the blurb shown on the card and
+ * the kind of track a drag-and-drop creates. Identity (id, display name,
+ * category) comes from SYNTH_PRESETS — the audio engine's registry — so the two
+ * lists can no longer drift apart the way they did in the duplicate-euphonium
+ * bug (#20).
+ *
+ * This is typed `Record<SynthPresetId, …>`: add a preset without metadata (or
+ * metadata without a preset) and the build fails instead of shipping an
+ * instrument that is silent or invisible.
+ */
+const INSTRUMENT_META: Record<SynthPresetId, {
+    description: string;
+    trackType: TrackType;
+    trackColor: TrackColor;
+}> = {
     // Synths
-    {
-        id: 'basic-synth',
-        name: 'Basic Synth',
-        category: 'synth',
-        description: 'Clean, versatile synthesizer',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'saw-lead',
-        name: 'Saw Lead',
-        category: 'lead',
-        description: 'Bright sawtooth lead',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'square-lead',
-        name: 'Square Lead',
-        category: 'lead',
-        description: 'Retro square wave sound',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'fm-lead',
-        name: 'FM Lead',
-        category: 'lead',
-        description: 'Bell-like metallic FM lead',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'pulse-lead',
-        name: 'Pulse Lead',
-        category: 'lead',
-        description: 'Warm pulse width modulation lead',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
+    'basic-synth': { description: 'Clean, versatile synthesizer', trackType: 'midi', trackColor: 'melody' },
+    'saw-lead': { description: 'Bright sawtooth lead', trackType: 'midi', trackColor: 'melody' },
+    'square-lead': { description: 'Retro square wave sound', trackType: 'midi', trackColor: 'melody' },
+    'fm-lead': { description: 'Bell-like metallic FM lead', trackType: 'midi', trackColor: 'melody' },
+    'pulse-lead': { description: 'Warm pulse width modulation lead', trackType: 'midi', trackColor: 'melody' },
+
     // Keys
-    {
-        id: 'electric-piano',
-        name: 'Electric Piano',
-        category: 'keys',
-        description: 'Warm Rhodes-style keys',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'bright-piano',
-        name: 'Bright Piano',
-        category: 'keys',
-        description: 'Clear acoustic piano',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'harpsichord',
-        name: 'Harpsichord',
-        category: 'keys',
-        description: 'Baroque plucked-string keyboard with metallic twang',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'organ',
-        name: 'Organ',
-        category: 'keys',
-        description: 'Sustained drawbar organ with harmonics',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'clavinet',
-        name: 'Clavinet',
-        category: 'keys',
-        description: 'Percussive funky keys with bite',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
+    'electric-piano': { description: 'Warm Rhodes-style keys', trackType: 'midi', trackColor: 'keys' },
+    'bright-piano': { description: 'Clear acoustic piano', trackType: 'midi', trackColor: 'keys' },
+    'harpsichord': { description: 'Baroque plucked-string keyboard with metallic twang', trackType: 'midi', trackColor: 'keys' },
+    'organ': { description: 'Sustained drawbar organ with harmonics', trackType: 'midi', trackColor: 'keys' },
+    'clavinet': { description: 'Percussive funky keys with bite', trackType: 'midi', trackColor: 'keys' },
+
     // Bass
-    {
-        id: 'sub-bass',
-        name: 'Sub Bass',
-        category: 'bass',
-        description: 'Deep 808-style sub',
-        trackType: 'midi',
-        trackColor: 'bass',
-    },
-    {
-        id: 'synth-bass',
-        name: 'Synth Bass',
-        category: 'bass',
-        description: 'Punchy analog bass',
-        trackType: 'midi',
-        trackColor: 'bass',
-    },
-    {
-        id: 'fm-bass',
-        name: 'FM Bass',
-        category: 'bass',
-        description: 'Metallic growly FM synthesis bass',
-        trackType: 'midi',
-        trackColor: 'bass',
-    },
-    {
-        id: 'pluck-bass',
-        name: 'Pluck Bass',
-        category: 'bass',
-        description: 'Short pizzicato-style bass',
-        trackType: 'midi',
-        trackColor: 'bass',
-    },
+    'sub-bass': { description: 'Deep 808-style sub', trackType: 'midi', trackColor: 'bass' },
+    'synth-bass': { description: 'Punchy analog bass', trackType: 'midi', trackColor: 'bass' },
+    'fm-bass': { description: 'Metallic growly FM synthesis bass', trackType: 'midi', trackColor: 'bass' },
+    'pluck-bass': { description: 'Short pizzicato-style bass', trackType: 'midi', trackColor: 'bass' },
+
     // Pads
-    {
-        id: 'warm-pad',
-        name: 'Warm Pad',
-        category: 'pad',
-        description: 'Soft, atmospheric pad',
-        trackType: 'midi',
-        trackColor: 'fx',
-    },
-    {
-        id: 'string-pad',
-        name: 'String Pad',
-        category: 'pad',
-        description: 'Orchestral string texture',
-        trackType: 'midi',
-        trackColor: 'fx',
-    },
-    {
-        id: 'choir-pad',
-        name: 'Choir Pad',
-        category: 'pad',
-        description: 'Detuned vocal-like choral pad',
-        trackType: 'midi',
-        trackColor: 'fx',
-    },
-    {
-        id: 'glass-pad',
-        name: 'Glass Pad',
-        category: 'pad',
-        description: 'Crystalline FM shimmer pad',
-        trackType: 'midi',
-        trackColor: 'fx',
-    },
+    'warm-pad': { description: 'Soft, atmospheric pad', trackType: 'midi', trackColor: 'fx' },
+    'string-pad': { description: 'Orchestral string texture', trackType: 'midi', trackColor: 'fx' },
+    'choir-pad': { description: 'Detuned vocal-like choral pad', trackType: 'midi', trackColor: 'fx' },
+    'glass-pad': { description: 'Crystalline FM shimmer pad', trackType: 'midi', trackColor: 'fx' },
+
     // Synths - Additional
-    {
-        id: 'pluck-synth',
-        name: 'Pluck',
-        category: 'synth',
-        description: 'Short harp/guitar-like pluck',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'bell-synth',
-        name: 'Bell',
-        category: 'idiophones',
-        description: 'FM bell with metallic harmonics',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
+    'pluck-synth': { description: 'Short harp/guitar-like pluck', trackType: 'midi', trackColor: 'melody' },
+    'bell-synth': { description: 'FM bell with metallic harmonics', trackType: 'midi', trackColor: 'melody' },
+
     // Idiophones / Pitched Percussion
-    {
-        id: 'chimes',
-        name: 'Chimes',
-        category: 'idiophones',
-        description: 'Metallic pipe chimes with long ring',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'marimba',
-        name: 'Marimba',
-        category: 'idiophones',
-        description: 'Warm wooden mallet percussion',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'xylophone',
-        name: 'Xylophone',
-        category: 'idiophones',
-        description: 'Bright, short wooden tone',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'vibraphone',
-        name: 'Vibraphone',
-        category: 'idiophones',
-        description: 'Sustained metallic mallet with vibrato',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'kalimba',
-        name: 'Kalimba',
-        category: 'idiophones',
-        description: 'Delicate African thumb piano',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'celeste',
-        name: 'Celeste',
-        category: 'idiophones',
-        description: 'Gentle music-box bell tone',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'glockenspiel',
-        name: 'Glockenspiel',
-        category: 'idiophones',
-        description: 'Bright metallic orchestral bells',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
-    {
-        id: 'steel-pan',
-        name: 'Steel Pan',
-        category: 'idiophones',
-        description: 'Bright shimmery Caribbean bell-like tones',
-        trackType: 'midi',
-        trackColor: 'keys',
-    },
+    'chimes': { description: 'Metallic pipe chimes with long ring', trackType: 'midi', trackColor: 'keys' },
+    'marimba': { description: 'Warm wooden mallet percussion', trackType: 'midi', trackColor: 'keys' },
+    'xylophone': { description: 'Bright, short wooden tone', trackType: 'midi', trackColor: 'keys' },
+    'vibraphone': { description: 'Sustained metallic mallet with vibrato', trackType: 'midi', trackColor: 'keys' },
+    'kalimba': { description: 'Delicate African thumb piano', trackType: 'midi', trackColor: 'keys' },
+    'celeste': { description: 'Gentle music-box bell tone', trackType: 'midi', trackColor: 'keys' },
+    'glockenspiel': { description: 'Bright metallic orchestral bells', trackType: 'midi', trackColor: 'keys' },
+    'steel-pan': { description: 'Bright shimmery Caribbean bell-like tones', trackType: 'midi', trackColor: 'keys' },
+
     // Plucked Strings
-    {
-        id: 'guitar',
-        name: 'Guitar',
-        category: 'plucked-strings',
-        description: 'Warm nylon-like plucked string',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'harp',
-        name: 'Harp',
-        category: 'plucked-strings',
-        description: 'Gentle plucked harp string',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'pizzicato',
-        name: 'Pizzicato',
-        category: 'plucked-strings',
-        description: 'Short orchestral plucked string',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'ukulele',
-        name: 'Ukulele',
-        category: 'plucked-strings',
-        description: 'Bright small-bodied pluck',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'banjo',
-        name: 'Banjo',
-        category: 'plucked-strings',
-        description: 'Twangy bright plucked string',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
+    'guitar': { description: 'Warm nylon-like plucked string', trackType: 'midi', trackColor: 'melody' },
+    'harp': { description: 'Gentle plucked harp string', trackType: 'midi', trackColor: 'melody' },
+    'pizzicato': { description: 'Short orchestral plucked string', trackType: 'midi', trackColor: 'melody' },
+    'ukulele': { description: 'Bright small-bodied pluck', trackType: 'midi', trackColor: 'melody' },
+    'banjo': { description: 'Twangy bright plucked string', trackType: 'midi', trackColor: 'melody' },
+
     // Bowed Strings
-    {
-        id: 'violin',
-        name: 'Violin',
-        category: 'bowed-strings',
-        description: 'Bright bowed string',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'cello',
-        name: 'Cello',
-        category: 'bowed-strings',
-        description: 'Warm rich bowed string',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'double-bass',
-        name: 'Double Bass',
-        category: 'bowed-strings',
-        description: 'Deep bowed orchestral bass',
-        trackType: 'midi',
-        trackColor: 'bass',
-    },
-    {
-        id: 'tenor-violin',
-        name: 'Tenor Violin',
-        category: 'bowed-strings',
-        description: 'Mellow viola-like bowed string',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'fiddle',
-        name: 'Fiddle',
-        category: 'bowed-strings',
-        description: 'Lively bright bowed string',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
+    'violin': { description: 'Bright bowed string', trackType: 'midi', trackColor: 'melody' },
+    'cello': { description: 'Warm rich bowed string', trackType: 'midi', trackColor: 'melody' },
+    'double-bass': { description: 'Deep bowed orchestral bass', trackType: 'midi', trackColor: 'bass' },
+    'tenor-violin': { description: 'Mellow viola-like bowed string', trackType: 'midi', trackColor: 'melody' },
+    'fiddle': { description: 'Lively bright bowed string', trackType: 'midi', trackColor: 'melody' },
+
     // Wind (merged Woodwind + Brass)
-    {
-        id: 'flute',
-        name: 'Flute',
-        category: 'wind',
-        description: 'Pure breathy woodwind tone',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'piccolo',
-        name: 'Piccolo',
-        category: 'wind',
-        description: 'Bright high-pitched flute',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'saxophone',
-        name: 'Saxophone',
-        category: 'wind',
-        description: 'Rich reedy tone with harmonics',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'bassoon',
-        name: 'Bassoon',
-        category: 'wind',
-        description: 'Dark low woodwind',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'oboe',
-        name: 'Oboe',
-        category: 'wind',
-        description: 'Nasal reedy orchestral woodwind',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'trumpet',
-        name: 'Trumpet',
-        category: 'wind',
-        description: 'Bright brassy fanfare tone',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'euphonium',
-        name: 'Euphonium',
-        category: 'wind',
-        description: 'Warm mellow low-brass tone',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
+    'flute': { description: 'Pure breathy woodwind tone', trackType: 'midi', trackColor: 'melody' },
+    'piccolo': { description: 'Bright high-pitched flute', trackType: 'midi', trackColor: 'melody' },
+    'saxophone': { description: 'Rich reedy tone with harmonics', trackType: 'midi', trackColor: 'melody' },
+    'bassoon': { description: 'Dark low woodwind', trackType: 'midi', trackColor: 'melody' },
+    'oboe': { description: 'Nasal reedy orchestral woodwind', trackType: 'midi', trackColor: 'melody' },
+    'trumpet': { description: 'Bright brassy fanfare tone', trackType: 'midi', trackColor: 'melody' },
+    'euphonium': { description: 'Warm mellow low-brass tone', trackType: 'midi', trackColor: 'melody' },
+
     // Additional
-    {
-        id: 'didgeridoo',
-        name: 'Didgeridoo',
-        category: 'wind',
-        description: 'Deep droning Australian wind instrument',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'vocal-synth',
-        name: 'Vocal Synth',
-        category: 'synth',
-        description: 'Formant-like vocal ahh articulation',
-        trackType: 'midi',
-        trackColor: 'vocals',
-    },
-    {
-        id: 'orchestra-hit',
-        name: 'Orchestra Hit',
-        category: 'bowed-strings',
-        description: 'Classic big orchestral stab chord',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'guzheng',
-        name: 'Guzheng',
-        category: 'plucked-strings',
-        description: 'Chinese plucked zither with bright twang',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
+    'didgeridoo': { description: 'Deep droning Australian wind instrument', trackType: 'midi', trackColor: 'melody' },
+    'vocal-synth': { description: 'Formant-like vocal ahh articulation', trackType: 'midi', trackColor: 'vocals' },
+    'orchestra-hit': { description: 'Classic big orchestral stab chord', trackType: 'midi', trackColor: 'melody' },
+    'guzheng': { description: 'Chinese plucked zither with bright twang', trackType: 'midi', trackColor: 'melody' },
+
     // Drums
-    {
-        id: 'synth-drum-kit',
-        name: 'Synth Drum Kit',
-        category: 'drums',
-        description: 'Punchy synthesized drums, no samples',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'drum-sampler',
-        name: 'Drum Kit',
-        category: 'drums',
-        description: 'Standard kit with deep kick, snares & hats',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'punchy-kit',
-        name: 'Punchy Drum',
-        category: 'drums',
-        description: 'Tight punchy kick with crisp snare',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'drum-synth',
-        name: 'Classic Drum',
-        category: 'drums',
-        description: 'Pure synthesized knock sound, no samples',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: '808-kit',
-        name: '808 Kit',
-        category: 'drums',
-        description: 'Classic TR-808 style with deep sub kick & claps',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'acoustic-kit',
-        name: 'Acoustic Kit',
-        category: 'drums',
-        description: 'Natural punchy acoustic drum sounds',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'lofi-kit',
-        name: 'Lo-Fi Kit',
-        category: 'drums',
-        description: 'Muted dusty lo-fi drum character',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'electronic-kit',
-        name: 'Electronic Kit',
-        category: 'drums',
-        description: 'Punchy tight modern electronic drums',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'bongos',
-        name: 'Bongos',
-        category: 'drums',
-        description: 'Afro-Cuban high-pitched hand drum pair',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'wooden-block',
-        name: 'Wooden Block',
-        category: 'drums',
-        description: 'Sharp clicky percussive wood crack',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'taiko',
-        name: 'Taiko',
-        category: 'drums',
-        description: 'Deep resonant Japanese drum',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
-    {
-        id: 'maracas',
-        name: 'Maracas',
-        category: 'drums',
-        description: 'Shaker noise burst percussion',
-        trackType: 'drum',
-        trackColor: 'drums',
-    },
+    'synth-drum-kit': { description: 'Punchy synthesized drums, no samples', trackType: 'drum', trackColor: 'drums' },
+    'drum-sampler': { description: 'Standard kit with deep kick, snares & hats', trackType: 'drum', trackColor: 'drums' },
+    'punchy-kit': { description: 'Tight punchy kick with crisp snare', trackType: 'drum', trackColor: 'drums' },
+    'drum-synth': { description: 'Pure synthesized knock sound, no samples', trackType: 'drum', trackColor: 'drums' },
+    '808-kit': { description: 'Classic TR-808 style with deep sub kick & claps', trackType: 'drum', trackColor: 'drums' },
+    'acoustic-kit': { description: 'Natural punchy acoustic drum sounds', trackType: 'drum', trackColor: 'drums' },
+    'lofi-kit': { description: 'Muted dusty lo-fi drum character', trackType: 'drum', trackColor: 'drums' },
+    'electronic-kit': { description: 'Punchy tight modern electronic drums', trackType: 'drum', trackColor: 'drums' },
+    'bongos': { description: 'Afro-Cuban high-pitched hand drum pair', trackType: 'drum', trackColor: 'drums' },
+    'wooden-block': { description: 'Sharp clicky percussive wood crack', trackType: 'drum', trackColor: 'drums' },
+    'taiko': { description: 'Deep resonant Japanese drum', trackType: 'drum', trackColor: 'drums' },
+    'maracas': { description: 'Shaker noise burst percussion', trackType: 'drum', trackColor: 'drums' },
+
     // Basic Waveform Synths
-    {
-        id: 'square-wave',
-        name: 'Square Wave',
-        category: 'synth',
-        description: 'Classic hollow buzzy 8-bit tone',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'triangle-wave',
-        name: 'Triangle Wave',
-        category: 'synth',
-        description: 'Soft mellow flute-like pure tone',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-    {
-        id: 'sawtooth-wave',
-        name: 'Sawtooth Wave',
-        category: 'synth',
-        description: 'Bright buzzy harmonically rich waveform',
-        trackType: 'midi',
-        trackColor: 'melody',
-    },
-];
+    'square-wave': { description: 'Classic hollow buzzy 8-bit tone', trackType: 'midi', trackColor: 'melody' },
+    'triangle-wave': { description: 'Soft mellow flute-like pure tone', trackType: 'midi', trackColor: 'melody' },
+    'sawtooth-wave': { description: 'Bright buzzy harmonically rich waveform', trackType: 'midi', trackColor: 'melody' },
+};
+
+export const INSTRUMENTS: InstrumentItem[] = SYNTH_PRESET_IDS.map((id) => {
+    const preset = SYNTH_PRESETS[id];
+    const meta = INSTRUMENT_META[id];
+    return {
+        id,
+        name: preset.name,
+        category: preset.category,
+        description: meta.description,
+        trackType: meta.trackType,
+        trackColor: meta.trackColor,
+    };
+});
 
 // ============================================
 // Samples Data
