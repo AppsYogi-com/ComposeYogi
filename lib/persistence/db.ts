@@ -13,6 +13,7 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import type { Project, Track, Clip, AudioTake, PeaksCache, UserSample } from '@/types';
 import { createLogger } from '@/lib/logger';
+import { LATEST_VERSION, runMigrations } from './migrations';
 
 const logger = createLogger('DB');
 
@@ -117,7 +118,12 @@ interface UserSampleRecord {
 // ============================================
 
 const DB_NAME = 'composeyogi';
-const DB_VERSION = 2;
+
+/**
+ * Schema version. Do not edit by hand — it tracks the migration list in
+ * lib/persistence/migrations.ts, which is where a schema change belongs.
+ */
+export const DB_VERSION = LATEST_VERSION;
 
 let dbInstance: IDBPDatabase<ComposeYogiDB> | null = null;
 
@@ -125,42 +131,8 @@ export async function getDB(): Promise<IDBPDatabase<ComposeYogiDB>> {
     if (dbInstance) return dbInstance;
 
     dbInstance = await openDB<ComposeYogiDB>(DB_NAME, DB_VERSION, {
-        upgrade(db, _oldVersion, _newVersion, _transaction) {
-            // Projects store
-            if (!db.objectStoreNames.contains('projects')) {
-                const projectStore = db.createObjectStore('projects', { keyPath: 'id' });
-                projectStore.createIndex('by-updated', 'updatedAt');
-            }
-
-            // Tracks store
-            if (!db.objectStoreNames.contains('tracks')) {
-                const trackStore = db.createObjectStore('tracks', { keyPath: 'id' });
-                trackStore.createIndex('by-project', 'projectId');
-            }
-
-            // Clips store
-            if (!db.objectStoreNames.contains('clips')) {
-                const clipStore = db.createObjectStore('clips', { keyPath: 'id' });
-                clipStore.createIndex('by-track', 'trackId');
-                clipStore.createIndex('by-project', 'projectId');
-            }
-
-            // Audio takes store
-            if (!db.objectStoreNames.contains('audioTakes')) {
-                const takeStore = db.createObjectStore('audioTakes', { keyPath: 'id' });
-                takeStore.createIndex('by-clip', 'clipId');
-            }
-
-            // Settings store
-            if (!db.objectStoreNames.contains('settings')) {
-                db.createObjectStore('settings', { keyPath: 'key' });
-            }
-
-            // User samples store (added in v2)
-            if (!db.objectStoreNames.contains('userSamples')) {
-                const sampleStore = db.createObjectStore('userSamples', { keyPath: 'id' });
-                sampleStore.createIndex('by-created', 'createdAt');
-            }
+        async upgrade(db, oldVersion, newVersion, transaction) {
+            await runMigrations(db, oldVersion, newVersion, transaction);
         },
         blocked() {
             console.warn('[DB] Database blocked - close other tabs');
@@ -226,9 +198,12 @@ export async function saveProject(project: Project): Promise<void> {
         await clipStore.delete(clip.id);
     }
 
-    // Save all current tracks
+    // Save all current tracks. projectId is stamped from the project being
+    // saved, exactly as it is for clips below: tracks are looked up by the
+    // `by-project` index, so a track carrying a stale projectId (a duplicated
+    // or imported project, a remix) would load as an empty project.
     for (const track of project.tracks) {
-        await trackStore.put(track);
+        await trackStore.put({ ...track, projectId: project.id });
     }
 
     // Save all current clips (with projectId for indexing)
@@ -536,6 +511,15 @@ function deserializePeaks(data: Record<string, { min: number[]; max: number[] }>
 // ============================================
 // Database Utilities
 // ============================================
+
+/**
+ * Drop the cached connection so the next getDB() opens a fresh one.
+ * Used by tests, and after the database is deleted.
+ */
+export function resetDBConnection(): void {
+    dbInstance?.close();
+    dbInstance = null;
+}
 
 export async function clearAllData(): Promise<void> {
     const db = await getDB();

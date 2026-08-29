@@ -15,8 +15,8 @@ import {
     MASTER_GAIN,
     MASTER_LIMITER_THRESHOLD_DB,
     PARAM_RAMP_SECONDS,
-    barsToSeconds,
     buildEffectChain,
+    buildRenderPlan,
     effectiveTrackGain,
     isTrackAudible,
     releaseSynth,
@@ -24,6 +24,7 @@ import {
     scheduleMidiClip,
 } from './scheduler';
 
+import type { RenderClipKind, RenderPlan } from './scheduler';
 import type { Clip, Project, Track, TrackEffect } from '@/types';
 import type { SynthType } from './synth-presets';
 
@@ -259,6 +260,25 @@ class PlayoutManager {
     // ========================================
 
     async scheduleClip(clip: Clip, track: Track, project: Project): Promise<void> {
+        const plan = buildRenderPlan(project);
+        const planned = plan.clips.find((c) => c.clipId === clip.id);
+        if (!planned) {
+            // Nothing to play (no take, no notes) — make sure any previous
+            // schedule for this clip is gone and stop there.
+            this.unscheduleClip(clip.id);
+            return;
+        }
+
+        await this.schedulePlannedClip(clip, track, planned.kind, planned.startSeconds, plan);
+    }
+
+    private async schedulePlannedClip(
+        clip: Clip,
+        track: Track,
+        kind: RenderClipKind,
+        startSeconds: number,
+        plan: RenderPlan
+    ): Promise<void> {
         this.unscheduleClip(clip.id);
 
         const chain = this.getOrCreateTrackChain(track);
@@ -270,16 +290,13 @@ class PlayoutManager {
             lengthBars: clip.lengthBars,
         };
 
-        const beatsPerBar = project.timeSignature[0];
-        const startSeconds = barsToSeconds(clip.startBar, project.bpm, beatsPerBar);
-
-        if (clip.type === 'audio' && clip.activeTakeId) {
+        if (kind === 'audio') {
             scheduled.player = await scheduleAudioClip(clip, chain.input, startSeconds);
-        } else if ((clip.type === 'midi' || clip.type === 'drum') && clip.notes) {
+        } else {
             const result = await scheduleMidiClip(clip, track, chain.input, startSeconds, {
                 transport: Tone.getTransport(),
-                bpm: project.bpm,
-                beatsPerBar,
+                bpm: plan.bpm,
+                beatsPerBar: plan.beatsPerBar,
             });
             if (result) {
                 scheduled.player = result.synth;
@@ -345,17 +362,24 @@ class PlayoutManager {
 
         this.clearAllScheduled();
 
-        for (const clip of project.clips) {
+        // The plan resolves which clips play, when, and at what gain. The
+        // offline exporter renders from the identical plan.
+        const plan = buildRenderPlan(project);
+        const clipsById = new Map(project.clips.map((c) => [c.id, c]));
+        const tracksById = new Map(project.tracks.map((t) => [t.id, t]));
+
+        for (const planned of plan.clips) {
             // Abort if a newer scheduleProject call has started
             if (this.scheduleVersion !== version) {
                 logger.debug('Aborting stale schedule', { version, current: this.scheduleVersion });
                 return;
             }
 
-            const track = project.tracks.find((t) => t.id === clip.trackId);
-            if (track) {
-                await this.scheduleClip(clip, track, project);
-            }
+            const clip = clipsById.get(planned.clipId);
+            const track = tracksById.get(planned.trackId);
+            if (!clip || !track) continue;
+
+            await this.schedulePlannedClip(clip, track, planned.kind, planned.startSeconds, plan);
         }
 
         if (this.scheduleVersion !== version) {
