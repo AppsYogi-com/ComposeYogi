@@ -202,8 +202,8 @@ function Showcase({ t }: { t: ReturnType<typeof useTranslations> }) {
                     <Image
                         src="/screenshots/desktop-compose.png"
                         alt={t('landing.showcase.alt')}
-                        width={2560}
-                        height={1440}
+                        width={3200}
+                        height={1800}
                         className="w-full"
                         priority
                     />

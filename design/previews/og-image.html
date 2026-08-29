@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<title>ComposeYogi — Social Card</title>
+<link rel="stylesheet" href="./tokens.css">
+<style>
+/* ============================================
+   Social card — 1200 × 630
+   ============================================
+
+   Not a screenshot. This is rendered at roughly 600×315 in a feed, where an
+   interface screenshot is an unreadable smear. So it says one thing, and shows
+   the arrangement as the shape it actually is: coloured clips on a grid, in the
+   product's own track palette.
+
+   Exported to public/og-image.png by `npm run design:assets`. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+:root { --font-inter: 'Inter'; --font-jetbrains-mono: 'JetBrains Mono'; }
+* { box-sizing: border-box; margin: 0; }
+
+body {
+    width: 1200px; height: 630px; overflow: hidden;
+    display: flex; align-items: center;
+    padding: 0 72px; gap: 56px;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+}
+
+/* A single amber bloom from the top left — the accent doing what the accent
+   does, rather than a gradient chosen to look like a landing page. */
+body::before {
+    content: ''; position: absolute; inset: -30% 40% 40% -20%;
+    background: radial-gradient(closest-side, hsl(var(--accent) / 0.20), transparent);
+    pointer-events: none;
+}
+
+.left { position: relative; width: 600px; flex: none; }
+
+.brand { display: flex; align-items: center; gap: 14px; margin-bottom: 34px; }
+.mark {
+    width: 48px; height: 48px; border-radius: var(--radius);
+    background: hsl(var(--accent));
+    display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding: 11px 0;
+}
+.mark i { display: block; width: 5px; border-radius: 1px; background: hsl(var(--accent-foreground)); }
+.brand span { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+
+h1 { font-size: 62px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.04; }
+h1 .muted { display: block; color: hsl(var(--muted-foreground)); }
+
+.proof {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 34px;
+    font-family: var(--font-mono); font-size: 14px;
+}
+.proof span {
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--surface));
+    color: hsl(var(--muted-foreground));
+}
+.proof span.on {
+    border-color: hsl(var(--accent) / 0.45);
+    background: hsl(var(--accent) / 0.12);
+    color: hsl(var(--accent));
+}
+
+/* The arrangement, abstracted to what it is: clips on a grid over a playhead. */
+.arrangement {
+    position: relative; flex: 1; align-self: stretch;
+    margin: 96px 0; padding: 18px 0 18px 18px;
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--surface));
+    box-shadow: var(--shadow-panel);
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 12px;
+}
+.lane { display: flex; align-items: center; gap: 10px; height: 46px; }
+.dot { width: 9px; height: 9px; border-radius: 999px; flex: none; }
+.clip {
+    height: 100%; border-radius: calc(var(--radius) - 4px);
+    box-shadow: var(--shadow-clip);
+}
+.grid {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image: repeating-linear-gradient(
+        to right, hsl(var(--border) / 0.55) 0 1px, transparent 1px 62px);
+    background-position-x: 28px;
+}
+.playhead {
+    position: absolute; top: 0; bottom: 0; left: 214px; width: 2px;
+    background: hsl(var(--playhead));
+}
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="brand">
+      <div class="mark">
+        <i style="height:12px"></i><i style="height:22px"></i><i style="height:16px"></i><i style="height:26px"></i>
+      </div>
+      <span>ComposeYogi</span>
+    </div>
+
+    <h1>Make real music.<span class="muted">Instantly. In your browser.</span></h1>
+
+    <div class="proof">
+      <span class="on">Free forever</span>
+      <span>No sign-up</span>
+      <span>Works offline</span>
+      <span>Open source</span>
+    </div>
+  </div>
+
+  <div class="arrangement">
+    <div class="grid"></div>
+    <div class="lane">
+      <span class="dot" style="background:hsl(var(--track-drums))"></span>
+      <span class="clip" style="background:hsl(var(--track-drums)); width:74%"></span>
+    </div>
+    <div class="lane">
+      <span class="dot" style="background:hsl(var(--track-bass))"></span>
+      <span class="clip" style="background:hsl(var(--track-bass)); width:58%"></span>
+    </div>
+    <div class="lane">
+      <span class="dot" style="background:hsl(var(--track-keys))"></span>
+      <span class="clip" style="background:hsl(var(--track-keys)); width:44%; margin-left:12%"></span>
+    </div>
+    <div class="lane">
+      <span class="dot" style="background:hsl(var(--track-melody))"></span>
+      <span class="clip" style="background:hsl(var(--track-melody)); width:36%; margin-left:30%"></span>
+    </div>
+    <div class="lane">
+      <span class="dot" style="background:hsl(var(--track-vocals))"></span>
+      <span class="clip" style="background:hsl(var(--track-vocals)); width:28%; margin-left:18%"></span>
+    </div>
+    <div class="playhead"></div>
+  </div>
+</body>
+</html>
