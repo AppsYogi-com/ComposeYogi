@@ -2,108 +2,151 @@
 @tailwind components;
 @tailwind utilities;
 
+/* === BEGIN generated design tokens — npm run design:tokens === */
+/*
+ * Generated from lib/design/tokens.ts by scripts/generate-design-tokens.js.
+ * Do not edit by hand — `npm run check` will fail. Edit the TypeScript and
+ * run `npm run design:tokens`.
+ */
 @layer base {
     :root {
-        /* Ableton-like dark theme - premium, minimal, instrument-grade */
-
-        /* Font families */
+        /* Typography */
         --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+        --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-        /* shadcn radius */
+        /* Shape — one base; sm/md/lg/xl derive from it in tailwind.config.ts */
         --radius: 0.5rem;
 
-        /* Track colors - saturated but muted */
-        --track-drums: 25 80% 50%;
-        --track-bass: 200 70% 45%;
-        --track-keys: 280 60% 55%;
-        --track-melody: 150 60% 45%;
-        --track-vocals: 340 70% 55%;
-        --track-fx: 60 70% 50%;
+        /* Motion — the design language is 120–160ms */
+        --motion-instant: 80ms;
+        --motion-fast: 120ms;
+        --motion-base: 150ms;
+        --motion-slow: 240ms;
+        --ease-out: cubic-bezier(0.2, 0, 0, 1);
+        --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-        /* Light theme (default for :root, but we force dark) */
-        --background: 0 0% 100%;
-        --foreground: 0 0% 8%;
+        /* Elevation */
+        --shadow-clip: 0 2px 8px rgb(0 0 0 / 0.30);
+        --shadow-clip-hover: 0 4px 12px rgb(0 0 0 / 0.40);
+        --shadow-panel: 0 4px 16px rgb(0 0 0 / 0.50);
+        --shadow-modal: 0 16px 48px rgb(0 0 0 / 0.60);
 
-        --card: 0 0% 100%;
-        --card-foreground: 0 0% 8%;
-
-        --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 8%;
-
-        --primary: 35 100% 50%;
-        --primary-foreground: 0 0% 100%;
-
-        --secondary: 0 0% 96%;
-        --secondary-foreground: 0 0% 8%;
-
-        --muted: 0 0% 96%;
-        --muted-foreground: 0 0% 45%;
-
-        --accent: 35 100% 50%;
-        --accent-foreground: 0 0% 100%;
-
-        --destructive: 0 72% 51%;
-        --destructive-foreground: 0 0% 100%;
-
-        --border: 0 0% 90%;
-        --input: 0 0% 90%;
-        --ring: 35 100% 50%;
-
-        /* Surface levels for elevation */
-        --surface: 0 0% 98%;
+        /* ---- Light theme ---- */
+        /* Ground and elevation — background < surface < surface-elevated. Nothing sits on nothing. */
+        --background: 40 20% 99%;
+        --foreground: 30 10% 10%;
+        --surface: 38 16% 96%;
         --surface-elevated: 0 0% 100%;
+        --card: 0 0% 100%;
+        --card-foreground: 30 10% 10%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 30 10% 10%;
 
-        /* Chart colors */
-        --chart-1: 35 100% 50%;
-        --chart-2: 200 70% 45%;
-        --chart-3: 150 60% 45%;
-        --chart-4: 280 60% 55%;
-        --chart-5: 340 70% 55%;
+        /* Brand — Amber is "this is on". Never use it for a resting control. */
+        --primary: 32 95% 44%;
+        --primary-foreground: 0 0% 100%;
+        --accent: 32 95% 44%;
+        --accent-foreground: 0 0% 100%;
+        --secondary: 38 14% 93%;
+        --secondary-foreground: 30 10% 10%;
+        --muted: 38 14% 93%;
+        --muted-foreground: 32 6% 42%;
+
+        /* Lines — border for structure, input for fields, ring for focus only. */
+        --border: 36 12% 87%;
+        --input: 36 12% 87%;
+        --ring: 32 95% 44%;
+
+        /* State — Meaning, not decoration — pick by what happened, never by hue. */
+        --destructive: 358 68% 48%;
+        --destructive-foreground: 0 0% 100%;
+        --success: 150 60% 32%;
+        --success-foreground: 0 0% 100%;
+        --warning: 38 92% 40%;
+        --warning-foreground: 0 0% 100%;
+        --info: 210 82% 45%;
+        --info-foreground: 0 0% 100%;
+
+        /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
+        --playhead: 358 75% 50%;
+
+        /* Track roles — The categorical scale. Reused anywhere things need telling apart. */
+        --track-drums: 358 68% 50%;
+        --track-bass: 232 62% 52%;
+        --track-keys: 272 52% 54%;
+        --track-melody: 145 55% 34%;
+        --track-vocals: 315 58% 48%;
+        --track-fx: 190 78% 34%;
+
+        /* Drum families — The sequencer lane rail, grouped the way a drummer groups a kit. */
+        --drum-kick: 358 66% 48%;
+        --drum-snare: 12 70% 46%;
+        --drum-tom: 272 48% 52%;
+        --drum-hat: 45 85% 38%;
+        --drum-cymbal: 190 72% 36%;
+        --drum-perc: 145 48% 34%;
+        --drum-other: 30 5% 45%;
     }
 
-    /* Dark theme */
+    /* ---- Dark theme (the primary design target) ---- */
     .dark {
-        --background: 0 0% 8%;
-        --foreground: 0 0% 95%;
+        /* Ground and elevation — background < surface < surface-elevated. Nothing sits on nothing. */
+        --background: 30 6% 7%;
+        --foreground: 35 12% 95%;
+        --surface: 30 5% 10%;
+        --surface-elevated: 30 5% 14%;
+        --card: 30 5% 10%;
+        --card-foreground: 35 12% 95%;
+        --popover: 30 5% 12%;
+        --popover-foreground: 35 12% 95%;
 
-        --card: 0 0% 10%;
-        --card-foreground: 0 0% 95%;
-
-        --popover: 0 0% 12%;
-        --popover-foreground: 0 0% 95%;
-
+        /* Brand — Amber is "this is on". Never use it for a resting control. */
         --primary: 35 100% 55%;
-        --primary-foreground: 0 0% 8%;
-
-        --secondary: 0 0% 16%;
-        --secondary-foreground: 0 0% 95%;
-
-        --muted: 0 0% 20%;
-        --muted-foreground: 0 0% 60%;
-
+        --primary-foreground: 30 25% 8%;
         --accent: 35 100% 55%;
-        --accent-foreground: 0 0% 8%;
+        --accent-foreground: 30 25% 8%;
+        --secondary: 30 5% 16%;
+        --secondary-foreground: 35 10% 95%;
+        --muted: 30 4% 20%;
+        --muted-foreground: 32 6% 62%;
 
-        --destructive: 0 72% 51%;
-        --destructive-foreground: 0 0% 100%;
-
-        --border: 0 0% 20%;
-        --input: 0 0% 16%;
+        /* Lines — border for structure, input for fields, ring for focus only. */
+        --border: 30 5% 19%;
+        --input: 30 5% 16%;
         --ring: 35 100% 55%;
 
-        /* Surface levels for elevation */
-        --surface: 0 0% 12%;
-        --surface-elevated: 0 0% 16%;
+        /* State — Meaning, not decoration — pick by what happened, never by hue. */
+        --destructive: 358 72% 56%;
+        --destructive-foreground: 0 0% 100%;
+        --success: 150 62% 45%;
+        --success-foreground: 0 0% 100%;
+        --warning: 45 95% 55%;
+        --warning-foreground: 40 40% 10%;
+        --info: 210 85% 60%;
+        --info-foreground: 0 0% 100%;
 
-        /* Chart colors */
-        --chart-1: 35 100% 55%;
-        --chart-2: 200 70% 45%;
-        --chart-3: 150 60% 45%;
-        --chart-4: 280 60% 55%;
-        --chart-5: 340 70% 55%;
+        /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
+        --playhead: 358 85% 62%;
+
+        /* Track roles — The categorical scale. Reused anywhere things need telling apart. */
+        --track-drums: 358 72% 62%;
+        --track-bass: 232 70% 64%;
+        --track-keys: 272 60% 68%;
+        --track-melody: 145 55% 48%;
+        --track-vocals: 315 65% 64%;
+        --track-fx: 190 75% 48%;
+
+        /* Drum families — The sequencer lane rail, grouped the way a drummer groups a kit. */
+        --drum-kick: 358 70% 58%;
+        --drum-snare: 12 75% 58%;
+        --drum-tom: 272 55% 62%;
+        --drum-hat: 50 88% 58%;
+        --drum-cymbal: 190 70% 52%;
+        --drum-perc: 145 50% 48%;
+        --drum-other: 30 5% 50%;
     }
 }
+/* === END generated design tokens === */
 
 /* Base styles */
 * {
@@ -187,7 +230,7 @@ body {
     bottom: 0;
     left: 0;
     width: 2px;
-    background-color: #ff4444;
+    background-color: hsl(var(--playhead));
     pointer-events: none;
     will-change: transform;
     z-index: 100;
@@ -201,7 +244,7 @@ body {
     left: -5px;
     width: 12px;
     height: 12px;
-    background-color: #ff4444;
+    background-color: hsl(var(--playhead));
     clip-path: polygon(50% 100%, 0 0, 100% 0);
 }
 
@@ -210,7 +253,7 @@ body {
     position: absolute;
     left: 0;
     width: 2px;
-    background-color: #ff4444;
+    background-color: hsl(var(--playhead));
     pointer-events: none;
     will-change: transform;
     z-index: 30;
@@ -223,7 +266,7 @@ body {
     left: -5px;
     width: 12px;
     height: 12px;
-    background-color: #ff4444;
+    background-color: hsl(var(--playhead));
     clip-path: polygon(50% 100%, 0 0, 100% 0);
 }
 
@@ -234,7 +277,7 @@ body {
     left: 0;
     width: 2px;
     height: 100%;
-    background-color: #ff4444;
+    background-color: hsl(var(--playhead));
     pointer-events: none;
     will-change: transform;
     z-index: 30;
@@ -247,26 +290,26 @@ body {
     left: -5px;
     width: 12px;
     height: 12px;
-    background-color: #ff4444;
+    background-color: hsl(var(--playhead));
     clip-path: polygon(50% 100%, 0 0, 100% 0);
 }
 
 /* Clip styling */
 .clip {
     position: absolute;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    transition: box-shadow 150ms ease-out;
+    border-radius: calc(var(--radius) - 4px);
+    box-shadow: var(--shadow-clip);
+    transition: box-shadow var(--motion-base) var(--ease-out);
     user-select: none;
     /* Prevent text selection on Shift+click */
 }
 
 .clip:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-clip-hover);
 }
 
 .clip.selected {
-    box-shadow: 0 0 0 3px #fff, 0 0 16px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+    box-shadow: 0 0 0 2px hsl(var(--ring)), 0 0 16px hsl(var(--ring) / 0.55), var(--shadow-clip-hover) !important;
     outline: none;
     filter: brightness(1.2);
 }
@@ -278,10 +321,10 @@ body {
     justify-content: center;
     width: 32px;
     height: 32px;
-    border-radius: 4px;
+    border-radius: calc(var(--radius) - 2px);
     background-color: transparent;
     color: hsl(var(--foreground));
-    transition: background-color 120ms ease-out, color 120ms ease-out;
+    transition: background-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out);
 }
 
 .transport-btn:hover {
@@ -343,10 +386,10 @@ body {
 
 .step {
     aspect-ratio: 1;
-    border-radius: 2px;
+    border-radius: calc(var(--radius) - 6px);
     background-color: hsl(var(--muted) / 0.3);
     cursor: pointer;
-    transition: background-color 80ms ease-out;
+    transition: background-color var(--motion-instant) var(--ease-out);
 }
 
 .step:hover {
@@ -361,9 +404,9 @@ body {
 .piano-note {
     position: absolute;
     height: 100%;
-    border-radius: 2px;
+    border-radius: calc(var(--radius) - 6px);
     cursor: pointer;
-    transition: filter 80ms ease-out;
+    transition: filter var(--motion-instant) var(--ease-out);
 }
 
 .piano-note:hover {
@@ -424,14 +467,14 @@ body {
     gap: 4px;
     padding: 2px 8px;
     font-size: 0.75rem;
-    background-color: hsl(45 100% 40% / 0.2);
-    color: hsl(45 100% 60%);
+    background-color: hsl(var(--warning) / 0.18);
+    color: hsl(var(--warning));
     border-radius: 9999px;
 }
 
 /* Mono font for numbers */
 .font-mono-nums {
-    font-family: var(--font-geist-mono), 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
 }
 
@@ -479,12 +522,3 @@ body {
     text-orientation: mixed;
 }
 
-@layer base {
-    * {
-        @apply border-border;
-    }
-
-    body {
-        @apply bg-background text-foreground;
-    }
-}
