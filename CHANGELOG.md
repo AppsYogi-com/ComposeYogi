@@ -42,6 +42,12 @@ way a studio has to, and about making the codebase safe for contributors.
   list is now derived from the engine's, and a missing entry fails the build.
 
 ### Added
+- **Rebindable keyboard shortcuts** and a searchable shortcut reference panel
+  (<kbd>/</kbd>), driven by a central registry (#20). This shipped to `main` in
+  March but was never released, so it is recorded here.
+- 6 instruments: Square Wave, Triangle Wave, Sawtooth Wave, Euphonium, Taiko,
+  Maracas — with the duplicate Euphonium removed and Orchestra Hit recategorised
+  to bowed strings (#20)
 - First test suite: 75 tests covering the scheduler, project store, persistence
   round-trips and clip virtualization (Vitest + fake-indexeddb)
 - Continuous integration — types, lint, locale parity, tests and a production
