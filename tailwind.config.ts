@@ -78,7 +78,7 @@ const config: Config = {
                 playhead: token('playhead'),
 
                 // Fixed surfaces
-                scrim: token('scrim'),
+                scrim: pair('scrim'),
                 'clip-foreground': token('clip-foreground'),
                 piano: {
                     white: token('piano-white'),

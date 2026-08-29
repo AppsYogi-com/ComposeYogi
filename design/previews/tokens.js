@@ -67,6 +67,7 @@ window.COMPOSEYOGI_TOKENS = {
             "note": "Identical in both themes on purpose — nothing here has a theme to invert against.",
             "tokens": [
                 "scrim",
+                "scrim-foreground",
                 "clip-foreground",
                 "piano-white",
                 "piano-white-foreground",

@@ -22,6 +22,7 @@ import {
     DRUM_FAMILIES,
     LIGHT,
     TRACK_ROLES,
+    compositeHex,
     contrastRatio,
     hslToHex,
 } from '@/lib/design/tokens';
@@ -244,7 +245,15 @@ describe('colour pairs meet WCAG AA', () => {
         });
 
         it('reads secondary text on every ground it sits on', () => {
-            for (const ground of ['background', 'surface', 'surface-elevated'] as const) {
+            // muted and secondary are in this list because tab lists, keyboard
+            // chips and toast descriptions put muted-foreground directly on
+            // them. That pair sat at 4.48:1 in the light theme — a real miss,
+            // just a small one, and invisible while the list stopped at surface.
+            const GROUNDS = [
+                'background', 'surface', 'surface-elevated',
+                'card', 'popover', 'muted', 'secondary',
+            ] as const;
+            for (const ground of GROUNDS) {
                 expect(
                     contrastRatio(theme['muted-foreground'], theme[ground]),
                     `muted-foreground on ${ground}`
@@ -294,6 +303,32 @@ describe('colour pairs meet WCAG AA', () => {
             expect(
                 contrastRatio(theme['piano-black-foreground'], theme['piano-black'])
             ).toBeGreaterThanOrEqual(AA_BODY);
+        });
+
+        it('shows a label on a scrim, once the scrim is opaque enough to carry one', () => {
+            // This pair is the reason it exists. The demo-template play overlay
+            // used `text-clip-foreground` here, which is near-black in the dark
+            // theme, on a near-black scrim — the label was invisible.
+            expect(
+                contrastRatio(theme['scrim-foreground'], theme.scrim),
+                'scrim-foreground on a solid scrim'
+            ).toBeGreaterThanOrEqual(AA_BODY);
+
+            // Scrims are translucent, so the ground behind them is part of the
+            // colour. The light theme is the hard case: the page underneath is
+            // near-white, and it lifts the composite. 60% is the floor at which
+            // a scrim can still carry text — a thinner wash than that needs its
+            // own solid surface, not a label straight on the overlay.
+            const TEXT_BEARING_ALPHA = 0.6;
+            for (const under of ['background', 'surface', 'card'] as const) {
+                expect(
+                    contrastRatio(
+                        theme['scrim-foreground'],
+                        compositeHex(theme.scrim, TEXT_BEARING_ALPHA, theme[under])
+                    ),
+                    `scrim-foreground on scrim/60 over ${under}`
+                ).toBeGreaterThanOrEqual(AA_BODY);
+            }
         });
 
         it('shows a clip label on every track colour', () => {

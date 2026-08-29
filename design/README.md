@@ -91,7 +91,7 @@ section — run `npm run design:tokens`.
 | `--secondary` | `secondary` | `#2b2927` `30 5% 16%` | `#f0eeeb` `38 14% 93%` |
 | `--secondary-foreground` | `secondary-foreground` | `#f4f2f1` `35 10% 95%` | `#1c1a17` `30 10% 10%` |
 | `--muted` | `muted` | `#353331` `30 4% 20%` | `#f0eeeb` `38 14% 93%` |
-| `--muted-foreground` | `muted-foreground` | `#a49e98` `32 6% 62%` | `#726c65` `32 6% 42%` |
+| `--muted-foreground` | `muted-foreground` | `#a49e98` `32 6% 62%` | `#6f6962` `32 6% 41%` |
 
 #### Lines
 
@@ -133,6 +133,7 @@ section — run `npm run design:tokens`.
 | Token | Class | Dark | Light |
 |---|---|---|---|
 | `--scrim` | `scrim` | `#0b0a09` `30 8% 4%` | `#0b0a09` `30 8% 4%` |
+| `--scrim-foreground` | `scrim-foreground` | `#fbfaf9` `40 15% 98%` | `#fbfaf9` `40 15% 98%` |
 | `--clip-foreground` | `clip-foreground` | `#201a13` `30 25% 10%` | `#fbfaf9` `40 15% 98%` |
 | `--piano-white` | `piano-white` | `#edebe8` `40 12% 92%` | `#edebe8` `40 12% 92%` |
 | `--piano-white-foreground` | `piano-white-foreground` | `#4d4742` `30 8% 28%` | `#4d4742` `30 8% 28%` |

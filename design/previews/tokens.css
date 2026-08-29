@@ -46,7 +46,7 @@
     --secondary: 38 14% 93%;
     --secondary-foreground: 30 10% 10%;
     --muted: 38 14% 93%;
-    --muted-foreground: 32 6% 42%;
+    --muted-foreground: 32 6% 41%;
 
     /* Lines — border for structure, input for fields, ring for focus only. */
     --border: 36 12% 87%;
@@ -68,6 +68,7 @@
 
     /* Fixed surfaces — Identical in both themes on purpose — nothing here has a theme to invert against. */
     --scrim: 30 8% 4%;
+    --scrim-foreground: 40 15% 98%;
     --clip-foreground: 40 15% 98%;
     --piano-white: 40 12% 92%;
     --piano-white-foreground: 30 8% 28%;
@@ -134,6 +135,7 @@
 
     /* Fixed surfaces — Identical in both themes on purpose — nothing here has a theme to invert against. */
     --scrim: 30 8% 4%;
+    --scrim-foreground: 40 15% 98%;
     --clip-foreground: 30 25% 10%;
     --piano-white: 40 12% 92%;
     --piano-white-foreground: 30 8% 28%;

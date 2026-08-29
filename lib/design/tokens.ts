@@ -75,6 +75,8 @@ export interface ThemeColors {
     // Fixed surfaces — see the note in DARK below.
     /** Modal scrims and any wash that darkens what is behind it. */
     scrim: Hsl;
+    /** Text and icons drawn directly on a scrim. */
+    'scrim-foreground': Hsl;
     /** Labels and handles drawn on top of a filled colour: clips, braces, notes. */
     'clip-foreground': Hsl;
     'piano-white': Hsl;
@@ -146,11 +148,17 @@ export const DARK: ThemeColors = {
     // themes. They are still tokens rather than literals: a fixed colour that
     // is deliberately fixed belongs in the system, where the decision is
     // visible, not scattered through a component as `bg-zinc-800`.
-    // A scrim darkens whatever is behind it, so it is the same in both themes.
-    // clip-foreground is not: it sits on the track colour, and the track colour
-    // is bright on the dark timeline and deep on the light one — so the label
-    // that reads on it inverts with the fill, not with the theme's text.
+    // A scrim darkens whatever is behind it, so it is the same in both themes —
+    // and so is the text on top of it, which is why scrim-foreground is light in
+    // both. Anything drawn on a scrim takes scrim-foreground, never
+    // clip-foreground: clip-foreground is dark here, and dark-on-scrim is
+    // invisible.
+    // clip-foreground is the one that does not follow the theme's text: it sits
+    // on the track colour, and the track colour is bright on the dark timeline
+    // and deep on the light one — so the label that reads on it inverts with the
+    // fill, not with the theme.
     scrim: '30 8% 4%',
+    'scrim-foreground': '40 15% 98%',
     'clip-foreground': '30 25% 10%',
 
     'piano-white': '40 12% 92%',
@@ -199,7 +207,7 @@ export const LIGHT: ThemeColors = {
     secondary: '38 14% 93%',
     'secondary-foreground': '30 10% 10%',
     muted: '38 14% 93%',
-    'muted-foreground': '32 6% 42%',
+    'muted-foreground': '32 6% 41%',
 
     border: '36 12% 87%',
     input: '36 12% 87%',
@@ -221,6 +229,7 @@ export const LIGHT: ThemeColors = {
     // is behind it, and a clip label sits on a saturated colour rather than on
     // a theme surface. Neither has anything to invert against.
     scrim: '30 8% 4%',
+    'scrim-foreground': '40 15% 98%',
     'clip-foreground': '40 15% 98%',
 
     'piano-white': '40 12% 92%',
@@ -422,7 +431,7 @@ export const COLOR_GROUPS: { title: string; note: string; tokens: (keyof ThemeCo
         title: 'Fixed surfaces',
         note: 'Identical in both themes on purpose — nothing here has a theme to invert against.',
         tokens: [
-            'scrim', 'clip-foreground',
+            'scrim', 'scrim-foreground', 'clip-foreground',
             'piano-white', 'piano-white-foreground',
             'piano-black', 'piano-black-foreground',
         ],
@@ -502,9 +511,26 @@ export const ACCENT_HEX = hslToHex(DARK.accent);
 // 3.2:1 both as text on the page and under white text on a button, which fails
 // AA in both directions. Amber accents are prone to exactly this.
 
-/** WCAG 2.1 relative luminance of a bare HSL triple. */
-export function relativeLuminance(hsl: Hsl): number {
-    const hex = hslToHex(hsl);
+/**
+ * The colour you actually see when `over` is painted at `alpha` on top of
+ * `under` — what `bg-scrim/60` resolves to against the card behind it. Returned
+ * as a hex, because a composite is a plain colour and no longer a token.
+ */
+export function compositeHex(over: Hsl, alpha: number, under: Hsl): string {
+    const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const [ro, go, bo] = channels(hslToHex(over));
+    const [ru, gu, bu] = channels(hslToHex(under));
+    const blend = (o: number, u: number) =>
+        Math.round(o * alpha + u * (1 - alpha)).toString(16).padStart(2, '0');
+    return `#${blend(ro, ru)}${blend(go, gu)}${blend(bo, bu)}`;
+}
+
+/**
+ * WCAG 2.1 relative luminance. Takes an HSL triple, or a hex string for a
+ * colour that came out of `compositeHex`.
+ */
+export function relativeLuminance(color: Hsl): number {
+    const hex = color.startsWith('#') ? color : hslToHex(color);
     const channel = (offset: number) => {
         const value = parseInt(hex.slice(1 + offset * 2, 3 + offset * 2), 16) / 255;
         return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
@@ -512,7 +538,7 @@ export function relativeLuminance(hsl: Hsl): number {
     return 0.2126 * channel(0) + 0.7152 * channel(1) + 0.0722 * channel(2);
 }
 
-/** WCAG contrast ratio between two tokens, 1–21. AA wants 4.5 for body text. */
+/** WCAG contrast ratio between two colours, 1–21. AA wants 4.5 for body text. */
 export function contrastRatio(a: Hsl, b: Hsl): number {
     const [light, dark] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
     return (light + 0.05) / (dark + 0.05);
