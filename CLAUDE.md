@@ -21,7 +21,7 @@ outranks assumptions derived from code.
 | `docs/design.md` | UI/UX spec for the compose page. Contains **designed-but-unbuilt** features — piano-roll velocity lane, clip macros (Energy/Groove/Brightness/Space → "one slider = many DSP changes"), stretch-to-BPM, vibe-based scale selector. Do not treat unwired schema for these as dead code. |
 | `docs/TaskList.md` | **The planning document** (currently v1.3). Sprint-based, checkboxes, named deliverables, versioned footer. All work is planned here first. Active: Sprint 8.5 → 8.6 (design gate) → 8.7 → Phase 1.5. |
 | `docs/adr/` | Architecture Decision Records (ADR-001 backend = first entry, Sprint 9.0). |
-| `design/` (public, from Sprint 8.6) | The committed design system — tokens, principles, exported artboards. All UI must comply. |
+| `design/` (public, shipped Sprint 8.6) | The committed design system — principles, usage rules, live HTML artboards. **All UI must comply**; `npm run check` enforces it. |
 | `ROADMAP.md` (public) | Community-facing summary. Keep in sync with TaskList after each release. |
 | `CHANGELOG.md` (public) | Keep a Changelog format, semver. |
 
@@ -111,6 +111,24 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - Canvas for ruler/grid (`lib/canvas/`, DPR-aware); DOM for clips.
 - Peaks computed in `public/workers/audio-peaks-worker.js` with Transferable zero-copy.
 
+### Design system (`lib/design/` + `design/`)
+- `lib/design/tokens.ts` is the **single source** for every colour, radius, duration and
+  elevation. `npm run design:tokens` generates `app/globals.css`, `public/manifest.json`,
+  the token tables in `design/README.md`, and `design/previews/tokens.{css,js}` from it;
+  `npm run check` fails if any of them drifts. Never hand-edit a generated block.
+- `tailwind.config.ts` holds **no** design values — it imports them.
+- Static class maps in `lib/design/track-colors.ts` (`TRACK_BG`, `DRUM_BG`). Never build a
+  class name by interpolation: `bg-track-${role}` produces no CSS, because Tailwind reads
+  class names from source text. `lib/` is in the `content` globs for the same reason.
+- Canvas reads tokens at draw time via `tokenColor()` / `monoFont()` and must list
+  `resolvedTheme` in its effect deps, or it keeps the previous theme's paint.
+- `tests/design-system.test.ts` fails the build on raw palette classes, hex literals,
+  interpolated class names, off-scale type/radius, non-exhaustive class maps, a track hue
+  inside the accent band, and any colour pair that misses WCAG AA.
+- `npm run design:artboards` re-exports `design/artboards/*.png` and `public/og-image.png`
+  (needs Chrome; the HTML previews in `design/previews/` are the reference and open by
+  double-clicking, no server).
+
 ### Instruments & templates
 - `SYNTH_PRESETS` (lib/audio/synth-presets.ts) is canonical. `INSTRUMENTS`
   (lib/browser/index.ts) derives id/name/category from it; only browser metadata
@@ -169,7 +187,7 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **No SEO content scaling** (maintainer rule): every public page must be something a
   musician would want to land on. Discoverability comes from real shared music.
 
-## Known gaps & active issues (updated 2026-08-29 after Sprint 8.5 — verify before relying on)
+## Known gaps & active issues (updated 2026-08-29 after Sprint 8.6 — verify before relying on)
 
 - **Piano roll velocity**: hardcoded 100, display-only. Velocity lane is a designed
   feature (design.md + TaskList 5.3) — drum sequencer already has drag-to-edit to port.
@@ -180,8 +198,13 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   (rAF doesn't run in a headless pane). Don't quote numbers for these.
 - Open issues: **#21** Custom Instruments (answered 2026-08-29, scheduled v1.4/Sprint
   8.7.5, awaiting requester's scoping input), **#23–#30** good-first-issues.
-- **Sprint 8.5 shipped as v1.2.0** (PR #31 rebase-merged 2026-08-29; CI green on main).
-  Next up is Sprint 8.6, the design-system gate — no new UI ships before it.
+- **Sprint 8.5 shipped as v1.2.0**; **Sprint 8.6 (design system) shipped as v1.3.0**, both
+  on 2026-08-29. Next up is Sprint 8.7 (Feel & Musicality).
+- **Deferred from 8.6 to 8.7:** mobile artboards (the mobile layout is verified; the drawn
+  reference is not done, and the public play page it would cover is a Sprint 9 concept) and
+  a fresh demo GIF + repo social preview (both need a recorded take).
+- **Artboard PNGs are only as current as the last `npm run design:artboards`** — the HTML
+  previews cannot go stale, the exports can.
 - **Pushing**: GitHub rejects pushes exposing the maintainer's private email (GH007), so
   commits must be authored as `3322516+superzero11@users.noreply.github.com`. Set
   `GIT_AUTHOR_EMAIL`/`GIT_COMMITTER_EMAIL` per commit, or offer to set it in the repo's

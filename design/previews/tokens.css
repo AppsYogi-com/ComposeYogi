@@ -39,9 +39,9 @@
     --popover-foreground: 30 10% 10%;
 
     /* Brand — Amber is "this is on". Never use it for a resting control. */
-    --primary: 32 95% 44%;
+    --primary: 29 96% 34%;
     --primary-foreground: 0 0% 100%;
-    --accent: 32 95% 44%;
+    --accent: 29 96% 34%;
     --accent-foreground: 0 0% 100%;
     --secondary: 38 14% 93%;
     --secondary-foreground: 30 10% 10%;
@@ -51,16 +51,16 @@
     /* Lines — border for structure, input for fields, ring for focus only. */
     --border: 36 12% 87%;
     --input: 36 12% 87%;
-    --ring: 32 95% 44%;
+    --ring: 29 96% 34%;
 
     /* State — Meaning, not decoration — pick by what happened, never by hue. */
-    --destructive: 358 68% 48%;
+    --destructive: 358 70% 42%;
     --destructive-foreground: 0 0% 100%;
-    --success: 150 60% 32%;
+    --success: 150 62% 26%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 40%;
+    --warning: 32 95% 30%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 82% 45%;
+    --info: 210 85% 38%;
     --info-foreground: 0 0% 100%;
 
     /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
@@ -120,21 +120,21 @@
     --ring: 35 100% 55%;
 
     /* State — Meaning, not decoration — pick by what happened, never by hue. */
-    --destructive: 358 72% 56%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 150 62% 45%;
-    --success-foreground: 0 0% 100%;
+    --destructive: 358 82% 66%;
+    --destructive-foreground: 358 35% 10%;
+    --success: 150 62% 52%;
+    --success-foreground: 150 40% 8%;
     --warning: 45 95% 55%;
     --warning-foreground: 40 40% 10%;
-    --info: 210 85% 60%;
-    --info-foreground: 0 0% 100%;
+    --info: 210 90% 66%;
+    --info-foreground: 210 45% 10%;
 
     /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
     --playhead: 358 85% 62%;
 
     /* Fixed surfaces — Identical in both themes on purpose — nothing here has a theme to invert against. */
     --scrim: 30 8% 4%;
-    --clip-foreground: 40 15% 98%;
+    --clip-foreground: 30 25% 10%;
     --piano-white: 40 12% 92%;
     --piano-white-foreground: 30 8% 28%;
     --piano-black: 30 6% 16%;

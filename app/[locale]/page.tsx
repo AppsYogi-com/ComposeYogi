@@ -87,7 +87,7 @@ function Header() {
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
                 <div className="flex items-center gap-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent">
-                        <MusicWave barCount={4} className="h-4" />
+                        <MusicWave barCount={4} spacing="tight" className="h-4" />
                     </div>
                     <span className="text-base font-semibold tracking-tight">ComposeYogi</span>
                 </div>

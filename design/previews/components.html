@@ -43,8 +43,18 @@
     border: 0; border-radius: calc(var(--radius) - 2px);
     background: transparent; color: hsl(var(--foreground));
     cursor: pointer;
+    font-size: 15px; line-height: 1;
     transition: background-color var(--motion-fast) var(--ease-out);
 }
+/* Unicode glyphs are drawn at wildly different proportions inside their em box
+   — ◼ and ● are small, ⏮ and ↻ are large. Sized per glyph so the row reads as
+   one set of controls rather than as five different icons. */
+.tbtn[data-glyph="prev"]   { font-size: 17px; }
+.tbtn[data-glyph="play"]   { font-size: 13px; }
+.tbtn[data-glyph="stop"]   { font-size: 21px; }
+.tbtn[data-glyph="rec"]    { font-size: 19px; }
+.tbtn[data-glyph="loop"]   { font-size: 18px; }
+.tbtn[data-glyph="metro"]  { font-size: 21px; }
 .tbtn.on { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
 .tbtn.rec { color: hsl(var(--destructive)); }
 .readout {
@@ -154,10 +164,10 @@
   <h2>Transport</h2>
   <p class="note">48px of fixed chrome. Amber marks what is on; the record button is the only thing in the product that animates on a timer.</p>
   <div class="transport" style="margin-top:18px">
-    <button class="tbtn">&#9198;</button>
-    <button class="tbtn on">&#9654;</button>
-    <button class="tbtn">&#9632;</button>
-    <button class="tbtn rec">&#9679;</button>
+    <button class="tbtn" data-glyph="prev">&#9198;</button>
+    <button class="tbtn on" data-glyph="play">&#9654;</button>
+    <button class="tbtn" data-glyph="stop">&#9632;</button>
+    <button class="tbtn rec" data-glyph="rec">&#9679;</button>
     <div class="divider"></div>
     <span class="readout">017.3.2</span>
     <span class="readout dim">00:48.21</span>
@@ -165,8 +175,8 @@
     <span class="readout">128.0</span>
     <span class="dim" style="font-size:12px">BPM</span>
     <div class="divider"></div>
-    <button class="tbtn on" title="Loop">&#8635;</button>
-    <button class="tbtn" title="Metronome">&#9834;</button>
+    <button class="tbtn on" data-glyph="loop" title="Loop">&#8635;</button>
+    <button class="tbtn" data-glyph="metro" title="Metronome">&#9834;</button>
   </div>
 
   <h2>Buttons</h2>

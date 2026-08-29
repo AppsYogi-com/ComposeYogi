@@ -6,6 +6,7 @@
 <title>ComposeYogi — Foundations</title>
 <link rel="stylesheet" href="./tokens.css">
 <link rel="stylesheet" href="./artboard.css">
+<script src="./tokens.js"></script>
 </head>
 <body>
 <div class="sheet">
@@ -16,7 +17,7 @@
   </div>
   <p class="lede">
     Nothing on this page is written into its markup. The swatches, scales and
-    specimens are all built from <code class="mono">tokens.json</code> and read back from
+    specimens are all built from <code class="mono">tokens.js</code> and read back from
     the browser's own computed styles &mdash; both generated from
     <code class="mono">lib/design/tokens.ts</code>. Press <b>T</b> to switch themes.
     If something here looks wrong, the token is wrong.
@@ -176,14 +177,16 @@ function refresh() {
     root.classList.contains('dark') ? 'dark' : 'light';
 }
 
-fetch('./tokens.json')
-  .then((response) => response.json())
-  .then((tokens) => { build(tokens); refresh(); })
-  .catch(() => {
-    document.getElementById('sheet').append(
-      el('p', 'note', 'Could not load tokens.json — serve this folder over HTTP rather than opening the file directly.')
-    );
-  });
+// A global set by tokens.js rather than a fetch: these pages have to work when
+// you double-click them, and fetch() is blocked on file:// by CORS.
+if (window.COMPOSEYOGI_TOKENS) {
+  build(window.COMPOSEYOGI_TOKENS);
+  refresh();
+} else {
+  document.getElementById('sheet').append(
+    el('p', 'note', 'tokens.js did not load. Run `npm run design:tokens` to generate it.')
+  );
+}
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 't') { root.classList.toggle('dark'); refresh(); }

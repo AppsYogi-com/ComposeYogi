@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-29
+
+The studio gets one visual language, and a build that enforces it.
+
+### Added
+
+- **A design system, committed publicly in `design/`** — principles, usage
+  rules, a token reference, and live HTML artboards you can open in a browser.
+  `lib/design/tokens.ts` is the single source for every colour, radius,
+  duration and elevation in the product.
+- **A redesigned home page** — templates above the fold so the first thing the
+  page can do is make a sound, a look at the real arrangement view, what the
+  studio does, and two clear ways in: open it, or help build it.
+- Named `success`, `warning` and `info` state colours, a seven-family drum
+  palette for the sequencer rail, and tokens for the fixed surfaces that
+  deliberately do not follow the theme (modal scrims, clip labels, piano keys).
+- `npm run design:tokens` regenerates everything derived from the tokens;
+  `npm run design:artboards` re-exports the reference images and the social card.
+
+### Fixed
+
+- **Every track was a different colour depending on where you looked.** The
+  palette was defined in three places that disagreed: bass was blue on its clip,
+  orange in its track header, and blue again in the browser panel. Drums was
+  orange, red, and red.
+- **The instrument browser's colour dots had no colour at all.** Their class name
+  was built by string interpolation, which Tailwind cannot see, so the rule was
+  never generated.
+- **JetBrains Mono never applied anywhere.** `--font-mono` was defined in terms
+  of itself, which makes the whole declaration invalid, so every number in the
+  studio fell back to the default monospace.
+- Volume faders were invisible in the light theme — the rail was tinted at 93%
+  lightness against a 96% surface.
+- The light-theme accent failed WCAG AA in both directions: 3.2:1 as text on the
+  page, and 3.2:1 under white text on a button. Three dark-theme state colours
+  had the same problem. The whole palette is now checked in the test suite.
+- Clip labels were white on colours too light to carry them; they are now dark
+  in the dark theme and light in the light theme, following the fill.
+- The social card was a 2102×1261 screenshot of an old build — showing template
+  names that no longer exist — while being declared as 1200×630. It is now a
+  designed card at the size it claims.
+- The compose screenshot on the home page still showed the old track palette.
+
+### Changed
+
+- `npm run check` now fails on a raw Tailwind palette class, a hex literal, an
+  interpolated class name, an off-scale type or radius value, a generated file
+  out of sync with the tokens, or a colour pair that fails WCAG AA.
+- `CONTRIBUTING.md` gains a Design section — UI changes must comply with
+  `design/` — and finally points newcomers at the `good first issue` label,
+  which only the README and roadmap did before.
+
 ## [1.2.0] - 2026-08-29
 
 Hardening release. No new surface area — this is about the studio behaving the
@@ -158,7 +210,8 @@ way a studio has to, and about making the codebase safe for contributors.
 
 ---
 
-[Unreleased]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/AppsYogi-com/ComposeYogi/releases/tag/v1.0.0

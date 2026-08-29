@@ -84,9 +84,9 @@ section — run `npm run design:tokens`.
 
 | Token | Class | Dark | Light |
 |---|---|---|---|
-| `--primary` | `primary` | `#ff9f1a` `35 100% 55%` | `#db7706` `32 95% 44%` |
+| `--primary` | `primary` | `#ff9f1a` `35 100% 55%` | `#aa5403` `29 96% 34%` |
 | `--primary-foreground` | `primary-foreground` | `#1a140f` `30 25% 8%` | `#ffffff` `0 0% 100%` |
-| `--accent` | `accent` | `#ff9f1a` `35 100% 55%` | `#db7706` `32 95% 44%` |
+| `--accent` | `accent` | `#ff9f1a` `35 100% 55%` | `#aa5403` `29 96% 34%` |
 | `--accent-foreground` | `accent-foreground` | `#1a140f` `30 25% 8%` | `#ffffff` `0 0% 100%` |
 | `--secondary` | `secondary` | `#2b2927` `30 5% 16%` | `#f0eeeb` `38 14% 93%` |
 | `--secondary-foreground` | `secondary-foreground` | `#f4f2f1` `35 10% 95%` | `#1c1a17` `30 10% 10%` |
@@ -101,7 +101,7 @@ section — run `npm run design:tokens`.
 |---|---|---|---|
 | `--border` | `border` | `#33302e` `30 5% 19%` | `#e2dfda` `36 12% 87%` |
 | `--input` | `input` | `#2b2927` `30 5% 16%` | `#e2dfda` `36 12% 87%` |
-| `--ring` | `ring` | `#ff9f1a` `35 100% 55%` | `#db7706` `32 95% 44%` |
+| `--ring` | `ring` | `#ff9f1a` `35 100% 55%` | `#aa5403` `29 96% 34%` |
 
 #### State
 
@@ -109,14 +109,14 @@ section — run `npm run design:tokens`.
 
 | Token | Class | Dark | Light |
 |---|---|---|---|
-| `--destructive` | `destructive` | `#e03e43` `358 72% 56%` | `#ce272d` `358 68% 48%` |
-| `--destructive-foreground` | `destructive-foreground` | `#ffffff` `0 0% 100%` | `#ffffff` `0 0% 100%` |
-| `--success` | `success` | `#2cba73` `150 62% 45%` | `#218352` `150 60% 32%` |
-| `--success-foreground` | `success-foreground` | `#ffffff` `0 0% 100%` | `#ffffff` `0 0% 100%` |
-| `--warning` | `warning` | `#f9c31f` `45 95% 55%` | `#c47f08` `38 92% 40%` |
+| `--destructive` | `destructive` | `#ef6166` `358 82% 66%` | `#b62025` `358 70% 42%` |
+| `--destructive-foreground` | `destructive-foreground` | `#221111` `358 35% 10%` | `#ffffff` `0 0% 100%` |
+| `--success` | `success` | `#39d085` `150 62% 52%` | `#196b42` `150 62% 26%` |
+| `--success-foreground` | `success-foreground` | `#0c1d14` `150 40% 8%` | `#ffffff` `0 0% 100%` |
+| `--warning` | `warning` | `#f9c31f` `45 95% 55%` | `#955104` `32 95% 30%` |
 | `--warning-foreground` | `warning-foreground` | `#241d0f` `40 40% 10%` | `#ffffff` `0 0% 100%` |
-| `--info` | `info` | `#4299f0` `210 85% 60%` | `#1573d1` `210 82% 45%` |
-| `--info-foreground` | `info-foreground` | `#ffffff` `0 0% 100%` | `#ffffff` `0 0% 100%` |
+| `--info` | `info` | `#5aa8f6` `210 90% 66%` | `#0f61b3` `210 85% 38%` |
+| `--info-foreground` | `info-foreground` | `#0e1a25` `210 45% 10%` | `#ffffff` `0 0% 100%` |
 
 #### Transport
 
@@ -133,7 +133,7 @@ section — run `npm run design:tokens`.
 | Token | Class | Dark | Light |
 |---|---|---|---|
 | `--scrim` | `scrim` | `#0b0a09` `30 8% 4%` | `#0b0a09` `30 8% 4%` |
-| `--clip-foreground` | `clip-foreground` | `#fbfaf9` `40 15% 98%` | `#fbfaf9` `40 15% 98%` |
+| `--clip-foreground` | `clip-foreground` | `#201a13` `30 25% 10%` | `#fbfaf9` `40 15% 98%` |
 | `--piano-white` | `piano-white` | `#edebe8` `40 12% 92%` | `#edebe8` `40 12% 92%` |
 | `--piano-white-foreground` | `piano-white-foreground` | `#4d4742` `30 8% 28%` | `#4d4742` `30 8% 28%` |
 | `--piano-black` | `piano-black` | `#2b2926` `30 6% 16%` | `#2b2926` `30 6% 16%` |
@@ -393,11 +393,12 @@ criterion.
 [`artboards/`](artboards/) holds the exported reference screens.
 [`previews/`](previews/) holds the HTML they are rendered from — these are live
 pages that read the same tokens, so they cannot go stale the way an exported
-image can. Open one directly in a browser to inspect the system at any size.
+image can. **Double-click one to open it**: they need no server and no build,
+which is why the token data is a script rather than a fetch.
 
 | Preview | What it is for |
 |---|---|
-| `foundations` | The full palette in both themes, the type scale, shape, motion, elevation. Builds itself from `tokens.json`, so it always shows every token. |
+| `foundations` | The full palette in both themes, the type scale, shape, motion, elevation. Builds itself from `tokens.js`, so it always shows every token. |
 | `components` | Transport, faders, track headers, clip states, editors, fields, status, panels |
 | `og-image` | The social card. Exported to `public/og-image.png`, not to `artboards/` — it is a product asset, built here so it cannot drift from the palette. |
 

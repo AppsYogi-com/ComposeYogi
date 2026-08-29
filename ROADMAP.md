@@ -15,7 +15,27 @@ Star ⭐ the repo to follow along.
 
 ## ✅ Shipped
 
-### v1.2 — Solid Ground *(in progress)*
+### v1.3 — One Language *(August 2026)*
+
+The studio now has a single visual language, and a build that enforces it.
+
+- [x] **A design system in the repo** — [`design/`](design/README.md) holds the
+      principles, the usage rules and live artboards you can open in a browser.
+      Every colour, radius and duration comes from one file.
+- [x] **Every track is one colour again** — the palette had been defined in
+      three places that disagreed, so the same track was blue on its clip and
+      orange in its header
+- [x] **The instrument browser's colour dots actually render** — their class
+      name was built in a way the CSS tooling could never see
+- [x] **The numbers are in the right typeface** — the mono font had been
+      defined in terms of itself, so it never applied anywhere
+- [x] **The light theme is real** — faders are visible, and every colour pair
+      the interface puts together now meets WCAG AA, which several did not
+- [x] **A redesigned home page** — templates above the fold, a look at the real
+      arrangement view, and clear paths for musicians and for contributors
+- [x] **A social card that shows the product we actually ship**
+
+### v1.2 — Solid Ground *(August 2026)*
 
 The engine you can build on. No new surface area; everything here is about the
 studio behaving the way a studio has to.
@@ -57,24 +77,7 @@ rebindable keyboard shortcuts, English and Spanish.
 
 ---
 
-## 🎨 Next — v1.3, Design System
-
-Before any new interface ships, ComposeYogi gets a real design system: tokens,
-components and artboards for desktop *and* mobile, committed publicly in
-`design/` so contributors build inside it rather than around it. The existing
-app is migrated to comply first.
-
-- [ ] Design system committed to the repo — foundations, component gallery,
-      desktop and mobile artboards
-- [ ] Full app migration: no hardcoded colours, one type and spacing scale,
-      verified in both themes
-- [ ] **Home page redesign** — the studio's real power, with clear paths for
-      musicians and for contributors
-- [ ] Refreshed screenshots, demo GIF and social preview
-
----
-
-## 🎼 Then — v1.4, Feel & Musicality
+## 🎼 Next — v1.4, Feel & Musicality
 
 Where a pattern stops being programmed and starts being played.
 
@@ -89,10 +92,12 @@ Where a pattern stops being programmed and starts being played.
 - [ ] **Custom instruments** ([#21](https://github.com/AppsYogi-com/ComposeYogi/issues/21))
       — design your own sounds, save and share them as presets
 - [ ] **Play it live** — MIDI keyboard input and musical typing
+- [ ] Mobile artboards and a fresh demo GIF — the two pieces of the design
+      system that need a drawn reference and a recorded take, not a screenshot
 
 ---
 
-## 🔗 After that — v1.5, Share & Cloud
+## 🔗 Then — v1.5, Share & Cloud
 
 A track should be able to become a link.
 
@@ -136,8 +141,9 @@ Have an idea? [Open an issue](https://github.com/AppsYogi-com/ComposeYogi/issues
 Several of the instruments and fixes above came directly from community issues.
 
 Want to build something? [`good first issue`](https://github.com/AppsYogi-com/ComposeYogi/labels/good%20first%20issue)
-is where to start, and [ARCHITECTURE.md](ARCHITECTURE.md) explains how the
-engine fits together.
+is where to start, [ARCHITECTURE.md](ARCHITECTURE.md) explains how the engine
+fits together, and [design/](design/README.md) is the system every piece of UI
+is built from.
 
 ---
 

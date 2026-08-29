@@ -25,7 +25,7 @@ const GLOBALS_CSS = path.join(ROOT, 'app', 'globals.css');
 const MANIFEST = path.join(ROOT, 'public', 'manifest.json');
 const DESIGN_README = path.join(ROOT, 'design', 'README.md');
 const PREVIEW_CSS = path.join(ROOT, 'design', 'previews', 'tokens.css');
-const PREVIEW_JSON = path.join(ROOT, 'design', 'previews', 'tokens.json');
+const PREVIEW_JS = path.join(ROOT, 'design', 'previews', 'tokens.js');
 
 const BEGIN = '/* === BEGIN generated design tokens — npm run design:tokens === */';
 const END = '/* === END generated design tokens === */';
@@ -180,12 +180,15 @@ function previewCss(tokens) {
 // swatches written into its markup. An artboard with a hand-authored list of
 // tokens is an artboard that silently stops showing new ones — which is exactly
 // the drift this whole pipeline exists to prevent.
+//
+// A script that assigns a global, not JSON fetched at runtime: the artboards
+// have to open by double-clicking the file, and `fetch` is blocked on file://
+// by CORS while a <script src> is not.
 
 function previewJson(tokens) {
     const { COLOR_GROUPS, RADIUS, MOTION, EASING, ELEVATION, LAYOUT, TYPE_SCALE } = tokens;
-    return JSON.stringify(
+    const data = JSON.stringify(
         {
-            _generated: 'lib/design/tokens.ts — do not edit, run `npm run design:tokens`',
             groups: COLOR_GROUPS,
             type: TYPE_SCALE,
             radius: RADIUS,
@@ -196,7 +199,15 @@ function previewJson(tokens) {
         },
         null,
         4
-    ) + '\n';
+    );
+    return [
+        '/*',
+        ' * Generated from lib/design/tokens.ts by scripts/generate-design-tokens.js.',
+        ' * Do not edit — run `npm run design:tokens`.',
+        ' */',
+        `window.COMPOSEYOGI_TOKENS = ${data};`,
+        '',
+    ].join('\n');
 }
 
 // ============================================
@@ -321,7 +332,7 @@ function main() {
     const css2 = fs.existsSync(PREVIEW_CSS) ? fs.readFileSync(PREVIEW_CSS, 'utf8') : '';
     const nextCss2 = previewCss(tokens);
 
-    const json = fs.existsSync(PREVIEW_JSON) ? fs.readFileSync(PREVIEW_JSON, 'utf8') : '';
+    const json = fs.existsSync(PREVIEW_JS) ? fs.readFileSync(PREVIEW_JS, 'utf8') : '';
     const nextJson = previewJson(tokens);
 
     const stale = [];
@@ -329,7 +340,7 @@ function main() {
     if (manifest.next !== manifest.current) stale.push('public/manifest.json');
     if (nextDoc !== doc) stale.push('design/README.md');
     if (nextCss2 !== css2) stale.push('design/previews/tokens.css');
-    if (nextJson !== json) stale.push('design/previews/tokens.json');
+    if (nextJson !== json) stale.push('design/previews/tokens.js');
 
     if (stale.length === 0) {
         console.log('✓ Every generated file matches lib/design/tokens.ts');
@@ -346,7 +357,7 @@ function main() {
     if (manifest.next !== manifest.current) fs.writeFileSync(MANIFEST, manifest.next);
     if (nextDoc !== doc) fs.writeFileSync(DESIGN_README, nextDoc);
     if (nextCss2 !== css2) fs.writeFileSync(PREVIEW_CSS, nextCss2);
-    if (nextJson !== json) fs.writeFileSync(PREVIEW_JSON, nextJson);
+    if (nextJson !== json) fs.writeFileSync(PREVIEW_JS, nextJson);
     console.log(`✓ Wrote design tokens into ${stale.join(', ')}`);
 }
 

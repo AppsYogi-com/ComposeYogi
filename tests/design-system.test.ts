@@ -22,8 +22,10 @@ import {
     DRUM_FAMILIES,
     LIGHT,
     TRACK_ROLES,
+    contrastRatio,
     hslToHex,
 } from '@/lib/design/tokens';
+import type { ThemeColors } from '@/lib/design/tokens';
 import { DRUM_BG, TRACK_BG, TRACK_TEXT } from '@/lib/design/track-colors';
 
 const ROOT = join(__dirname, '..');
@@ -213,6 +215,96 @@ describe('every design class reaches Tailwind', () => {
             expect(source, `${className} must appear verbatim in track-colors.ts`)
                 .toContain(`'${className}'`);
         }
+    });
+});
+
+// ============================================
+// Contrast
+// ============================================
+//
+// The pairs asserted here are the ones the product actually puts together. This
+// is not a substitute for looking at the page — it cannot see a fader rail that
+// vanishes into its surface, because that is a difference in appearance, not in
+// contrast ratio — but it does hold the line on text legibility, which is where
+// an amber accent quietly fails.
+
+describe('colour pairs meet WCAG AA', () => {
+    const AA_BODY = 4.5;
+    const AA_LARGE = 3;
+
+    const themes: [string, ThemeColors][] = [['dark', DARK], ['light', LIGHT]];
+    const STATES = ['accent', 'primary', 'destructive', 'success', 'warning', 'info'] as const;
+
+    describe.each(themes)('%s', (_name, theme) => {
+        it('reads body text on the ground', () => {
+            expect(contrastRatio(theme.foreground, theme.background)).toBeGreaterThanOrEqual(AA_BODY);
+            expect(contrastRatio(theme.foreground, theme.surface)).toBeGreaterThanOrEqual(AA_BODY);
+            expect(contrastRatio(theme['card-foreground'], theme.card)).toBeGreaterThanOrEqual(AA_BODY);
+            expect(contrastRatio(theme['popover-foreground'], theme.popover)).toBeGreaterThanOrEqual(AA_BODY);
+        });
+
+        it('reads secondary text on every ground it sits on', () => {
+            for (const ground of ['background', 'surface', 'surface-elevated'] as const) {
+                expect(
+                    contrastRatio(theme['muted-foreground'], theme[ground]),
+                    `muted-foreground on ${ground}`
+                ).toBeGreaterThanOrEqual(AA_BODY);
+            }
+        });
+
+        it('reads a state colour used as text', () => {
+            // `text-warning` on a panel, `text-success` in a toast — these are
+            // small text, so they need the full ratio.
+            for (const state of STATES) {
+                expect(
+                    contrastRatio(theme[state], theme.background),
+                    `${state} as text on background`
+                ).toBeGreaterThanOrEqual(AA_BODY);
+                expect(
+                    contrastRatio(theme[state], theme.surface),
+                    `${state} as text on surface`
+                ).toBeGreaterThanOrEqual(AA_BODY);
+            }
+        });
+
+        it('reads a foreground on its own fill', () => {
+            // The button case: text-accent-foreground on bg-accent.
+            for (const state of STATES) {
+                expect(
+                    contrastRatio(theme[`${state}-foreground`], theme[state]),
+                    `${state}-foreground on ${state}`
+                ).toBeGreaterThanOrEqual(AA_BODY);
+            }
+        });
+
+        it('shows a focus ring against every ground', () => {
+            // A ring is a large graphical object, so 3:1 is the bar.
+            for (const ground of ['background', 'surface', 'surface-elevated', 'input'] as const) {
+                expect(
+                    contrastRatio(theme.ring, theme[ground]),
+                    `ring on ${ground}`
+                ).toBeGreaterThanOrEqual(AA_LARGE);
+            }
+        });
+
+        it('separates the piano keys from their labels', () => {
+            expect(
+                contrastRatio(theme['piano-white-foreground'], theme['piano-white'])
+            ).toBeGreaterThanOrEqual(AA_BODY);
+            expect(
+                contrastRatio(theme['piano-black-foreground'], theme['piano-black'])
+            ).toBeGreaterThanOrEqual(AA_BODY);
+        });
+
+        it('shows a clip label on every track colour', () => {
+            // Clip titles are clip-foreground on a filled track colour.
+            for (const role of TRACK_ROLES) {
+                expect(
+                    contrastRatio(theme['clip-foreground'], theme[`track-${role}`]),
+                    `clip-foreground on track-${role}`
+                ).toBeGreaterThanOrEqual(AA_LARGE);
+            }
+        });
     });
 });
 
