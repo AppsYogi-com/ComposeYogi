@@ -178,8 +178,6 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **Unverified performance claims**: frame rate, Lighthouse, the offline walkthrough and
   the cross-browser matrix have NOT been measured on real hardware since the 8.5 work
   (rAF doesn't run in a headless pane). Don't quote numbers for these.
-- **Broken funding link**: `.github/FUNDING.yml` `buy_me_a_coffee: appsyogi` 404s — the
-  repo's Sponsor button points at a dead page. Needs the maintainer's correct username.
 - Open issues: **#21** Custom Instruments (answered 2026-08-29, scheduled v1.4/Sprint
   8.7.5, awaiting requester's scoping input), **#23–#30** good-first-issues.
 - **Sprint 8.5 is in review as PR #31** (branch `sprint-8.5-hardening`, CI green).
