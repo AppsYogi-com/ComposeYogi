@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SCALES, NOTES } from '@/lib/utils';
+import { trackColorValue } from '@/lib/design';
 import type { MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
 
 const TRACK_COLOR_OPTIONS: { value: TrackColor; label: string }[] = [
@@ -177,7 +178,7 @@ export function Inspector() {
                                             <div className="flex items-center gap-2">
                                                 <div
                                                     className="w-3 h-3 rounded-full"
-                                                    style={{ backgroundColor: `hsl(var(--track-${opt.value}))` }}
+                                                    style={{ backgroundColor: trackColorValue(opt.value) }}
                                                 />
                                                 {opt.label}
                                             </div>

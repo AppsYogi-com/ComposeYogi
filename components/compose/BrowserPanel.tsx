@@ -404,7 +404,7 @@ export function BrowserPanel() {
                                                             e.stopPropagation();
                                                             handleInstrumentDoubleClick(instrument);
                                                         }}
-                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-surface-active rounded transition-all"
+                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-surface-elevated rounded transition-all"
                                                         aria-label="Add Track"
                                                     >
                                                         <PlusCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />

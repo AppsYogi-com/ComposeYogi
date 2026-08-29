@@ -48,6 +48,20 @@ function sourceFiles(): string[] {
     return found;
 }
 
+/** The class maps live in lib/design/, so colour-class checks have to look there too. */
+function libFiles(): string[] {
+    const found: string[] = [];
+    const walk = (dir: string) => {
+        for (const entry of readdirSync(dir)) {
+            const full = join(dir, entry);
+            if (statSync(full).isDirectory()) walk(full);
+            else if (/\.tsx?$/.test(entry)) found.push(full);
+        }
+    };
+    walk(join(ROOT, 'lib'));
+    return found;
+}
+
 /** `path:line  offending text` — so a failure says where to go, not just that it failed. */
 function scan(pattern: RegExp, skip?: (file: string) => boolean): string[] {
     const hits: string[] = [];
@@ -203,6 +217,52 @@ describe('every design class reaches Tailwind', () => {
         const config = await import('@/tailwind.config');
         const content = config.default.content as string[];
         expect(content.some((glob) => glob.startsWith('./lib/'))).toBe(true);
+    });
+
+    it('emits a rule for every colour class the source uses', async () => {
+        // The two checks above guard the conditions that made classes vanish
+        // before. This one checks the thing itself. Tailwind emits nothing for
+        // a colour it does not know — no error, no warning, just an element
+        // with no background — which is how `bg-surface-active` sat live in
+        // BrowserPanel while eight siblings correctly said surface-elevated.
+        const valid = new Set<string>();
+        const walk = (node: Record<string, unknown>, prefix: string) => {
+            for (const [key, value] of Object.entries(node)) {
+                const name = key === 'DEFAULT' ? prefix : prefix ? `${prefix}-${key}` : key;
+                if (typeof value === 'string') valid.add(name);
+                else walk(value as Record<string, unknown>, name);
+            }
+        };
+        const config = await import('@/tailwind.config');
+        walk(config.default.theme!.extend!.colors as Record<string, unknown>, '');
+
+        // Only suffixes that begin with a token family count as colour classes,
+        // so Tailwind's own `border-t-transparent` and `ring-offset-2` do not
+        // register. `bg-clip-*` is background-clip, not the clip token.
+        const families = [...new Set([...valid].map((name) => name.split('-')[0]))];
+        const TAILWIND_OWN = /^clip-(text|border|content|padding)$/;
+        const UTILITIES = 'bg|text|border|ring|fill|stroke|divide|from|to|via|placeholder|caret|decoration';
+
+        const hits: string[] = [];
+        for (const file of [...sourceFiles(), ...libFiles()]) {
+            readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
+                const pattern = new RegExp(
+                    `\\b(?:${UTILITIES})-((?:${families.join('|')})(?:-[a-z0-9]+)+)`,
+                    'g'
+                );
+                for (const match of line.matchAll(pattern)) {
+                    if (valid.has(match[1]) || TAILWIND_OWN.test(match[1])) continue;
+                    hits.push(`${relative(ROOT, file)}:${index + 1}  ${match[0]}`);
+                }
+            });
+        }
+
+        expect(
+            hits,
+            'This class names no token, so Tailwind generates no CSS for it and ' +
+            'the element renders unstyled. Check the spelling against ' +
+            'lib/design/tokens.ts, or add the token if it should exist.'
+        ).toEqual([]);
     });
 
     it('declares each class as a literal a scanner can find', () => {
