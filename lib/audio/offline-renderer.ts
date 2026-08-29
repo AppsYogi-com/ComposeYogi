@@ -186,6 +186,7 @@ export async function renderProjectToAudioBuffer(
                     transport,
                     bpm: plan.bpm,
                     beatsPerBar: plan.beatsPerBar,
+                    swing: plan.swing,
                 });
             }
         }

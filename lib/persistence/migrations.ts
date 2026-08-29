@@ -104,6 +104,31 @@ export const MIGRATIONS: Migration[] = [
             }
         },
     },
+    {
+        // `pentatonic` was the one scale the type knew about that no picker
+        // offered and no translation covered, and it sat next to a picker
+        // offering five scales the type did not have. Consolidating the two
+        // lists in lib/music/scales.ts settles on the picker's names, which
+        // leaves this one legacy value with nowhere to go.
+        //
+        // Minor rather than major: `pentatonic`'s intervals were [0,2,4,7,9] —
+        // the major pentatonic — but it could only ever have been set on a
+        // project whose *default* was minor, and only by hand. Neither answer
+        // is provably right; a valid scale that highlights something is better
+        // than a value the app no longer has intervals for.
+        version: 4,
+        name: 'legacy-pentatonic-scale',
+        run: async (_db, transaction) => {
+            const projects = transaction.objectStore('projects');
+
+            for await (const cursor of projects.iterate()) {
+                const project = cursor.value as { scale?: string };
+                if (project.scale !== 'pentatonic') continue;
+
+                await cursor.update({ ...project, scale: 'pentatonicMinor' });
+            }
+        },
+    },
 ];
 
 /** Highest migration version — db.ts opens the database at this version. */

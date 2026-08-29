@@ -45,6 +45,7 @@ import { useViewportWidth, useVisibleClips } from '@/hooks';
 import type { Viewport } from '@/hooks/useVisibleClips';
 import { DraggableClip } from './DraggableClip';
 import { LoopBraces } from './LoopBraces';
+import { SnapSelect } from './SnapSelect';
 import { trackColorValue } from '@/lib/design/track-colors';
 import type { Track } from '@/types';
 
@@ -704,6 +705,7 @@ function getDemoNotesForInstrument(instrumentId: string): Array<{ pitch: number;
 
 export function TrackList() {
     const t = useTranslations('tracks');
+    const tSnap = useTranslations('snap');
     const { resolvedTheme } = useTheme();
     const project = useProjectStore((s) => s.project);
     const addTrack = useProjectStore((s) => s.addTrack);
@@ -713,6 +715,8 @@ export function TrackList() {
     const selectTrack = useUIStore((s) => s.selectTrack);
     const selectedTrackId = useUIStore((s) => s.selectedTrackId);
     const zoom = useUIStore((s) => s.zoom);
+    const timelineSnap = useUIStore((s) => s.timelineSnap);
+    const setTimelineSnap = useUIStore((s) => s.setTimelineSnap);
     const setZoom = useUIStore((s) => s.setZoom);
     const scrollX = useUIStore((s) => s.scrollX);
     const setScrollX = useUIStore((s) => s.setScrollX);
@@ -1036,11 +1040,23 @@ export function TrackList() {
                 className="flex flex-col border-r border-border bg-surface flex-shrink-0"
                 style={{ width: TRACK_HEADER_WIDTH }}
             >
-                {/* Ruler spacer */}
+                {/* Ruler spacer, which is also the arrangement's only toolbar
+                    space. Snap lives here rather than in the transport because
+                    it belongs with what it snaps — and because the transport
+                    bar is already full at the width the design targets. */}
                 <div
-                    className="border-b border-border bg-surface"
+                    className="flex items-center gap-1.5 border-b border-border bg-surface px-2"
                     style={{ height: RULER_HEIGHT }}
-                />
+                >
+                    <span className="text-2xs uppercase tracking-wider text-muted-foreground">
+                        {tSnap('label')}
+                    </span>
+                    <SnapSelect
+                        value={timelineSnap}
+                        onChange={setTimelineSnap}
+                        className="h-5 w-auto gap-1 border-0 bg-transparent px-1 py-0 text-2xs shadow-none focus:ring-0"
+                    />
+                </div>
 
                 {/* Track headers with drag-to-reorder */}
                 <DndContext
@@ -1109,6 +1125,7 @@ export function TrackList() {
                         {/* Loop braces overlay */}
                         <LoopBraces
                             pixelsPerBar={pixelsPerBeat * beatsPerBar}
+                            beatsPerBar={beatsPerBar}
                             rulerHeight={RULER_HEIGHT}
                         />
                     </div>

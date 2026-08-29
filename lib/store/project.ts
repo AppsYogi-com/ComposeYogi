@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { temporal } from 'zundo';
 import { v4 as uuid } from 'uuid';
 import { MACRO_NEUTRAL } from '@/lib/audio/clip-macros';
+import { vibeById } from '@/lib/music';
 import { loadDemoTemplate } from '@/lib/templates';
 import type {
     Project,
@@ -19,7 +20,8 @@ import type {
     TrackEffectType,
     ClipType,
     MusicalKey,
-    MusicalScale
+    MusicalScale,
+    VibeId
 } from '@/types';
 
 // ============================================
@@ -73,6 +75,8 @@ interface ProjectActions {
     setBpm: (bpm: number) => void;
     setKey: (key: MusicalKey) => void;
     setScale: (scale: MusicalScale) => void;
+    setVibe: (vibe: VibeId) => void;
+    setSwing: (swing: number) => void;
     setTimeSignature: (timeSignature: [number, number]) => void;
 
     // Save state
@@ -89,6 +93,8 @@ type ProjectStore = ProjectState & ProjectActions;
 const DEFAULT_BPM = 120;
 const DEFAULT_KEY: MusicalKey = 'C';
 const DEFAULT_SCALE: MusicalScale = 'minor';
+/** Straight. Every project starts unswung and opts in. */
+const DEFAULT_SWING = 0;
 const DEFAULT_TIME_SIGNATURE: [number, number] = [4, 4];
 
 const TRACK_COLORS: TrackColor[] = ['drums', 'bass', 'keys', 'melody', 'vocals', 'fx'];
@@ -104,6 +110,7 @@ const createDefaultProject = (name: string = 'Untitled Project'): Project => ({
     key: DEFAULT_KEY,
     scale: DEFAULT_SCALE,
     timeSignature: DEFAULT_TIME_SIGNATURE,
+    swing: DEFAULT_SWING,
     tracks: [],
     clips: [],
     createdAt: Date.now(),
@@ -722,6 +729,31 @@ const projectStoreBase = (
         }));
     },
 
+    /**
+     * Set key and scale together from a named feel. One action rather than two
+     * setter calls, so a vibe change is a single undo step and a single autosave.
+     */
+    setVibe: (vibeId) => {
+        const vibe = vibeById(vibeId);
+        if (!vibe) return;
+
+        set((state) => ({
+            project: state.project
+                ? { ...state.project, key: vibe.key, scale: vibe.scale, updatedAt: Date.now() }
+                : null,
+            hasUnsavedChanges: true,
+        }));
+    },
+
+    setSwing: (swing) => {
+        set((state) => ({
+            project: state.project
+                ? { ...state.project, swing: Math.max(0, Math.min(100, swing)), updatedAt: Date.now() }
+                : null,
+            hasUnsavedChanges: true,
+        }));
+    },
+
     setTimeSignature: (timeSignature) => {
         set((state) => ({
             project: state.project
@@ -790,6 +822,7 @@ export const selectClips = (state: ProjectStore) => state.project?.clips ?? [];
 export const selectBpm = (state: ProjectStore) => state.project?.bpm ?? DEFAULT_BPM;
 export const selectKey = (state: ProjectStore) => state.project?.key ?? DEFAULT_KEY;
 export const selectScale = (state: ProjectStore) => state.project?.scale ?? DEFAULT_SCALE;
+export const selectSwing = (state: ProjectStore) => state.project?.swing ?? DEFAULT_SWING;
 export const selectHasUnsavedChanges = (state: ProjectStore) => state.hasUnsavedChanges;
 
 export const selectTrackById = (trackId: string) => (state: ProjectStore) =>

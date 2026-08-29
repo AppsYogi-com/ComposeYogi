@@ -82,6 +82,7 @@
     "tempo": "Tempo (Beats Per Minute)",
     "timeSignature": "Time Signature",
     "timeSignatureHint": "Time Signature (click to change)",
+    "scale": "Scale",
     "custom": "Custom",
     "apply": "Apply",
     "metronome": "Metronome",
@@ -137,7 +138,9 @@
       "title": "Project",
       "key": "Key",
       "scale": "Scale",
-      "timeSignature": "Time Signature"
+      "timeSignature": "Time Signature",
+      "swing": "Swing",
+      "swingHint": "Delays every other sixteenth for a shuffled feel. A clip's Groove macro adds to this."
     },
     "track": {
       "title": "Track",
@@ -462,6 +465,23 @@
     "pentatonicMinor": "Pentatonic Minor",
     "blues": "Blues",
     "chromatic": "Chromatic"
+  },
+  "vibes": {
+    "chill": "Chill",
+    "happy": "Happy",
+    "sad": "Sad",
+    "dark": "Dark",
+    "dreamy": "Dreamy",
+    "epic": "Epic",
+    "funky": "Funky",
+    "bluesy": "Bluesy",
+    "playful": "Playful"
+  },
+  "snap": {
+    "label": "Snap",
+    "off": "Off",
+    "straight": "Straight",
+    "triplets": "Triplets"
   },
   "language": {
     "label": "Language"

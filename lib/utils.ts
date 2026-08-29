@@ -37,26 +37,6 @@ export function formatBarsBeats(seconds: number, bpm: number, timeSignature: [nu
     return `${bars}.${beats}.${sixteenths}`;
 }
 
-/**
- * Musical scales
- */
-export const SCALES = [
-    { id: 'major', name: 'Major' },
-    { id: 'minor', name: 'Minor (Natural)' },
-    { id: 'harmonicMinor', name: 'Harmonic Minor' },
-    { id: 'melodicMinor', name: 'Melodic Minor' },
-    { id: 'dorian', name: 'Dorian' },
-    { id: 'phrygian', name: 'Phrygian' },
-    { id: 'lydian', name: 'Lydian' },
-    { id: 'mixolydian', name: 'Mixolydian' },
-    { id: 'locrian', name: 'Locrian' },
-    { id: 'pentatonicMajor', name: 'Pentatonic Major' },
-    { id: 'pentatonicMinor', name: 'Pentatonic Minor' },
-    { id: 'blues', name: 'Blues' },
-    { id: 'chromatic', name: 'Chromatic' },
-] as const;
-
-/**
- * Musical notes
- */
-export const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
+// Scales, keys and their intervals live in lib/music — they are musical facts,
+// not string helpers, and keeping the English names here is what let the picker
+// and the type drift apart.

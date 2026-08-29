@@ -22,6 +22,7 @@ import { listProjects, loadProject, loadAudioTakesForClip } from '@/lib/persiste
 import {
     clipsScheduleHash,
     mixerStateHash,
+    projectScheduleHash,
     trackEffectsHash,
     trackScheduleHash,
 } from '@/lib/audio/schedule-hash';
@@ -185,6 +186,7 @@ function ComposePageContent() {
     const trackHash = project ? trackScheduleHash(project.tracks) : '';
     const effectsHash = project ? trackEffectsHash(project.tracks) : '';
     const mixerHash = project ? mixerStateHash(project.tracks) : '';
+    const projectHash = projectScheduleHash(project);
 
     // Re-schedule clips when project clips or notes change
     useEffect(() => {
@@ -192,7 +194,7 @@ function ComposePageContent() {
             void scheduleClipsRef.current();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAudioReady, project?.clips.length, clipNotesHash, trackHash]);
+    }, [isAudioReady, project?.clips.length, clipNotesHash, trackHash, projectHash]);
 
     // Sync track effects
     useEffect(() => {

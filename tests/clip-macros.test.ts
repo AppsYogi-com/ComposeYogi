@@ -26,6 +26,7 @@ import {
     readClipMacros,
     resolveVelocity,
     spaceSpec,
+    effectiveGroove,
     swingDelayBeats,
     toneFilterSpec,
     toneTilt,
@@ -55,7 +56,7 @@ describe('neutral defaults', () => {
 
     it('changes nothing about a note at neutral', () => {
         const clip = makeClip({ ...MACRO_NEUTRAL, notes: [makeNote({ startBeat: 1.25 })] });
-        const [planned] = planClipNotes(clip, 4, 120);
+        const [planned] = planClipNotes(clip, 4, 120, 0);
 
         expect(planned.pitch).toBe(60);
         expect(planned.timeSeconds).toBeCloseTo(4 + 0.625, 10);
@@ -187,6 +188,39 @@ describe('space', () => {
 // ============================================
 // Groove
 // ============================================
+
+describe('global swing and clip groove combine', () => {
+    it('is straight when neither is set', () => {
+        expect(effectiveGroove(0, 0)).toBe(0);
+        expect(effectiveGroove(undefined, 0)).toBe(0);
+    });
+
+    it('treats an absent project swing as straight', () => {
+        // Every project saved before swing existed has no value at all, and it
+        // must keep playing exactly as it was recorded.
+        expect(effectiveGroove(undefined, 40)).toBe(40);
+    });
+
+    it('lets a clip push past the project', () => {
+        expect(effectiveGroove(30, 40)).toBe(70);
+    });
+
+    it('lets the project swing a clip nobody has touched', () => {
+        // The reason this is additive rather than an override: Groove's neutral
+        // is 0, so an override would make every untouched clip snap back to
+        // straight and the global control would do nothing at all.
+        expect(effectiveGroove(60, 0)).toBe(60);
+    });
+
+    it('stops at the triplet ceiling rather than running past it', () => {
+        expect(effectiveGroove(80, 80)).toBe(100);
+    });
+
+    it('clamps each side before adding, so bad input cannot cancel out', () => {
+        expect(effectiveGroove(-50, 30)).toBe(30);
+        expect(effectiveGroove(200, 0)).toBe(100);
+    });
+});
 
 describe('groove', () => {
     it('is straight at zero', () => {
@@ -331,7 +365,7 @@ describe('transpose', () => {
             transpose: 24,
             notes: [makeNote({ id: 'a', pitch: 60 }), makeNote({ id: 'b', pitch: 120 })],
         });
-        const planned = planClipNotes(clip, 0, 120);
+        const planned = planClipNotes(clip, 0, 120, 0);
 
         expect(planned).toHaveLength(1);
         expect(planned[0].pitch).toBe(84);
@@ -343,6 +377,39 @@ describe('transpose', () => {
 // ============================================
 
 describe('planClipNotes', () => {
+    it('swings a clip with no groove of its own when the project swings', () => {
+        // The wiring test, not the arithmetic one. effectiveGroove can be
+        // perfect and the project's swing still never reach a note if the
+        // scheduler forgets to pass it — and nothing throws when it does.
+        const clip = makeClip({ ...MACRO_NEUTRAL, notes: [makeNote({ startBeat: 0.25 })] });
+
+        const straight = planClipNotes(clip, 0, 120, 0)[0].timeSeconds;
+        const swung = planClipNotes(clip, 0, 120, 100)[0].timeSeconds;
+
+        // A full-swing off-beat sixteenth lands a third of a sixteenth late.
+        expect(swung - straight).toBeCloseTo((0.25 / 3) * (60 / 120), 10);
+    });
+
+    it('adds the project swing on top of the clip groove', () => {
+        const clip = makeClip({ ...MACRO_NEUTRAL, groove: 50, notes: [makeNote({ startBeat: 0.25 })] });
+
+        const clipOnly = planClipNotes(clip, 0, 120, 0)[0].timeSeconds;
+        const both = planClipNotes(clip, 0, 120, 50)[0].timeSeconds;
+        const full = planClipNotes(
+            makeClip({ ...MACRO_NEUTRAL, groove: 100, notes: [makeNote({ startBeat: 0.25 })] }),
+            0, 120, 0
+        )[0].timeSeconds;
+
+        expect(both).toBeGreaterThan(clipOnly);
+        expect(both).toBeCloseTo(full, 10);
+    });
+
+    it('leaves an on-beat note where it is however hard the project swings', () => {
+        const clip = makeClip({ ...MACRO_NEUTRAL, notes: [makeNote({ startBeat: 1 })] });
+        expect(planClipNotes(clip, 0, 120, 100)[0].timeSeconds)
+            .toBeCloseTo(planClipNotes(clip, 0, 120, 0)[0].timeSeconds, 10);
+    });
+
     it('returns notes in time order however the array was built', () => {
         // Jitter can reorder notes, and the monophonic stagger numbers them
         // within a chord, so the order has to be settled here.
@@ -355,14 +422,14 @@ describe('planClipNotes', () => {
             ],
         });
 
-        const times = planClipNotes(clip, 0, 120).map((n) => n.timeSeconds);
+        const times = planClipNotes(clip, 0, 120, 0).map((n) => n.timeSeconds);
         expect(times).toEqual([...times].sort((a, b) => a - b));
     });
 
     it('never schedules before the transport starts', () => {
         // Humanize can pull the first note of the first clip earlier than zero.
         const clip = makeClip({ humanize: 100, notes: [makeNote({ startBeat: 0 })] });
-        for (const note of planClipNotes(clip, 0, 120)) {
+        for (const note of planClipNotes(clip, 0, 120, 0)) {
             expect(note.timeSeconds).toBeGreaterThanOrEqual(0);
         }
     });
@@ -371,8 +438,8 @@ describe('planClipNotes', () => {
         const straight = makeClip({ notes: [makeNote({ startBeat: 0.25 })] });
         const swung = makeClip({ groove: 100, energy: 100, notes: [makeNote({ startBeat: 0.25 })] });
 
-        const [a] = planClipNotes(straight, 0, 120);
-        const [b] = planClipNotes(swung, 0, 120);
+        const [a] = planClipNotes(straight, 0, 120, 0);
+        const [b] = planClipNotes(swung, 0, 120, 0);
 
         expect(b.timeSeconds).toBeGreaterThan(a.timeSeconds);
         expect(b.velocity).toBeGreaterThan(a.velocity);
@@ -381,7 +448,7 @@ describe('planClipNotes', () => {
     it('normalises velocity for triggerAttackRelease', () => {
         for (const energy of [0, 50, 100]) {
             const clip = makeClip({ energy, notes: [makeNote({ velocity: 127 })] });
-            const [note] = planClipNotes(clip, 0, 120);
+            const [note] = planClipNotes(clip, 0, 120, 0);
             expect(note.velocity).toBeGreaterThan(0);
             expect(note.velocity).toBeLessThanOrEqual(1);
         }
@@ -392,6 +459,6 @@ describe('planClipNotes', () => {
             humanize: 80, groove: 60, energy: 70, transpose: 5,
             notes: [makeNote({ id: 'a' }), makeNote({ id: 'b', startBeat: 0.25 })],
         });
-        expect(planClipNotes(clip, 0, 120)).toEqual(planClipNotes(clip, 0, 120));
+        expect(planClipNotes(clip, 0, 120, 0)).toEqual(planClipNotes(clip, 0, 120, 0));
     });
 });

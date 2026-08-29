@@ -99,13 +99,29 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - MP3 via lamejs loaded by `<script>` tag (`public/workers/lame.min.js`) — deliberate
   workaround for webpack/CJS issues; don't "fix" it back into the bundle.
 
+### Music theory (`lib/music/`)
+- `scales.ts` is the **single source** for keys, scale intervals, and the vibes the
+  transport's Scale selector offers. It exists because the answer used to live in three
+  places that disagreed — `MusicalScale` in types, the Inspector's picker, and a private
+  `SCALE_INTERVALS` inside PianoRoll.tsx — so picking Harmonic Minor silently highlighted
+  natural minor. Everything is keyed by `MusicalScale`; `tests/music.test.ts` fails if a
+  scale lacks intervals, a picker entry, or a translation.
+- `snap.ts` owns the editing grid for **both** the timeline and the piano roll, in beats
+  (a bar is only four of them in 4/4, so bars are converted at the call site). Triplets are
+  `2/3`, never `0.333`. `SNAP_BEATS['off']` is 0, so anything needing a minimum length
+  (a new note, a resize floor) must use `snapStepBeats`, not the raw value.
+
 ### Persistence (`lib/persistence/`)
 - Schema changes go in `migrations.ts` as a new numbered migration; `DB_VERSION` tracks
   it automatically (a test enforces this). Never edit a shipped migration.
 - IndexedDB `composeyogi` via idb. Stores: projects (metadata only), tracks, clips
   (notes JSON-stringified), audioTakes (ArrayBuffer + serialized peaks), userSamples, settings.
 - `autosave.ts` — 3s debounce for project saves; audio takes save immediately;
-  `beforeunload` guard.
+  `beforeunload` guard. `projectSaveSignature` decides whether anything changed and is
+  **derived from the project object**, never a list of fields — as a literal it silently
+  dropped every field nobody remembered to add. `ProjectRecord` in `db.ts` is still
+  hand-built in both directions, so a new `Project` field must be added to the record type,
+  `saveProject` and `loadProject`; a round-trip test over `keyof Project` enforces it.
 
 ### Rendering
 - Canvas for ruler/grid (`lib/canvas/`, DPR-aware); DOM for clips.
@@ -205,19 +221,32 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **No SEO content scaling** (maintainer rule): every public page must be something a
   musician would want to land on. Discoverability comes from real shared music.
 
-## Known gaps & active issues (updated 2026-08-29 after Sprint 8.6 — verify before relying on)
+## Known gaps & active issues (updated 2026-08-29 after Sprint 8.7.3 — verify before relying on)
 
-- **Piano roll velocity**: hardcoded 100, display-only. Velocity lane is a designed
-  feature (design.md + TaskList 5.3) — drum sequencer already has drag-to-edit to port.
-- **Clip macros** (energy/groove/brightness/space/humanize/transpose): persisted and
-  exported but drive no DSP yet. These are planned features (design.md) — implement, don't delete.
+- **Three hand-maintained lists of `Project` fields**, each of which fails silently when a
+  new field is forgotten, and each of which has now cost a bug: the reschedule hash
+  (`lib/audio/schedule-hash.ts`, was #22), `ProjectRecord` (`lib/persistence/db.ts`, save
+  and load, hand-built both ways), and autosave's change signature
+  (`projectSaveSignature`, which used to be a literal naming eight fields and quietly
+  dropped `swing` and `latencyOffset`). All three now have exhaustiveness tests over
+  `keyof Project` in `tests/`. **Adding a field to `Project` means visiting all three** —
+  the tests will say so, but only if you run them.
 - **Unverified performance claims**: frame rate, Lighthouse, the offline walkthrough and
   the cross-browser matrix have NOT been measured on real hardware since the 8.5 work
   (rAF doesn't run in a headless pane). Don't quote numbers for these.
+- **Macro audio is unit-tested, not heard**: the clip macros and global swing are proven
+  at the schedule level (`tests/clip-macros.test.ts`) but nobody has listened to them, and
+  per-clip `Tone.Reverb.generate()` cost on reschedule for Space-heavy projects is
+  unmeasured.
+- **Transport bar is full.** It overflows its own width by ~60px at 1280px and just fits at
+  1536 (the `2xl` the design targets); it already overflowed slightly before Sprint 8.7.
+  Anything new there has to buy its space — the vibe selector hides its caption below `2xl`,
+  and the snap picker went into the arrangement's ruler spacer instead.
 - Open issues: **#21** Custom Instruments (answered 2026-08-29, scheduled v1.4/Sprint
   8.7.5, awaiting requester's scoping input), **#23–#30** good-first-issues.
 - **Sprint 8.5 shipped as v1.2.0**; **Sprint 8.6 (design system) shipped as v1.3.0**, both
-  on 2026-08-29. Next up is Sprint 8.7 (Feel & Musicality).
+  on 2026-08-29. Sprint 8.7.1–8.7.3 are built on `feat/feel-and-musicality` and unreleased;
+  CHANGELOG/ROADMAP are updated at the v1.4 release, not per sprint section.
 - **Deferred from 8.6 to 8.7:** mobile artboards (the mobile layout is verified; the drawn
   reference is not done, and the public play page it would cover is a Sprint 9 concept) and
   a fresh demo GIF + repo social preview (both need a recorded take).

@@ -9,6 +9,7 @@ import { useRef, useCallback, useEffect, useState, useMemo, memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { getAudioTake, audioEngine } from '@/lib/audio';
+import { SNAP_BEATS } from '@/lib/music';
 import { AudioClip } from './AudioClip';
 import { TRACK_BG } from '@/lib/design/track-colors';
 import { tokenColor } from '@/lib/design';
@@ -39,6 +40,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
     const openEditor = useUIStore((s) => s.openEditor);
     const multiDragOffsetBars = useUIStore((s) => s.multiDragOffsetBars);
     const setMultiDragOffset = useUIStore((s) => s.setMultiDragOffset);
+    const timelineSnap = useUIStore((s) => s.timelineSnap);
 
     const [dragMode, setDragMode] = useState<DragMode>(null);
     const [dragOffset, setDragOffset] = useState(0);
@@ -163,6 +165,13 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
         }
     }, [clip.id, clip.startBar, clip.lengthBars, selectClip, getDragMode, selectedClipIds]);
 
+    // The grid a drag lands on, in bars. The snap setting is in beats because
+    // that is what a note length means; a bar is only four of them in 4/4.
+    const snapBars = SNAP_BEATS[timelineSnap] / beatsPerBar;
+    const snapDelta = useCallback((deltaBars: number) => (
+        snapBars > 0 ? Math.round(deltaBars / snapBars) * snapBars : deltaBars
+    ), [snapBars]);
+
     // Handle drag/resize move and end
     useEffect(() => {
         if (!dragMode) return;
@@ -171,11 +180,10 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
             if (!dragStartRef.current) return;
 
             const deltaX = e.clientX - dragStartRef.current.x;
-            const snapUnit = 1 / beatsPerBar; // Snap to beats
 
             if (dragMode === 'move') {
                 const deltaBars = deltaX / pixelsPerBar;
-                const snappedDeltaBars = Math.round(deltaBars / snapUnit) * snapUnit;
+                const snappedDeltaBars = snapDelta(deltaBars);
                 const newStartBar = Math.max(0, dragStartRef.current.originalBar + snappedDeltaBars);
                 const actualDelta = newStartBar - dragStartRef.current.originalBar;
                 setDragOffset(actualDelta * pixelsPerBar);
@@ -186,7 +194,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                 }
             } else if (dragMode === 'resize-left') {
                 const deltaBars = deltaX / pixelsPerBar;
-                const snappedDeltaBars = Math.round(deltaBars / snapUnit) * snapUnit;
+                const snappedDeltaBars = snapDelta(deltaBars);
 
                 // For audio clips, clamp to source audio bounds
                 let maxExpandLeft = dragStartRef.current.originalBar; // Can't go before bar 0
@@ -201,7 +209,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                 setResizeOffset(clampedDelta * pixelsPerBar);
             } else if (dragMode === 'resize-right') {
                 const deltaBars = deltaX / pixelsPerBar;
-                const snappedDeltaBars = Math.round(deltaBars / snapUnit) * snapUnit;
+                const snappedDeltaBars = snapDelta(deltaBars);
 
                 // For audio clips, clamp to source audio bounds
                 let maxExpandRight = Infinity;
@@ -301,7 +309,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [dragMode, dragOffset, resizeOffset, pixelsPerBar, beatsPerBar, clip.id, clip.trimStart, clip.trimEnd, updateClip, resizeClip, duplicateClip, selectClip, selectedClipIds, moveClipsByDelta, isLeadingDrag, setMultiDragOffset, audioSourceInfo]);
+    }, [dragMode, dragOffset, resizeOffset, pixelsPerBar, beatsPerBar, snapDelta, clip.id, clip.trimStart, clip.trimEnd, updateClip, resizeClip, duplicateClip, selectClip, selectedClipIds, moveClipsByDelta, isLeadingDrag, setMultiDragOffset, audioSourceInfo]);
 
     // Get cursor style based on hover position
     const getCursorStyle = useCallback((e: React.MouseEvent): string => {
