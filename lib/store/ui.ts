@@ -4,7 +4,7 @@
 // ============================================
 
 import { create } from 'zustand';
-import type { EditorScope, ModalType } from '@/types';
+import type { EditorScope, InspectorSectionId, ModalType } from '@/types';
 import type { KeyBindings } from '@/lib/shortcuts';
 
 // ============================================
@@ -36,6 +36,11 @@ interface UIState {
     isDragging: boolean;
     dragType: 'clip' | 'selection' | 'resize' | 'loop' | null;
     multiDragOffsetBars: number; // Shared offset for multi-clip drag visual feedback
+
+    // Inspector sections the user has folded away. Absent means expanded, so
+    // a new section is open until somebody closes it, and the stored shape
+    // stays small.
+    collapsedSections: Partial<Record<InspectorSectionId, boolean>>;
 
     // Modals
     activeModal: ModalType | null;
@@ -71,6 +76,7 @@ interface UIActions {
 
     // Editor scope
     setEditorScope: (scope: EditorScope) => void;
+    toggleSection: (section: InspectorSectionId) => void;
     setEditorFocused: (focused: boolean) => void;
     setDefaultVelocity: (velocity: number) => void;
 
@@ -133,6 +139,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
     isDragging: false,
     dragType: null,
     multiDragOffsetBars: 0,
+    collapsedSections: {},
     activeModal: null,
     isMobile: false,
     defaultVelocity: 100,
@@ -221,6 +228,15 @@ export const useUIStore = create<UIStore>((set, get) => ({
     },
 
     // Editor scope
+    toggleSection: (section) => {
+        set((state) => ({
+            collapsedSections: {
+                ...state.collapsedSections,
+                [section]: !state.collapsedSections[section],
+            },
+        }));
+    },
+
     setEditorScope: (scope) => {
         set({ editorScope: scope });
     },
@@ -324,6 +340,7 @@ export const selectSelectedClipIds = (state: UIStore) => state.selectedClipIds;
 export const selectSelectedTrackId = (state: UIStore) => state.selectedTrackId;
 export const selectActiveEditorClipId = (state: UIStore) => state.activeEditorClipId;
 export const selectEditorScope = (state: UIStore) => state.editorScope;
+export const selectCollapsedSections = (state: UIStore) => state.collapsedSections;
 export const selectZoom = (state: UIStore) => state.zoom;
 export const selectIsDragging = (state: UIStore) => state.isDragging;
 export const selectActiveModal = (state: UIStore) => state.activeModal;

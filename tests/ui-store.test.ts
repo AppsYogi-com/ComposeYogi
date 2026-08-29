@@ -15,11 +15,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+    selectCollapsedSections,
     selectHasSelection,
     selectIsMultiSelect,
     selectSelectedClipId,
     useUIStore,
 } from '@/lib/store/ui';
+
+import type { InspectorSectionId } from '@/types';
 
 const initial = useUIStore.getState();
 
@@ -78,6 +81,68 @@ describe('derived selection state', () => {
         useUIStore.getState().selectClip('clip-a');
         useUIStore.getState().clearSelection();
         expect(selectSelectedClipId(useUIStore.getState())).toBeNull();
+    });
+});
+
+describe('collapsible inspector sections', () => {
+    const ALL_SECTIONS: InspectorSectionId[] = ['project', 'track', 'effects', 'clip', 'feel'];
+
+    it('starts with every section expanded', () => {
+        // Absent means expanded, so a section added later is open until
+        // somebody closes it rather than hidden by default.
+        const collapsed = selectCollapsedSections(useUIStore.getState());
+        for (const section of ALL_SECTIONS) {
+            expect(Boolean(collapsed[section]), `${section} should start expanded`).toBe(false);
+        }
+    });
+
+    it('folds and unfolds a section', () => {
+        const { toggleSection } = useUIStore.getState();
+
+        toggleSection('effects');
+        expect(selectCollapsedSections(useUIStore.getState()).effects).toBe(true);
+
+        toggleSection('effects');
+        expect(selectCollapsedSections(useUIStore.getState()).effects).toBe(false);
+    });
+
+    it('folding one section leaves the others as they were', () => {
+        // Asserting the untouched sections are *expanded* proves nothing here:
+        // absent and expanded read alike, so a toggle that wiped the whole map
+        // would pass. Folding two and checking both survive is what catches it.
+        const { toggleSection } = useUIStore.getState();
+
+        toggleSection('effects');
+        toggleSection('feel');
+
+        const collapsed = selectCollapsedSections(useUIStore.getState());
+        expect(collapsed.effects, 'folding feel unfolded effects').toBe(true);
+        expect(collapsed.feel).toBe(true);
+
+        // And unfolding one leaves the other folded.
+        toggleSection('feel');
+        expect(selectCollapsedSections(useUIStore.getState()).effects).toBe(true);
+    });
+
+    it('keeps a section folded across a selection change', () => {
+        // The clip and track sections unmount whenever the selection changes.
+        // A fold that reopened itself every time you picked a different clip
+        // would be worse than no fold at all, which is why this is store state
+        // and not local state.
+        useUIStore.getState().toggleSection('clip');
+        useUIStore.getState().selectClip('clip-a');
+        useUIStore.getState().selectClip('clip-b');
+
+        expect(selectCollapsedSections(useUIStore.getState()).clip).toBe(true);
+    });
+
+    it('replaces the map rather than mutating it', () => {
+        // Zustand compares by reference; mutating in place would leave
+        // subscribed components unaware that anything changed.
+        const before = selectCollapsedSections(useUIStore.getState());
+        useUIStore.getState().toggleSection('project');
+
+        expect(selectCollapsedSections(useUIStore.getState())).not.toBe(before);
     });
 });
 
