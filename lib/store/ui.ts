@@ -101,17 +101,7 @@ interface UIActions {
     setKeyBindingsLoaded: (loaded: boolean) => void;
 }
 
-// Computed getters (read-only properties derived from state)
-interface UIComputed {
-    readonly showBrowser: boolean;
-    readonly showInspector: boolean;
-    readonly showEditor: boolean;
-    readonly showVisualizer: boolean;
-    readonly selectedClipId: string | null;
-    readonly scrollPosition: { x: number; y: number };
-}
-
-type UIStore = UIState & UIActions & UIComputed;
+type UIStore = UIState & UIActions;
 
 // ============================================
 // Constants
@@ -149,30 +139,13 @@ export const useUIStore = create<UIStore>((set, get) => ({
     customKeyBindings: {},
     keyBindingsLoaded: false,
 
-    // Computed getters for component compatibility
-    get showBrowser() {
-        return get().browserOpen;
-    },
-    get showInspector() {
-        return get().inspectorOpen;
-    },
-    get showEditor() {
-        return get().editorOpen;
-    },
-    get showVisualizer() {
-        return get().visualizerOpen;
-    },
-    get selectedClipId() {
-        return get().selectedClipIds[0] || null;
-    },
-    get scrollPosition() {
-        return { x: get().scrollX, y: get().scrollY };
-    },
-
-    // Setter for scroll position
-    setScrollPosition: ({ x, y }: { x: number; y: number }) => {
-        set({ scrollX: Math.max(0, x), scrollY: Math.max(0, y) });
-    },
+    // Derived state lives in the selectors at the bottom of this file, never in
+    // a getter on the store object. Zustand merges an update with
+    // `Object.assign({}, state, partial)`, which *invokes* a getter and copies
+    // the value it returned — so from the first set() onwards the property is a
+    // frozen snapshot of the state before that update, and never changes again.
+    // `selectedClipId` was one of these, which is why selecting a clip never
+    // opened the Inspector's clip panel.
 
     // Panel toggles
     toggleBrowser: () => {
@@ -360,5 +333,6 @@ export const selectCustomKeyBindings = (state: UIStore) => state.customKeyBindin
 export const selectKeyBindingsLoaded = (state: UIStore) => state.keyBindingsLoaded;
 
 // Derived selectors
+export const selectSelectedClipId = (state: UIStore) => state.selectedClipIds[0] ?? null;
 export const selectHasSelection = (state: UIStore) => state.selectedClipIds.length > 0;
 export const selectIsMultiSelect = (state: UIStore) => state.selectedClipIds.length > 1;

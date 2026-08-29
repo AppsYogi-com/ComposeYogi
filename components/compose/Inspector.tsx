@@ -11,6 +11,7 @@ import {
     Trash2
 } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
+import { selectSelectedClipId } from '@/lib/store/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,7 +43,7 @@ export function Inspector() {
     const removeTrackEffect = useProjectStore((s) => s.removeTrackEffect);
     const updateTrackEffect = useProjectStore((s) => s.updateTrackEffect);
     const selectedTrackId = useUIStore((s) => s.selectedTrackId);
-    const selectedClipId = useUIStore((s) => s.selectedClipId);
+    const selectedClipId = useUIStore(selectSelectedClipId);
     const toggleInspector = useUIStore((s) => s.toggleInspector);
 
     const selectedTrack = project?.tracks.find((t) => t.id === selectedTrackId);
