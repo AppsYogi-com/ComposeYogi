@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import { v4 as uuid } from 'uuid';
+import { MACRO_NEUTRAL } from '@/lib/audio/clip-macros';
 import { loadDemoTemplate } from '@/lib/templates';
 import type {
     Project,
@@ -426,12 +427,9 @@ const projectStoreBase = (
             startBar,
             lengthBars,
             notes: type === 'midi' || type === 'drum' ? [] : undefined,
-            transpose: 0,
-            humanize: 0,
-            energy: 50,
-            groove: 50,
-            brightness: 50,
-            space: 50,
+            // Spread rather than repeated, so a new clip is neutral by
+            // definition and cannot drift from what the macros call neutral.
+            ...MACRO_NEUTRAL,
         };
 
         set((s) => ({

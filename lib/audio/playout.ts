@@ -17,6 +17,7 @@ import {
     PARAM_RAMP_SECONDS,
     buildEffectChain,
     buildRenderPlan,
+    disposeMacroNodes,
     effectiveTrackGain,
     isTrackAudible,
     releaseSynth,
@@ -38,6 +39,8 @@ interface ScheduledClip {
     clipId: string;
     player: Tone.Player | SynthType | null;
     eventIds: number[];
+    /** Per-clip macro DSP, torn down with the clip that owns it. */
+    macroNodes: Tone.ToneAudioNode[];
     startBar: number;
     lengthBars: number;
 }
@@ -286,12 +289,15 @@ class PlayoutManager {
             clipId: clip.id,
             player: null,
             eventIds: [],
+            macroNodes: [],
             startBar: clip.startBar,
             lengthBars: clip.lengthBars,
         };
 
         if (kind === 'audio') {
-            scheduled.player = await scheduleAudioClip(clip, chain.input, startSeconds);
+            const result = await scheduleAudioClip(clip, chain.input, startSeconds);
+            scheduled.player = result.player;
+            scheduled.macroNodes = result.macroNodes;
         } else {
             const result = await scheduleMidiClip(clip, track, chain.input, startSeconds, {
                 transport: Tone.getTransport(),
@@ -301,6 +307,7 @@ class PlayoutManager {
             if (result) {
                 scheduled.player = result.synth;
                 scheduled.eventIds = result.eventIds;
+                scheduled.macroNodes = result.macroNodes;
             }
         }
 
@@ -330,6 +337,9 @@ class PlayoutManager {
                 scheduled.player.dispose();
             }
         }
+
+        // After the source, so nothing is still feeding a disposed node.
+        disposeMacroNodes(scheduled.macroNodes);
 
         this.state.scheduledClips.delete(clipId);
     }

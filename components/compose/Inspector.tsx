@@ -1,6 +1,7 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
+import { useFormatter, useTranslations } from 'next-intl';
 import {
     ChevronLeft,
     Sliders,
@@ -8,8 +9,10 @@ import {
     Clock,
     Hash,
     Sparkles,
-    Trash2
+    Trash2,
+    Waves
 } from 'lucide-react';
+import { MACRO_NEUTRAL, TRANSPOSE_RANGE, isNeutral, readClipMacros } from '@/lib/audio/clip-macros';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { selectSelectedClipId } from '@/lib/store/ui';
 import { Button } from '@/components/ui/button';
@@ -26,7 +29,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SCALES, NOTES } from '@/lib/utils';
 import { trackColorValue } from '@/lib/design';
-import type { MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
+import type { Clip, MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
 
 // Option lists carry ids only — the labels come from `inspector.trackColors.*`
 // and `inspector.trackTypes.*`, so a locale change relabels them.
@@ -381,6 +384,9 @@ export function Inspector() {
                     </Section>
                 )}
 
+                {/* Clip macros */}
+                {selectedClip && <FeelSection clip={selectedClip} />}
+
                 {/* No selection */}
                 {!selectedTrack && !selectedClip && (
                     <div className="flex flex-col items-center justify-center py-12 text-center px-4">
@@ -403,9 +409,11 @@ interface SectionProps {
     title: string;
     icon: React.ReactNode;
     children: React.ReactNode;
+    /** Optional control pinned to the right of the section header. */
+    action?: React.ReactNode;
 }
 
-function Section({ title, icon, children }: SectionProps) {
+function Section({ title, icon, children, action }: SectionProps) {
     return (
         <div className="border-b border-border">
             <div className="flex items-center gap-2 bg-background/50 px-3 py-2">
@@ -413,8 +421,143 @@ function Section({ title, icon, children }: SectionProps) {
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {title}
                 </span>
+                {action && <span className="ml-auto">{action}</span>}
             </div>
             <div className="space-y-3 p-3">{children}</div>
+        </div>
+    );
+}
+
+// ============================================
+// Clip macros — the Feel section
+// ============================================
+//
+// Six controls that each move several DSP parameters at once. The mapping
+// itself lives in lib/audio/clip-macros.ts; this is only the surface.
+
+/** Macros that move notes around, and so need notes to move. */
+const NOTE_MACROS = ['groove', 'humanize', 'transpose'] as const;
+
+type MacroKey = keyof typeof MACRO_NEUTRAL;
+
+interface MacroSpec {
+    key: MacroKey;
+    min: number;
+    max: number;
+}
+
+const MACRO_SPECS: MacroSpec[] = [
+    { key: 'energy', min: 0, max: 100 },
+    { key: 'brightness', min: 0, max: 100 },
+    { key: 'space', min: 0, max: 100 },
+    { key: 'groove', min: 0, max: 100 },
+    { key: 'humanize', min: 0, max: 100 },
+    { key: 'transpose', min: -TRANSPOSE_RANGE, max: TRANSPOSE_RANGE },
+];
+
+function FeelSection({ clip }: { clip: Clip }) {
+    const t = useTranslations('inspector.feel');
+    const updateClip = useProjectStore((s) => s.updateClip);
+
+    const macros = readClipMacros(clip);
+    const isAudio = clip.type === 'audio';
+    const specs = MACRO_SPECS.filter(
+        (spec) => !isAudio || !(NOTE_MACROS as readonly string[]).includes(spec.key)
+    );
+
+    const canReset = !isNeutral(macros);
+
+    return (
+        <Section
+            title={t('title')}
+            icon={<Waves className="h-4 w-4" />}
+            action={
+                canReset ? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-2xs text-muted-foreground hover:text-foreground"
+                        onClick={() => updateClip(clip.id, { ...MACRO_NEUTRAL })}
+                    >
+                        {t('reset')}
+                    </Button>
+                ) : null
+            }
+        >
+            {specs.map((spec) => (
+                <MacroSlider
+                    key={spec.key}
+                    spec={spec}
+                    value={macros[spec.key]}
+                    onCommit={(value) => updateClip(clip.id, { [spec.key]: value })}
+                />
+            ))}
+
+            {isAudio && (
+                <p className="text-2xs leading-relaxed text-muted-foreground">
+                    {t('midiOnlyNote')}
+                </p>
+            )}
+        </Section>
+    );
+}
+
+interface MacroSliderProps {
+    spec: MacroSpec;
+    value: number;
+    onCommit: (value: number) => void;
+}
+
+/**
+ * One macro.
+ *
+ * The drag is local and only the release reaches the store, because every
+ * macro is in the reschedule hash: committing on each pixel would tear the
+ * schedule down and rebuild it dozens of times across one gesture. Same
+ * reasoning as the mixer, which ramps rather than reschedules — this cannot
+ * ramp, so it waits instead.
+ */
+function MacroSlider({ spec, value, onCommit }: MacroSliderProps) {
+    const t = useTranslations('inspector.feel');
+    const format = useFormatter();
+    const [dragging, setDragging] = useState<number | null>(null);
+
+    // A committed change, an undo, or selecting another clip all arrive as a
+    // new prop; the local value is only for the length of a drag.
+    useEffect(() => setDragging(null), [value]);
+
+    const shown = dragging ?? value;
+    const neutral = MACRO_NEUTRAL[spec.key];
+
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs text-muted-foreground">{t(spec.key)}</Label>
+                <span
+                    className={
+                        shown === neutral
+                            ? 'text-2xs font-mono text-muted-foreground'
+                            : 'text-2xs font-mono text-foreground'
+                    }
+                >
+                    {spec.key === 'transpose'
+                        ? t('semitones', { value: shown })
+                        : format.number(shown)}
+                </span>
+            </div>
+            <Slider
+                value={[shown]}
+                min={spec.min}
+                max={spec.max}
+                step={1}
+                onValueChange={([v]) => setDragging(v)}
+                onValueCommit={([v]) => onCommit(v)}
+                className="py-1"
+                aria-label={t(spec.key)}
+            />
+            <p className="text-2xs leading-relaxed text-muted-foreground">
+                {t(`${spec.key}Hint`)}
+            </p>
         </div>
     );
 }

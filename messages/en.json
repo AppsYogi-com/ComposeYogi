@@ -179,6 +179,24 @@
       "name": "Name",
       "start": "Start (Bar)",
       "length": "Length (Bars)"
+    },
+    "feel": {
+      "title": "Feel",
+      "reset": "Reset",
+      "midiOnlyNote": "Timing and pitch shaping needs notes, so it is off for audio clips.",
+      "energy": "Energy",
+      "energyHint": "How hard the part is played — softer and darker, or harder and brighter.",
+      "groove": "Groove",
+      "grooveHint": "Swing. Pushes every other sixteenth late for a shuffled feel.",
+      "brightness": "Brightness",
+      "brightnessHint": "Tone, from muffled to crisp.",
+      "space": "Space",
+      "spaceHint": "How much room the sound sits in.",
+      "humanize": "Humanize",
+      "humanizeHint": "Loosens timing and dynamics, the way a player would.",
+      "transpose": "Transpose",
+      "transposeHint": "Shifts the whole clip up or down in semitones.",
+      "semitones": "{value, plural, one {# semitone} other {# semitones}}"
     }
   },
   "editor": {

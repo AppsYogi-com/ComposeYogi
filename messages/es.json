@@ -179,6 +179,24 @@
       "name": "Nombre",
       "start": "Inicio (compás)",
       "length": "Duración (compases)"
+    },
+    "feel": {
+      "title": "Carácter",
+      "reset": "Restablecer",
+      "midiOnlyNote": "El ajuste de tiempo y tono necesita notas, así que no aplica a clips de audio.",
+      "energy": "Energía",
+      "energyHint": "Con cuánta fuerza se toca la parte: más suave y oscuro, o más fuerte y brillante.",
+      "groove": "Groove",
+      "grooveHint": "Swing. Retrasa una de cada dos semicorcheas para un aire sincopado.",
+      "brightness": "Brillo",
+      "brightnessHint": "Timbre, de apagado a nítido.",
+      "space": "Espacio",
+      "spaceHint": "Cuánta sala rodea al sonido.",
+      "humanize": "Humanizar",
+      "humanizeHint": "Afloja el tiempo y la dinámica, como lo haría una persona.",
+      "transpose": "Transponer",
+      "transposeHint": "Desplaza todo el clip en semitonos, arriba o abajo.",
+      "semitones": "{value, plural, one {# semitono} other {# semitonos}}"
     }
   },
   "editor": {
