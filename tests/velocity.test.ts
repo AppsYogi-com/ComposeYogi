@@ -52,8 +52,14 @@ const noteVelocity = (clipId: string, noteId: string) =>
         .find((c) => c.id === clipId)
         ?.notes?.find((n) => n.id === noteId)?.velocity;
 
+/** The UI store is module state shared by every test in this file. */
+const pristineDefaultVelocity = useUIStore.getState().defaultVelocity;
+
 beforeEach(() => {
     freshClipWithNote();
+    // Without this, the clamping test leaves defaultVelocity at 65 and whichever
+    // test asserts the default fails depending on the order vitest happens to run.
+    useUIStore.setState({ defaultVelocity: pristineDefaultVelocity });
 });
 
 // ============================================

@@ -750,6 +750,24 @@ const projectStoreBase = (
 // Create Store with Undo/Redo (zundo)
 // ============================================
 
+/**
+ * What undo actually compares.
+ *
+ * Every mutation stamps `project.updatedAt`, so comparing the raw partialized
+ * state makes an edit that changed nothing still look like a change — the two
+ * states differ by a timestamp. That put an empty step on the undo stack for
+ * any gesture that ended where it began (a velocity drag returned to its start,
+ * a clip dragged and dropped back), and it did so only sometimes: two writes
+ * inside the same millisecond compared equal, two across a boundary did not.
+ *
+ * The timestamp is still stored and still restored by undo. It just does not
+ * decide whether two states are the same.
+ */
+function undoContent(state: { project: Project | null }): string {
+    if (!state.project) return 'null';
+    return JSON.stringify({ ...state.project, updatedAt: 0 });
+}
+
 export const useProjectStore = create<ProjectStore>()(
     temporal(projectStoreBase, {
         // Only track project changes, not UI state
@@ -760,7 +778,7 @@ export const useProjectStore = create<ProjectStore>()(
         limit: 100,
         // Equality check to avoid duplicate states
         equality: (pastState, currentState) =>
-            JSON.stringify(pastState) === JSON.stringify(currentState),
+            undoContent(pastState) === undoContent(currentState),
     })
 );
 
