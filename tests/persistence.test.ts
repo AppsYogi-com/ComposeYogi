@@ -22,8 +22,11 @@ import {
     setSetting,
 } from '@/lib/persistence/db';
 import { LATEST_VERSION, MIGRATIONS, runMigrations } from '@/lib/persistence/migrations';
+import { projectSaveSignature } from '@/lib/persistence/autosave';
 
 import { makeClip, makeNote, makeProject, makeTrack } from './fixtures';
+
+import type { Project } from '@/types';
 
 beforeEach(async () => {
     await clearAllData();
@@ -210,6 +213,55 @@ describe('project management', () => {
 // ============================================
 // Settings
 // ============================================
+
+// ============================================
+// What counts as a change worth saving
+// ============================================
+
+describe('projectSaveSignature', () => {
+    // Autosave only runs when this string changes. It used to be a hand-written
+    // literal naming eight fields, so anything else could be edited all session
+    // and be gone after a reload — no error, no log, no warning.
+    const FIELDS: { field: keyof Project; value: unknown }[] = [
+        { field: 'id', value: 'other' },
+        { field: 'name', value: 'Renamed' },
+        { field: 'bpm', value: 140 },
+        { field: 'key', value: 'F' },
+        { field: 'scale', value: 'lydian' },
+        { field: 'timeSignature', value: [3, 4] },
+        { field: 'latencyOffset', value: 12 },
+        { field: 'createdAt', value: 1 },
+        { field: 'tracks', value: [makeTrack({ id: 'other', volume: 0.1 })] },
+        { field: 'clips', value: [makeClip({ id: 'other', startBar: 9 })] },
+    ];
+
+    it.each(FIELDS)('notices $field changing', ({ field, value }) => {
+        const base = makeProject();
+        const changed = { ...base, [field]: value } as Project;
+
+        expect(
+            projectSaveSignature(changed),
+            `editing Project.${field} does not trigger a save`
+        ).not.toBe(projectSaveSignature(base));
+    });
+
+    it('covers every field of Project — the list above is not stale', () => {
+        // updatedAt is the one deliberate exclusion, so it is the only key
+        // allowed to be missing here.
+        const named = new Set<string>([...FIELDS.map((f) => f.field), 'updatedAt']);
+        const project = makeProject({ latencyOffset: 1 });
+        const missing = Object.keys(project).filter((key) => !named.has(key));
+
+        expect(missing, 'add it to FIELDS so autosave is proven to notice it').toEqual([]);
+    });
+
+    it('ignores the timestamp that saving itself stamps', () => {
+        // Including it would make every save look like another change.
+        const base = makeProject();
+        expect(projectSaveSignature({ ...base, updatedAt: base.updatedAt + 5000 }))
+            .toBe(projectSaveSignature(base));
+    });
+});
 
 describe('settings', () => {
     it('returns the default until something is stored', async () => {

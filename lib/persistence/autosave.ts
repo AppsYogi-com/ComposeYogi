@@ -15,6 +15,26 @@ const logger = createLogger('Autosave');
 // Types
 // ============================================
 
+/**
+ * A string that changes whenever anything worth saving has changed.
+ *
+ * Derived from the project object rather than a list of its fields, and that is
+ * the whole point. This was a hand-written literal naming eight fields, so a
+ * field added to Project and forgotten here simply never triggered a save: the
+ * control worked all session and the value was gone after a reload, with
+ * nothing logged and nothing thrown. Project-wide swing was the first field to
+ * fall through it, and it was the third such list in the codebase — the other
+ * two are the reschedule hash and ProjectRecord, both of which now have tests
+ * that make them impossible to forget.
+ *
+ * `updatedAt` is the one exclusion: saving stamps it, so including it would
+ * make every save look like another change.
+ */
+export function projectSaveSignature(project: Project): string {
+    const { updatedAt: _stamped, ...persisted } = project;
+    return JSON.stringify(persisted);
+}
+
 export type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
 
 export interface AutosaveOptions {
