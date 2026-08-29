@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
+import { useRef, useCallback, useEffect, useState, useMemo, memo } from 'react';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { getAudioTake, audioEngine } from '@/lib/audio';
 import { AudioClip } from './AudioClip';
@@ -33,7 +33,7 @@ interface DraggableClipProps {
     beatsPerBar: number;
 }
 
-export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: DraggableClipProps) {
+function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: DraggableClipProps) {
     const updateClip = useProjectStore((s) => s.updateClip);
     const resizeClip = useProjectStore((s) => s.resizeClip);
     const duplicateClip = useProjectStore((s) => s.duplicateClip);
@@ -414,3 +414,8 @@ export function DraggableClip({ clip, track, pixelsPerBeat, beatsPerBar }: Dragg
         </>
     );
 }
+
+// Memoized: with hundreds of clips on screen, an unrelated store update should
+// not re-render every one of them. Clip and track objects are replaced
+// immutably by the store, so reference equality is exactly the right test.
+export const DraggableClip = memo(DraggableClipImpl);

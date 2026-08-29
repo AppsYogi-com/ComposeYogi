@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useEffect, useState } from 'react';
+import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import * as Tone from 'tone';
 import { useTheme } from 'next-themes';
 import { audioEngine } from '@/lib/audio';
@@ -40,6 +40,8 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useViewportWidth, useVisibleClips } from '@/hooks';
+import type { Viewport } from '@/hooks/useVisibleClips';
 import { DraggableClip } from './DraggableClip';
 import { LoopBraces } from './LoopBraces';
 import type { Track, TrackColor } from '@/types';
@@ -723,6 +725,21 @@ export function TrackList() {
     const setScrollY = useUIStore((s) => s.setScrollY);
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // The track headers live in their own scroll container next to the lanes, so
+    // their vertical scroll has to be kept in step by hand — otherwise past a
+    // screenful of tracks the names drift out of line with their lanes.
+    const trackHeadersRef = useRef<HTMLDivElement>(null);
+    const syncingScrollRef = useRef(false);
+
+    // Visible horizontal window, used to virtualize clips. Width comes from a
+    // ResizeObserver so panel toggles and window resizes are picked up, not
+    // just scrolling.
+    const viewportWidth = useViewportWidth(scrollContainerRef);
+    const viewport = useMemo<Viewport>(
+        () => ({ scrollX, width: viewportWidth }),
+        [scrollX, viewportWidth]
+    );
     const rulerCanvasRef = useRef<HTMLCanvasElement>(null);
     const isPlaying = usePlaybackStore((s) => s.isPlaying);
     const isRecording = usePlaybackStore((s) => s.isRecording);
@@ -919,7 +936,30 @@ export function TrackList() {
         playbackRefs.scrollXRef.current = target.scrollLeft;
         setScrollX(target.scrollLeft);
         setScrollY(target.scrollTop);
+
+        // Keep the header column aligned with the lanes.
+        if (syncingScrollRef.current) return;
+        const headers = trackHeadersRef.current;
+        if (headers && headers.scrollTop !== target.scrollTop) {
+            syncingScrollRef.current = true;
+            headers.scrollTop = target.scrollTop;
+            syncingScrollRef.current = false;
+        }
     }, [setScrollX, setScrollY]);
+
+    // …and the other way, so scrolling with the pointer over the track names
+    // moves the lanes too.
+    const handleTrackHeadersScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+        if (syncingScrollRef.current) return;
+        const target = e.target as HTMLDivElement;
+        const lanes = scrollContainerRef.current;
+        if (lanes && lanes.scrollTop !== target.scrollTop) {
+            syncingScrollRef.current = true;
+            lanes.scrollTop = target.scrollTop;
+            syncingScrollRef.current = false;
+            setScrollY(target.scrollTop);
+        }
+    }, [setScrollY]);
 
     // Handle mouse wheel zoom (Ctrl/Cmd + scroll)
     const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
@@ -1015,7 +1055,11 @@ export function TrackList() {
                     onDragEnd={handleDragEnd}
                 >
                     <SortableContext items={trackIds} strategy={verticalListSortingStrategy}>
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                        <div
+                            ref={trackHeadersRef}
+                            onScroll={handleTrackHeadersScroll}
+                            className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
+                        >
                             {project.tracks.map((track) => (
                                 <SortableTrackHeader
                                     key={track.id}
@@ -1096,6 +1140,7 @@ export function TrackList() {
                                 beatsPerBar={beatsPerBar}
                                 isSelected={selectedTrackId === track.id}
                                 onSelect={() => selectTrack(track.id)}
+                                viewport={viewport}
                             />
                         ))}
                     </div>
@@ -1404,9 +1449,11 @@ interface TrackLaneProps {
     beatsPerBar: number;
     isSelected: boolean;
     onSelect: () => void;
+    /** Visible horizontal window, used to mount only the clips on screen. */
+    viewport: Viewport;
 }
 
-function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSelect }: TrackLaneProps) {
+function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSelect, viewport }: TrackLaneProps) {
     const project = useProjectStore((s) => s.project);
     const addClip = useProjectStore((s) => s.addClip);
     const updateClip = useProjectStore((s) => s.updateClip);
@@ -1578,9 +1625,16 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
         }
     }, [track.id, track.color, pixelsPerBeat, beatsPerBar, addClip, updateClip, addNote, selectClip, openEditor, updateTrack, addTrackEffect]);
 
-    if (!project) return null;
+    // Only this lane's clips, and of those only the ones the viewport can
+    // show. Both steps are memoized so scrolling does not re-filter the whole
+    // project on every frame.
+    const trackClips = useMemo(
+        () => (project?.clips ?? []).filter((c) => c.trackId === track.id),
+        [project?.clips, track.id]
+    );
+    const clips = useVisibleClips(trackClips, pixelsPerBeat * beatsPerBar, viewport);
 
-    const clips = project.clips.filter((c) => c.trackId === track.id);
+    if (!project) return null;
 
     return (
         <div

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useCallback, useState, useRef, Suspense } from 'react';
+import { useEffect, useCallback, useMemo, useState, useRef, Suspense } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
 import { audioEngine, playoutManager, registerAudioTake, clearAudioTakes, type LatencyCalibrationResult } from '@/lib/audio';
@@ -12,6 +13,7 @@ import { BrowserPanel, BrowserCollapsedBar } from '@/components/compose/BrowserP
 import { Inspector, InspectorCollapsedBar } from '@/components/compose/Inspector';
 import { EditorPanel, EditorCollapsedBar } from '@/components/compose/EditorPanel';
 import { TrackList } from '@/components/compose/TrackList';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AudioVisualizer, VisualizerCollapsedBar } from '@/components/compose/AudioVisualizer';
 import { LatencyCalibrationModal } from '@/components/compose/LatencyCalibrationModal';
 import { ProjectSelector } from '@/components/compose/ProjectSelector';
@@ -50,6 +52,15 @@ function ComposePageContent() {
 
     // Autosave hook
     const { status: saveStatus, statusText: saveStatusText } = useAutosave();
+
+    // Copy for the panel error boundaries (class components cannot use hooks)
+    const tErrors = useTranslations('errors');
+    const boundaryMessages = useMemo(() => ({
+        title: tErrors('boundaryTitle'),
+        description: tErrors('boundaryDescription'),
+        reload: tErrors('boundaryReload'),
+        retry: tErrors('boundaryRetry'),
+    }), [tErrors]);
 
     // Store hooks
     const project = useProjectStore((s) => s.project);
@@ -361,25 +372,37 @@ function ComposePageContent() {
                 saveStatusText={saveStatusText}
             />
 
-            {/* Main content area */}
+            {/* Main content area. Each panel is guarded separately: a crash in
+                the piano roll should not take the arrangement — and the user's
+                unsaved work — down with it. */}
             <div className="flex flex-1 overflow-hidden">
                 {/* Left: Browser Panel */}
-                {browserOpen ? <BrowserPanel /> : <BrowserCollapsedBar />}
+                <ErrorBoundary area="browser" messages={boundaryMessages}>
+                    {browserOpen ? <BrowserPanel /> : <BrowserCollapsedBar />}
+                </ErrorBoundary>
 
                 {/* Center: Timeline + Tracks */}
                 <div className="flex flex-1 flex-col overflow-hidden">
                     {/* Track list with integrated ruler */}
-                    <TrackList />
+                    <ErrorBoundary area="arrangement" messages={boundaryMessages}>
+                        <TrackList />
+                    </ErrorBoundary>
 
                     {/* Audio Visualizer */}
-                    {visualizerOpen ? <AudioVisualizer /> : <VisualizerCollapsedBar />}
+                    <ErrorBoundary area="visualizer" messages={boundaryMessages}>
+                        {visualizerOpen ? <AudioVisualizer /> : <VisualizerCollapsedBar />}
+                    </ErrorBoundary>
 
                     {/* Bottom: Editor Panel (Piano Roll / Step Sequencer) */}
-                    {editorOpen ? <EditorPanel /> : <EditorCollapsedBar />}
+                    <ErrorBoundary area="editor" messages={boundaryMessages}>
+                        {editorOpen ? <EditorPanel /> : <EditorCollapsedBar />}
+                    </ErrorBoundary>
                 </div>
 
                 {/* Right: Inspector Panel */}
-                {inspectorOpen ? <Inspector /> : <InspectorCollapsedBar />}
+                <ErrorBoundary area="inspector" messages={boundaryMessages}>
+                    {inspectorOpen ? <Inspector /> : <InspectorCollapsedBar />}
+                </ErrorBoundary>
             </div>
 
             {/* Latency Calibration Modal */}

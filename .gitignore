@@ -52,3 +52,6 @@ next-env.d.ts
 #internal docs
 docs
 public/sw.js
+
+# Local editor/agent config
+.claude/launch.json
