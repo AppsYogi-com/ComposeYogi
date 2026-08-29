@@ -7,6 +7,7 @@ import { routing } from '@/i18n/routing';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import { Analytics } from '@/components/Analytics';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import Script from 'next/script';
 import '@/app/globals.css';
@@ -135,6 +136,7 @@ export default async function RootLayout({ children, params }: RootLayoutProps) 
                     </NextIntlClientProvider>
                 </ThemeProvider>
                 <Script src="https://userhero.co/widget.js" data-key="pk_live_f1iT3MsNLDWy88b4w9ty" strategy="lazyOnload" />
+                <Analytics />
             </body>
         </html>
     );
