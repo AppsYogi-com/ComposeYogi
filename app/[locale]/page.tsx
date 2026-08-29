@@ -82,6 +82,8 @@ function HomePageContent() {
 // ============================================
 
 function Header() {
+    const t = useTranslations('common');
+
     return (
         <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur">
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
@@ -102,7 +104,7 @@ function Header() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="https://img.shields.io/github/stars/AppsYogi-com/ComposeYogi?style=social"
-                            alt="GitHub Stars"
+                            alt={t('githubStarsAlt')}
                             className="h-5"
                         />
                     </a>

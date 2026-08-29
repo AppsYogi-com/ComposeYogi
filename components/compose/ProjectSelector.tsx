@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import {
     FolderOpen,
     Plus,
@@ -51,6 +51,7 @@ interface ProjectSelectorProps {
 
 export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSelectorProps) {
     const t = useTranslations('projects');
+    const format = useFormatter();
     const tScales = useTranslations('scales');
     const [projects, setProjects] = useState<ProjectRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +96,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
         if (minutes < 60) return t('minutesAgo', { minutes });
         if (hours < 24) return t('hoursAgo', { hours });
         if (days < 7) return t('daysAgo', { days });
-        return new Date(timestamp).toLocaleDateString();
+        return format.dateTime(new Date(timestamp), { dateStyle: 'medium' });
     };
 
     // Handle project selection

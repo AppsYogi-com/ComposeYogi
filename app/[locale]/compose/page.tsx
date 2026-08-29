@@ -23,9 +23,11 @@ import { loadDemoTemplate } from '@/lib/templates';
 
 // Loading fallback for Suspense
 function ComposeLoading() {
+    const tCommon = useTranslations('common');
+
     return (
         <div className="flex h-screen items-center justify-center bg-background">
-            <div className="text-muted-foreground">Loading...</div>
+            <div className="text-muted-foreground">{tCommon('loading')}</div>
         </div>
     );
 }
@@ -55,6 +57,7 @@ function ComposePageContent() {
 
     // Copy for the panel error boundaries (class components cannot use hooks)
     const tErrors = useTranslations('errors');
+    const tApp = useTranslations('app');
     const boundaryMessages = useMemo(() => ({
         title: tErrors('boundaryTitle'),
         description: tErrors('boundaryDescription'),
@@ -349,7 +352,7 @@ function ComposePageContent() {
                 <div className="text-center">
                     <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent mx-auto" />
                     <p className="text-muted-foreground">
-                        {isInitializing ? 'Loading project...' : 'Creating project...'}
+                        {isInitializing ? tApp('loadingProject') : tApp('creatingProject')}
                     </p>
                 </div>
             </div>

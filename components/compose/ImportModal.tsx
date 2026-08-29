@@ -6,7 +6,7 @@
 'use client';
 
 import { useCallback, useState, useRef } from 'react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import {
     Upload,
     FileJson,
@@ -51,6 +51,10 @@ interface ImportModalProps {
 
 export function ImportModal({ isOpen, onClose }: ImportModalProps) {
     const t = useTranslations('import');
+    // Numbers follow the app's language, not the browser's. Raw
+    // toLocaleString() reads navigator.language, so the summary count and the
+    // per-track counts below it could disagree in the same dialog.
+    const format = useFormatter();
     const loadProject = useProjectStore((s) => s.loadProject);
 
     const [importState, setImportState] = useState<ImportState>('idle');
@@ -256,7 +260,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                                         </div>
                                         <div>
                                             <span className="text-muted-foreground">{t('midiPreview.notes')}</span>
-                                            <span className="ml-2 font-medium">{midiPreview.noteCount.toLocaleString()}</span>
+                                            <span className="ml-2 font-medium">{format.number(midiPreview.noteCount)}</span>
                                         </div>
                                     </div>
 

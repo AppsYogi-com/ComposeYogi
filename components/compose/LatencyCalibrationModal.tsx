@@ -6,7 +6,7 @@
 // ============================================
 
 import { useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useFormatter } from 'next-intl';
 import {
     Activity,
     AlertCircle,
@@ -168,6 +168,7 @@ export function LatencyCalibrationModal({
 
 function IdleView({ onStart }: { onStart: () => void }) {
     const t = useTranslations('calibration');
+    const format = useFormatter();
     const systemLatency = latencyCalibrator.constructor.prototype.constructor.getSystemLatency
         ? { baseLatency: 0, outputLatency: 0 }
         : { baseLatency: 0, outputLatency: 0 };
@@ -191,13 +192,13 @@ function IdleView({ onStart }: { onStart: () => void }) {
                     <div>
                         <span className="text-muted-foreground">{t('base')} </span>
                         <span className="text-foreground">
-                            {systemLatency.baseLatency.toFixed(1)} ms
+                            {format.number(systemLatency.baseLatency, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ms
                         </span>
                     </div>
                     <div>
                         <span className="text-muted-foreground">{t('output')} </span>
                         <span className="text-foreground">
-                            {systemLatency.outputLatency.toFixed(1)} ms
+                            {format.number(systemLatency.outputLatency, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ms
                         </span>
                     </div>
                 </div>

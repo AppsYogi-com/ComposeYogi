@@ -91,7 +91,8 @@
     "shortcuts": "Keyboard Shortcuts",
     "settings": "Audio Settings",
     "lightMode": "Light mode",
-    "darkMode": "Dark mode"
+    "darkMode": "Dark mode",
+    "recordedClipName": "Recording"
   },
   "browser": {
     "title": "Browser",
@@ -470,5 +471,25 @@
     "iosStep2": "Scroll and tap \"Add to Home Screen\"",
     "iosStep3": "Tap \"Add\" to install",
     "gotIt": "Got it"
+  },
+  "notFound": {
+    "heading": "Page not found",
+    "description": "That link does not lead anywhere. The studio is still where you left it.",
+    "goHome": "Go home",
+    "openStudio": "Open the studio",
+    "metaTitle": "Page Not Found",
+    "metaDescription": "The page you are looking for does not exist."
+  },
+  "common": {
+    "loading": "Loading…",
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "themeToLight": "Light mode",
+    "themeToDark": "Dark mode",
+    "githubStarsAlt": "GitHub stars"
+  },
+  "app": {
+    "loadingProject": "Loading project…",
+    "creatingProject": "Creating project…"
   }
 }

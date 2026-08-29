@@ -91,7 +91,8 @@
     "shortcuts": "Atajos de teclado",
     "settings": "Ajustes de audio",
     "lightMode": "Modo claro",
-    "darkMode": "Modo oscuro"
+    "darkMode": "Modo oscuro",
+    "recordedClipName": "Grabación"
   },
   "browser": {
     "title": "Explorador",
@@ -470,5 +471,25 @@
     "iosStep2": "Desplázate y toca \"Añadir a pantalla de inicio\"",
     "iosStep3": "Toca \"Añadir\" para instalar",
     "gotIt": "Entendido"
+  },
+  "notFound": {
+    "heading": "Página no encontrada",
+    "description": "Ese enlace no lleva a ninguna parte. El estudio sigue donde lo dejaste.",
+    "goHome": "Ir al inicio",
+    "openStudio": "Abrir el estudio",
+    "metaTitle": "Página no encontrada",
+    "metaDescription": "La página que buscas no existe."
+  },
+  "common": {
+    "loading": "Cargando…",
+    "close": "Cerrar",
+    "dismiss": "Descartar",
+    "themeToLight": "Modo claro",
+    "themeToDark": "Modo oscuro",
+    "githubStarsAlt": "Estrellas de GitHub"
+  },
+  "app": {
+    "loadingProject": "Cargando proyecto…",
+    "creatingProject": "Creando proyecto…"
   }
 }

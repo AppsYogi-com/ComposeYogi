@@ -23,7 +23,22 @@ import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = join(__dirname, '..');
-const COMPOSE_DIR = join(ROOT, 'components', 'compose');
+/**
+ * Where user-visible text must be translated.
+ *
+ * This was components/compose only, which is where the studio lives — and so
+ * the untranslated strings all collected in the places nobody looks at: the
+ * 404 page, loading states, and screen-reader labels on every dialog.
+ */
+const TEXT_DIRS = ['app', 'components'];
+
+/**
+ * Literals that are not prose and never will be. Keep this short: it is the
+ * one place a genuine miss could hide.
+ */
+const NOT_PROSE = new Set([
+    'composeyogi.com/compose', // a URL, drawn inside mock browser chrome
+]);
 
 /** Everything that may hold a `useTranslations` call or a message key. */
 const SOURCE_DIRS = ['app', 'components', 'lib', 'hooks'];
@@ -115,6 +130,7 @@ function isUntranslatable(text: string): boolean {
     const trimmed = text.trim();
     if (!trimmed) return true;
     if (BRAND_NAMES.has(trimmed)) return true;
+    if (NOT_PROSE.has(trimmed)) return true;
     const words = trimmed.split(/[^\p{L}#]+/u).filter(Boolean);
     if (words.length === 0) return true;
     return words.every((word) => UNIVERSAL_TOKENS.has(word) || NOTE_NAME.test(word));
@@ -169,7 +185,7 @@ function renderedLiterals(node: ts.Node): { node: ts.Node; text: string }[] {
 function hardcodedText(): string[] {
     const hits: string[] = [];
 
-    for (const file of walk(COMPOSE_DIR, /\.tsx$/).sort()) {
+    for (const file of TEXT_DIRS.flatMap((dir) => walk(join(ROOT, dir), /\.tsx$/)).sort()) {
         const sf = parse(file);
 
         const visit = (node: ts.Node) => {
@@ -250,6 +266,38 @@ const SCOPE_KINDS = new Set([
     ts.SyntaxKind.SourceFile,
 ]);
 
+/**
+ * How a translator is obtained. Server components use getTranslations, and
+ * awaiting it is still a call — a collector that knows only useTranslations
+ * reports every key a server component uses as having no caller at all.
+ */
+const TRANSLATOR_FACTORIES = ['useTranslations', 'getTranslations'];
+
+function isTranslatorFactory(call: ts.CallExpression, sf: ts.SourceFile): boolean {
+    return TRANSLATOR_FACTORIES.includes(call.expression.getText(sf));
+}
+
+/**
+ * The namespace argument, as either `getTranslations('ns')` or the object form
+ * `getTranslations({ locale, namespace: 'ns' })`.
+ */
+function namespaceOf(arg: ts.Expression | undefined): string {
+    if (!arg) return '';
+    if (ts.isStringLiteral(arg)) return arg.text;
+    if (ts.isObjectLiteralExpression(arg)) {
+        for (const prop of arg.properties) {
+            if (
+                ts.isPropertyAssignment(prop)
+                && prop.name.getText() === 'namespace'
+                && ts.isStringLiteral(prop.initializer)
+            ) {
+                return prop.initializer.text;
+            }
+        }
+    }
+    return '';
+}
+
 /** next-intl's `t` also answers to `.rich`, `.raw`, `.markup` and `.has`. */
 const TRANSLATOR_METHODS = new Set(['rich', 'raw', 'markup', 'has']);
 
@@ -261,7 +309,7 @@ function collectUsage(): Usage {
 
     for (const file of files) {
         const text = readFileSync(file, 'utf8');
-        if (!text.includes('useTranslations')) continue;
+        if (!TRANSLATOR_FACTORIES.some((factory) => text.includes(factory))) continue;
 
         const sf = parse(file);
         const rel = relative(ROOT, file);
@@ -279,15 +327,21 @@ function collectUsage(): Usage {
         };
 
         const collectBindings = (node: ts.Node) => {
+            // `const t = await getTranslations(...)` wraps the call in an await,
+            // so the initializer is an AwaitExpression rather than the call itself.
+            const initializer = node && ts.isVariableDeclaration(node) && node.initializer
+                ? (ts.isAwaitExpression(node.initializer) ? node.initializer.expression : node.initializer)
+                : undefined;
+
             if (
                 ts.isVariableDeclaration(node)
-                && node.initializer
-                && ts.isCallExpression(node.initializer)
-                && node.initializer.expression.getText(sf) === 'useTranslations'
+                && initializer
+                && ts.isCallExpression(initializer)
+                && isTranslatorFactory(initializer, sf)
                 && ts.isIdentifier(node.name)
             ) {
-                const arg = node.initializer.arguments[0];
-                const namespace = arg && ts.isStringLiteral(arg) ? arg.text : '';
+                const arg = initializer.arguments[0];
+                const namespace = namespaceOf(arg);
                 bind(scopeOf(node), node.name.text, namespace);
             }
 
@@ -390,6 +444,46 @@ const messages = JSON.parse(
 describe('studio components are translated', () => {
     it('renders no hardcoded user-visible text', () => {
         expect(hardcodedText()).toEqual([]);
+    });
+});
+
+describe('numbers and dates follow the app locale', () => {
+    // These format for the *browser's* locale, or for no locale at all:
+    //
+    //   toLocaleString()      reads navigator.language, not the app language,
+    //                         so the import dialog once showed "1,539" above a
+    //                         list of "1.009" — two formats, one dialog.
+    //   toFixed()             always emits a dot, so Spanish saw "2.50s" where
+    //                         it writes "2,50s"; and it returns a string, so a
+    //                         message receiving it can no longer localise it.
+    //
+    // next-intl's useFormatter() is locale-aware. Anything drawn for a person
+    // to read goes through it.
+    const FORMATTERS = /\.(?:toFixed|toLocaleString|toLocaleDateString|toLocaleTimeString)\s*\(/g;
+
+    it('never formats a user-visible number with the browser locale', () => {
+        const hits: string[] = [];
+
+        for (const dir of ['app', 'components']) {
+            for (const file of walk(join(ROOT, dir), /\.tsx?$/)) {
+                const text = readFileSync(file, 'utf8');
+                text.split('\n').forEach((line, index) => {
+                    // Skip prose: these names appear in the comments explaining
+                    // why they are not used.
+                    const code = line.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '');
+                    for (const match of code.matchAll(FORMATTERS)) {
+                        hits.push(`${relative(ROOT, file)}:${index + 1}  ${match[0].trim()}`);
+                    }
+                });
+            }
+        }
+
+        expect(
+            hits,
+            "Use next-intl's useFormatter(): format.number(value, { maximumFractionDigits: 2 }) " +
+            'or format.dateTime(date). These format for the app language; toFixed and ' +
+            'toLocaleString do not.'
+        ).toEqual([]);
     });
 });
 

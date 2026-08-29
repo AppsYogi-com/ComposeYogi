@@ -67,9 +67,23 @@ export function clearAudioTakes(): void {
 // Recording Manager Class
 // ============================================
 
+/**
+ * Wall-clock time as a fixed 24-hour HH:MM:SS string.
+ *
+ * Deliberately not toLocaleTimeString(): that reads the browser's locale, not
+ * the app's, so the same project could carry clip names in two different time
+ * formats depending on which machine recorded them — and the name is saved
+ * data, not a label re-rendered per viewer.
+ */
+function clockTime(date: Date): string {
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 class RecordingManager {
     private session: RecordingSession | null = null;
     private onComplete: RecordingCompleteCallback | null = null;
+    private clipLabel = 'Recording';
     private countInTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
     // ========================================
@@ -104,7 +118,9 @@ class RecordingManager {
     async startRecording(
         trackId: string,
         countInBars: number = 0,
-        onComplete?: RecordingCompleteCallback
+        onComplete?: RecordingCompleteCallback,
+        /** Translated word the recorded clip is named after, e.g. "Recording". */
+        clipLabel: string = 'Recording'
     ): Promise<void> {
         if (this.session?.isActive) {
             console.warn('[RecordingManager] Already recording');
@@ -112,6 +128,7 @@ class RecordingManager {
         }
 
         this.onComplete = onComplete || null;
+        this.clipLabel = clipLabel;
 
         // Get loop boundaries from playback store
         const playbackState = usePlaybackStore.getState();
@@ -301,7 +318,7 @@ class RecordingManager {
         projectStore.updateClip(clip.id, {
             audioTakeIds: [take.id],
             activeTakeId: take.id,
-            name: `Recording ${new Date().toLocaleTimeString()}`,
+            name: `${this.clipLabel} ${clockTime(new Date())}`,
         });
 
         // Notify callback

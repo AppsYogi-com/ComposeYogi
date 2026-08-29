@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useFormatter } from 'next-intl';
 import {
     ZoomIn,
     ZoomOut,
@@ -46,6 +46,7 @@ interface TrimHandles {
 
 export function WaveformEditor({ clip }: WaveformEditorProps) {
     const t = useTranslations('editor.waveform');
+const format = useFormatter();
     const project = useProjectStore((s) => s.project);
     const updateClip = useProjectStore((s) => s.updateClip);
 
@@ -299,7 +300,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
         for (let time = 0; time <= duration; time += markerInterval) {
             const x = (time / duration) * displayWidth;
             ctx.fillRect(x, displayHeight - 15, 1, 5);
-            ctx.fillText(`${time.toFixed(1)}s`, x + 3, displayHeight - 3);
+            ctx.fillText(`${format.number(time, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}s`, x + 3, displayHeight - 3);
         }
 
         // Playhead
@@ -666,7 +667,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
 
                         <span className="text-xs text-muted-foreground">
                             {t('selectionLength', {
-                                seconds: Math.abs(selection.end - selection.start).toFixed(2),
+                                seconds: format.number(Math.abs(selection.end - selection.start), { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                             })}
                         </span>
 
@@ -676,7 +677,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
 
                 {/* Info */}
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{t('duration', { seconds: effectiveDuration.toFixed(2) })}</span>
+                    <span>{t('duration', { seconds: format.number(effectiveDuration, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</span>
                     <span>{t('sampleRate', { hz: audioBuffer.sampleRate })}</span>
                 </div>
 
@@ -694,7 +695,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                         step={0.05}
                         className="w-20"
                     />
-                    <span className="w-8 text-xs text-muted-foreground">{fadeIn.toFixed(1)}s</span>
+                    <span className="w-8 text-xs text-muted-foreground">{format.number(fadeIn, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}s</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -708,7 +709,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
                         step={0.05}
                         className="w-20"
                     />
-                    <span className="w-8 text-xs text-muted-foreground">{fadeOut.toFixed(1)}s</span>
+                    <span className="w-8 text-xs text-muted-foreground">{format.number(fadeOut, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}s</span>
                 </div>
 
                 <div className="h-4 w-px bg-border" />
@@ -753,19 +754,19 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
             {/* Info bar */}
             <div className="flex items-center justify-between border-t border-border bg-surface px-3 py-1">
                 <span className="text-xs text-muted-foreground">
-                    {t('trimStart', { seconds: trimHandles.startOffset.toFixed(2) })}
+                    {t('trimStart', { seconds: format.number(trimHandles.startOffset, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}
                 </span>
                 <span className="text-xs text-muted-foreground">
                     {selection
                         ? t('selectedRange', {
-                            from: Math.min(selection.start, selection.end).toFixed(2),
-                            to: Math.max(selection.start, selection.end).toFixed(2),
+                            from: format.number(Math.min(selection.start, selection.end), { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                            to: format.number(Math.max(selection.start, selection.end), { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                         })
                         : t('selectionHint')
                     }
                 </span>
                 <span className="text-xs text-muted-foreground">
-                    {t('trimEnd', { seconds: trimHandles.endOffset.toFixed(2) })}
+                    {t('trimEnd', { seconds: format.number(trimHandles.endOffset, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}
                 </span>
             </div>
         </div>

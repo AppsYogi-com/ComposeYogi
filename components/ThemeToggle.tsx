@@ -5,8 +5,10 @@ import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTranslations } from 'next-intl';
 
 export function ThemeToggle() {
+    const t = useTranslations('common');
     const { setTheme, resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -41,7 +43,7 @@ export function ThemeToggle() {
                 </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-                <p>{isDark ? 'Light mode' : 'Dark mode'}</p>
+                <p>{isDark ? t('themeToLight') : t('themeToDark')}</p>
             </TooltipContent>
         </Tooltip>
     );

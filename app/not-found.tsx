@@ -1,36 +1,57 @@
+// ============================================
+// ComposeYogi — Not Found (root)
+// ============================================
+//
+// The fallback for paths the locale middleware never rewrote. It sits outside
+// `[locale]`, so there is no request locale to read and no provider overhead —
+// the language is taken from Accept-Language and the messages are loaded for it
+// directly.
+//
+// It used to redirect to the home page instead of rendering, which meant its
+// own markup was unreachable and a mistyped URL answered 200 from somewhere the
+// visitor never asked for.
+
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { Metadata } from 'next';
-import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
+
+import { NotFoundContent } from '@/components/NotFoundContent';
+import { defaultLocale, locales } from '@/config/i18n';
+
+import type { Metadata } from 'next';
+
+/** First locale the visitor asks for that this app actually speaks. */
+async function preferredLocale(): Promise<string> {
+    const header = (await headers()).get('accept-language') ?? '';
+    const requested = header
+        .split(',')
+        .map((part) => part.split(';')[0].trim().toLowerCase())
+        .filter(Boolean);
+
+    for (const tag of requested) {
+        const base = tag.split('-')[0];
+        const match = locales.find((locale) => locale === tag || locale === base);
+        if (match) return match;
+    }
+    return defaultLocale;
+}
 
 export const metadata: Metadata = {
-    title: 'Page Not Found - ComposeYogi',
-    description: 'The page you are looking for does not exist.',
-    robots: 'noindex, nofollow'
+    robots: 'noindex, nofollow',
 };
 
-export default async function GlobalNotFound() {
-    // Get the headers to determine the preferred locale
-    const headersList = await headers();
-    const acceptLanguage = headersList.get('accept-language') || '';
+export default async function RootNotFound() {
+    const locale = await preferredLocale();
+    const t = await getTranslations({ locale, namespace: 'notFound' });
+    const prefix = locale === defaultLocale ? '' : `/${locale}`;
 
-    // Simple locale detection
-    const preferredLocale = acceptLanguage.includes('es') ? 'es' : 'en';
-
-    // Redirect to localized home page
-    redirect(`/${preferredLocale}`);
-
-    // Fallback (won't render due to redirect)
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-            <h1 className="text-4xl font-bold mb-4">404</h1>
-            <p className="text-muted-foreground mb-6">Page not found</p>
-            <Link
-                href="/"
-                className="text-accent hover:underline"
-            >
-                Go home
-            </Link>
-        </div>
+        <NotFoundContent
+            heading={t('heading')}
+            description={t('description')}
+            goHome={t('goHome')}
+            openStudio={t('openStudio')}
+            homeHref={prefix || '/'}
+            studioHref={`${prefix}/compose`}
+        />
     );
 }

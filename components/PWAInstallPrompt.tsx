@@ -8,6 +8,7 @@ import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 export function PWAInstallPrompt() {
     const t = useTranslations('pwa');
+    const tCommon = useTranslations('common');
     const { isInstallable, isInstalled, isIOS, promptInstall } = usePWAInstall();
     const [dismissed, setDismissed] = useState(false);
     const [showIOSInstructions, setShowIOSInstructions] = useState(false);
@@ -101,7 +102,7 @@ export function PWAInstallPrompt() {
                 <button
                     onClick={handleDismiss}
                     className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground"
-                    aria-label="Dismiss"
+                    aria-label={tCommon('dismiss')}
                 >
                     <X className="h-4 w-4" />
                 </button>

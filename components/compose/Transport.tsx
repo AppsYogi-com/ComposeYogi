@@ -217,13 +217,14 @@ export function Transport({
                     armedTrack.id,
                     countInBars,
                     (_clip, _take) => {
-                    }
+                    },
+                    t('recordedClipName')
                 );
             } catch (error) {
                 console.error('[Transport] Failed to start recording:', error);
             }
         }
-    }, [isAudioReady, isRecording, armedTrack, countInBars, isRecorderReady]);
+    }, [isAudioReady, isRecording, armedTrack, countInBars, isRecorderReady, t]);
 
     if (!project) return null;
 
