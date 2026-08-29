@@ -395,10 +395,14 @@ criterion.
 pages that read the same tokens, so they cannot go stale the way an exported
 image can. Open one directly in a browser to inspect the system at any size.
 
-| Artboard | What it is for |
+| Preview | What it is for |
 |---|---|
-| `foundations` | The full palette in both themes, the type scale, shape, motion, elevation |
-| `components` | Transport, faders, track headers, clip states, badges, inputs, panels |
+| `foundations` | The full palette in both themes, the type scale, shape, motion, elevation. Builds itself from `tokens.json`, so it always shows every token. |
+| `components` | Transport, faders, track headers, clip states, editors, fields, status, panels |
+| `og-image` | The social card. Exported to `public/og-image.png`, not to `artboards/` — it is a product asset, built here so it cannot drift from the palette. |
+
+Regenerate with `npm run design:artboards` (needs Chrome; the HTML works
+without it).
 
 ---
 
