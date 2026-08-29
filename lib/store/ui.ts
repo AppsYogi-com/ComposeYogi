@@ -4,7 +4,7 @@
 // ============================================
 
 import { create } from 'zustand';
-import type { EditorScope, InspectorSectionId, ModalType } from '@/types';
+import type { EditorScope, InspectorSectionId, ModalType, SnapValue } from '@/types';
 import type { KeyBindings } from '@/lib/shortcuts';
 
 // ============================================
@@ -36,6 +36,13 @@ interface UIState {
     isDragging: boolean;
     dragType: 'clip' | 'selection' | 'resize' | 'loop' | null;
     multiDragOffsetBars: number; // Shared offset for multi-clip drag visual feedback
+
+    // Grid resolution for each surface. Two settings rather than one, because
+    // the two are almost never the same: you place clips against bars in the
+    // arrangement and draw sixteenths in the piano roll, and a shared value
+    // would make one of the two views unusable every time you changed the other.
+    timelineSnap: SnapValue;
+    editorSnap: SnapValue;
 
     // Inspector sections the user has folded away. Absent means expanded, so
     // a new section is open until somebody closes it, and the stored shape
@@ -77,6 +84,8 @@ interface UIActions {
     // Editor scope
     setEditorScope: (scope: EditorScope) => void;
     toggleSection: (section: InspectorSectionId) => void;
+    setTimelineSnap: (snap: SnapValue) => void;
+    setEditorSnap: (snap: SnapValue) => void;
     setEditorFocused: (focused: boolean) => void;
     setDefaultVelocity: (velocity: number) => void;
 
@@ -122,7 +131,7 @@ const ZOOM_STEP = 1.2;
 // Store Implementation
 // ============================================
 
-export const useUIStore = create<UIStore>((set, get) => ({
+export const useUIStore = create<UIStore>((set) => ({
     // Initial state
     browserOpen: true,
     inspectorOpen: true,
@@ -139,6 +148,10 @@ export const useUIStore = create<UIStore>((set, get) => ({
     isDragging: false,
     dragType: null,
     multiDragOffsetBars: 0,
+    // One beat in the arrangement and a sixteenth in the editor: the values
+    // both surfaces were hard-coded to before either had a control.
+    timelineSnap: '1/4',
+    editorSnap: '1/16',
     collapsedSections: {},
     activeModal: null,
     isMobile: false,
@@ -235,6 +248,14 @@ export const useUIStore = create<UIStore>((set, get) => ({
                 [section]: !state.collapsedSections[section],
             },
         }));
+    },
+
+    setTimelineSnap: (snap) => {
+        set({ timelineSnap: snap });
+    },
+
+    setEditorSnap: (snap) => {
+        set({ editorSnap: snap });
     },
 
     setEditorScope: (scope) => {
@@ -341,6 +362,8 @@ export const selectSelectedTrackId = (state: UIStore) => state.selectedTrackId;
 export const selectActiveEditorClipId = (state: UIStore) => state.activeEditorClipId;
 export const selectEditorScope = (state: UIStore) => state.editorScope;
 export const selectCollapsedSections = (state: UIStore) => state.collapsedSections;
+export const selectTimelineSnap = (state: UIStore) => state.timelineSnap;
+export const selectEditorSnap = (state: UIStore) => state.editorSnap;
 export const selectZoom = (state: UIStore) => state.zoom;
 export const selectIsDragging = (state: UIStore) => state.isDragging;
 export const selectActiveModal = (state: UIStore) => state.activeModal;

@@ -303,6 +303,7 @@ class PlayoutManager {
                 transport: Tone.getTransport(),
                 bpm: plan.bpm,
                 beatsPerBar: plan.beatsPerBar,
+                swing: plan.swing,
             });
             if (result) {
                 scheduled.player = result.synth;

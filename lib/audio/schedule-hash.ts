@@ -22,7 +22,44 @@
 // tear down and rebuild every clip to change one number — which is what made
 // moving a fader on a 256-clip project unusable before Sprint 8.5.
 
-import type { Clip, Note, Track } from '@/types';
+import type { Clip, Note, Project, Track } from '@/types';
+
+// ============================================
+// Which project fields reach the audio
+// ============================================
+
+/**
+ * Project fields the schedule is built from.
+ *
+ * `bpm` and `timeSignature` are here because the plan resolves bars and note
+ * lengths to *seconds* at schedule time. Tone rescales already-scheduled events
+ * when the transport tempo changes, so bar positions survive a tempo change on
+ * their own — but the note durations handed to `triggerAttackRelease` do not,
+ * and a project taken from 120 to 60 played on with notes half as long as they
+ * should be until something else forced a rebuild.
+ */
+export const SOUND_AFFECTING_PROJECT_FIELDS = [
+    'bpm',
+    'timeSignature',
+    'swing',
+] as const satisfies readonly (keyof Project)[];
+
+/**
+ * Project fields that deliberately do not affect playback. Same contract as the
+ * clip lists below: every key of Project must appear in one list or the other,
+ * so a new field forces a decision rather than defaulting to silence.
+ */
+export const SILENT_PROJECT_FIELDS = [
+    'id',
+    'name',
+    'createdAt',
+    'updatedAt',
+    'key',           // highlighting in the piano roll; nothing is retuned
+    'scale',         // likewise
+    'latencyOffset', // recording-time compensation, never playback
+    'tracks',        // hashed by trackScheduleHash
+    'clips',         // hashed by clipsScheduleHash
+] as const satisfies readonly (keyof Project)[];
 
 // ============================================
 // Which clip fields reach the audio
@@ -75,6 +112,20 @@ export const SILENT_CLIP_FIELDS = [
 function noteHash(notes: Note[] | undefined): string {
     if (!notes?.length) return '';
     return notes.map((n) => `${n.pitch}.${n.startBeat}.${n.duration}.${n.velocity}`).join(';');
+}
+
+/**
+ * Project-level state the schedule depends on. Small, and deliberately separate
+ * from the clip and track hashes: it changes for entirely different reasons.
+ */
+export function projectScheduleHash(project: Project | null): string {
+    if (!project) return '';
+    return SOUND_AFFECTING_PROJECT_FIELDS
+        .map((name) => {
+            const value = project[name];
+            return value === undefined ? '' : String(value);
+        })
+        .join(':');
 }
 
 /** Serialize one clip's sound-affecting state. */

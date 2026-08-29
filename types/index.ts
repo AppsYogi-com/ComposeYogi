@@ -20,6 +20,12 @@ export interface Project {
     createdAt: number;
     updatedAt: number;
     latencyOffset?: number; // ms, from calibration
+    /**
+     * Project-wide swing, 0-100. Absent and 0 both mean straight, which is what
+     * lets every project saved before this existed keep playing as recorded.
+     * A clip's Groove macro adds to this — see effectiveGroove in clip-macros.
+     */
+    swing?: number;
 }
 
 export type MusicalKey = 'C' | 'C#' | 'D' | 'D#' | 'E' | 'F' | 'F#' | 'G' | 'G#' | 'A' | 'A#' | 'B';
@@ -27,13 +33,32 @@ export type MusicalKey = 'C' | 'C#' | 'D' | 'D#' | 'E' | 'F' | 'F#' | 'G' | 'G#'
 export type MusicalScale =
     | 'major'
     | 'minor'
+    | 'harmonicMinor'
+    | 'melodicMinor'
     | 'dorian'
     | 'phrygian'
     | 'lydian'
     | 'mixolydian'
     | 'locrian'
-    | 'pentatonic'
-    | 'blues';
+    | 'pentatonicMajor'
+    | 'pentatonicMinor'
+    | 'blues'
+    | 'chromatic';
+
+/**
+ * A named feel that resolves to a key and a scale. See lib/music/scales.ts for
+ * what each one maps to and why.
+ */
+export type VibeId =
+    | 'chill'
+    | 'happy'
+    | 'sad'
+    | 'dark'
+    | 'dreamy'
+    | 'epic'
+    | 'funky'
+    | 'bluesy'
+    | 'playful';
 
 // ============================================
 // Track Types
@@ -255,6 +280,23 @@ export type InspectorSectionId =
     | 'effects'
     | 'clip'
     | 'feel';
+
+/**
+ * Grid resolution for dragging in the timeline and drawing in the piano roll.
+ * Values are note lengths; a trailing T is the triplet of that length. See
+ * lib/music/snap.ts for the beat each one is worth.
+ */
+export type SnapValue =
+    | 'off'
+    | '1'
+    | '1/2'
+    | '1/4'
+    | '1/8'
+    | '1/16'
+    | '1/32'
+    | '1/4T'
+    | '1/8T'
+    | '1/16T';
 
 // ============================================
 // Playback State Types

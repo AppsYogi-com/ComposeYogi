@@ -75,6 +75,7 @@ interface ProjectRecord {
     createdAt: number;
     updatedAt: number;
     latencyOffset?: number;
+    swing?: number;
     // Note: tracks and clips stored in separate object stores
 }
 
@@ -170,6 +171,7 @@ export async function saveProject(project: Project): Promise<void> {
         createdAt: project.createdAt,
         updatedAt: Date.now(),
         latencyOffset: project.latencyOffset,
+        swing: project.swing,
     };
     await tx.objectStore('projects').put(projectRecord);
 
@@ -254,6 +256,7 @@ export async function loadProject(projectId: string): Promise<Project | null> {
         createdAt: projectRecord.createdAt,
         updatedAt: projectRecord.updatedAt,
         latencyOffset: projectRecord.latencyOffset,
+        swing: projectRecord.swing,
         tracks: sortedTracks,
         clips,
     };

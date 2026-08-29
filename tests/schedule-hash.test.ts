@@ -17,17 +17,20 @@ import { describe, expect, it } from 'vitest';
 
 import {
     SILENT_CLIP_FIELDS,
+    SILENT_PROJECT_FIELDS,
     SOUND_AFFECTING_CLIP_FIELDS,
+    SOUND_AFFECTING_PROJECT_FIELDS,
     clipScheduleHash,
     clipsScheduleHash,
     mixerStateHash,
+    projectScheduleHash,
     trackEffectsHash,
     trackScheduleHash,
 } from '@/lib/audio/schedule-hash';
 
-import { makeClip, makeNote, makeTrack } from './fixtures';
+import { makeClip, makeNote, makeProject, makeTrack } from './fixtures';
 
-import type { Clip } from '@/types';
+import type { Clip, Project } from '@/types';
 
 /**
  * Every field of Clip, as values rather than types — a type-level check cannot
@@ -77,6 +80,84 @@ describe('every clip field is classified', () => {
             expect(ALL_CLIP_FIELDS, `Clip.${key} is missing from ALL_CLIP_FIELDS`)
                 .toContain(key as keyof Clip);
         }
+    });
+});
+
+/** Every field of Project, same contract as ALL_CLIP_FIELDS above. */
+const ALL_PROJECT_FIELDS: (keyof Project)[] = [
+    'id', 'name', 'bpm', 'key', 'scale', 'timeSignature',
+    'tracks', 'clips', 'createdAt', 'updatedAt', 'latencyOffset', 'swing',
+];
+
+describe('every project field is classified', () => {
+    it('declares each one as either heard or silent', () => {
+        const classified = new Set<string>([
+            ...SOUND_AFFECTING_PROJECT_FIELDS,
+            ...SILENT_PROJECT_FIELDS,
+        ]);
+        const unclassified = ALL_PROJECT_FIELDS.filter((field) => !classified.has(field));
+
+        expect(
+            unclassified,
+            'Add it to SOUND_AFFECTING_PROJECT_FIELDS if it changes what is played, ' +
+            'or to SILENT_PROJECT_FIELDS if it does not.'
+        ).toEqual([]);
+    });
+
+    it('never classifies a field as both', () => {
+        const both = SOUND_AFFECTING_PROJECT_FIELDS.filter((field) =>
+            (SILENT_PROJECT_FIELDS as readonly string[]).includes(field)
+        );
+        expect(both).toEqual([]);
+    });
+
+    it('covers the whole type — the field list is not stale', () => {
+        const project = makeProject({ latencyOffset: 10, swing: 40 });
+        for (const key of Object.keys(project)) {
+            expect(ALL_PROJECT_FIELDS, `Project.${key} is missing from ALL_PROJECT_FIELDS`)
+                .toContain(key as keyof Project);
+        }
+    });
+});
+
+describe('projectScheduleHash', () => {
+    it('changes when swing changes', () => {
+        // The whole reason this hash exists. Swing is resolved at schedule time
+        // into every note's position, so moving it without rebuilding leaves
+        // the project playing at the previous groove with no error anywhere.
+        const base = makeProject();
+        expect(projectScheduleHash(makeProject({ swing: 60 }))).not.toBe(projectScheduleHash(base));
+    });
+
+    it('distinguishes no swing from zero swing', () => {
+        // Both are straight, but they are different stored states, and a hash
+        // that flattened them would hide a genuine change on the way back.
+        expect(projectScheduleHash(makeProject({ swing: 0 })))
+            .not.toBe(projectScheduleHash(makeProject({ swing: undefined })));
+    });
+
+    it('changes when tempo or time signature changes', () => {
+        // Tone rescales already-scheduled events on a tempo change, so bar
+        // positions survive on their own — but the note *durations* handed to
+        // triggerAttackRelease were resolved to seconds at the old tempo and
+        // do not move.
+        const base = makeProject();
+        expect(projectScheduleHash(makeProject({ bpm: 90 }))).not.toBe(projectScheduleHash(base));
+        expect(projectScheduleHash(makeProject({ timeSignature: [3, 4] })))
+            .not.toBe(projectScheduleHash(base));
+    });
+
+    it('ignores what only the piano roll draws', () => {
+        // Key and scale highlight notes. Nothing is retuned, so rebuilding the
+        // whole schedule to change a colour would be pure cost.
+        const base = projectScheduleHash(makeProject());
+        expect(projectScheduleHash(makeProject({ key: 'F', scale: 'lydian' }))).toBe(base);
+        expect(projectScheduleHash(makeProject({ name: 'Renamed', updatedAt: 1 }))).toBe(base);
+        expect(projectScheduleHash(makeProject({ latencyOffset: 25 }))).toBe(base);
+    });
+
+    it('is empty with no project, rather than throwing', () => {
+        expect(projectScheduleHash(null)).toBe('');
     });
 });
 

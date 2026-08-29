@@ -7,7 +7,8 @@
 
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { usePlaybackStore } from '@/lib/store';
+import { usePlaybackStore, useUIStore } from '@/lib/store';
+import { SNAP_BEATS } from '@/lib/music';
 
 const HANDLE_WIDTH = 8; // Width of drag handles
 const MIN_LOOP_BARS = 1; // Minimum loop length
@@ -16,11 +17,13 @@ type DragMode = 'left' | 'right' | 'move' | null;
 
 interface LoopBracesProps {
     pixelsPerBar: number;
+    beatsPerBar: number;
     rulerHeight: number;
 }
 
-export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
+export function LoopBraces({ pixelsPerBar, beatsPerBar, rulerHeight }: LoopBracesProps) {
     const t = useTranslations('loop');
+    const timelineSnap = useUIStore((s) => s.timelineSnap);
     const loopEnabled = usePlaybackStore((s) => s.loopEnabled);
     const loopStartBar = usePlaybackStore((s) => s.loopStartBar);
     const loopEndBar = usePlaybackStore((s) => s.loopEndBar);
@@ -92,7 +95,13 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
 
             const deltaX = e.clientX - dragStartRef.current.x;
             const deltaBars = deltaX / pixelsPerBar;
-            const snappedDelta = Math.round(deltaBars); // Snap to bars
+            // Follows the timeline's snap setting, so the loop can start on the
+            // and-of-two if that is where the phrase does. The minimum *length*
+            // stays a bar: a loop shorter than that is a stutter, not a section.
+            const snapBars = SNAP_BEATS[timelineSnap] / beatsPerBar;
+            const snappedDelta = snapBars > 0
+                ? Math.round(deltaBars / snapBars) * snapBars
+                : deltaBars;
 
             if (dragMode === 'left') {
                 // Resize from left - can't go below 0 or past right handle
@@ -135,7 +144,7 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [dragMode, dragOffset, pixelsPerBar, setLoopRegion]);
+    }, [dragMode, dragOffset, pixelsPerBar, beatsPerBar, timelineSnap, setLoopRegion]);
 
     return (
         <div

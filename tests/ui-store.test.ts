@@ -16,9 +16,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
     selectCollapsedSections,
+    selectEditorSnap,
     selectHasSelection,
     selectIsMultiSelect,
     selectSelectedClipId,
+    selectTimelineSnap,
     useUIStore,
 } from '@/lib/store/ui';
 
@@ -143,6 +145,30 @@ describe('collapsible inspector sections', () => {
         useUIStore.getState().toggleSection('project');
 
         expect(selectCollapsedSections(useUIStore.getState())).not.toBe(before);
+    });
+});
+
+describe('snap settings', () => {
+    it('starts each surface at what it used to be hard-coded to', () => {
+        // Neither surface had a control before, so these are not new defaults —
+        // they are the behaviour people already have, now visible.
+        expect(selectTimelineSnap(useUIStore.getState())).toBe('1/4');
+        expect(selectEditorSnap(useUIStore.getState())).toBe('1/16');
+    });
+
+    it('keeps the two apart', () => {
+        // A shared value would make one of the two views unusable every time
+        // you changed the other: you place clips against bars in the
+        // arrangement and draw sixteenths in the piano roll.
+        useUIStore.getState().setEditorSnap('1/8T');
+
+        expect(selectEditorSnap(useUIStore.getState())).toBe('1/8T');
+        expect(selectTimelineSnap(useUIStore.getState())).toBe('1/4');
+
+        useUIStore.getState().setTimelineSnap('off');
+
+        expect(selectTimelineSnap(useUIStore.getState())).toBe('off');
+        expect(selectEditorSnap(useUIStore.getState())).toBe('1/8T');
     });
 });
 

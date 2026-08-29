@@ -234,6 +234,25 @@ const SWING_GRID_TOLERANCE = 0.01;
  * who dragged a note off the grid on purpose does not want a macro tidying it
  * to somewhere else.
  */
+/**
+ * The swing a clip actually plays with: the project's, plus its own Groove.
+ *
+ * Additive, and clamped to the same 0-100 the macro already spans. The
+ * alternative — a clip's Groove *overriding* the project's — reads better on
+ * paper but cannot work with the field that shipped: Groove's neutral is 0, so
+ * "override" would make every untouched clip on a swung project snap back to
+ * straight, and the global control would do nothing until you visited every
+ * clip. Additive means the project sets a floor and a clip can push past it,
+ * which is how the two controls are described in the UI.
+ *
+ * The cost, stated plainly: a clip cannot be *straighter* than the project.
+ * Making that possible needs a bipolar Groove or a per-clip opt-out, and either
+ * one changes the meaning of a value already saved on people's machines.
+ */
+export function effectiveGroove(projectSwing: number | undefined, clipGroove: number): number {
+    return clamp(clamp(projectSwing ?? 0, 0, 100) + clamp(clipGroove, 0, 100), 0, 100);
+}
+
 export function swingDelayBeats(groove: number, startBeat: number): number {
     const amount = clamp(groove, 0, 100) / 100;
     if (amount <= 0) return 0;

@@ -69,6 +69,37 @@ describe('project round trip', () => {
         });
     });
 
+    it('carries every project field through storage, not just the ones listed above', async () => {
+        // The assertion above names its fields by hand, so a field added to
+        // Project and forgotten in saveProject/loadProject passes it silently —
+        // and IndexedDB never complains about a key it was not given. That is
+        // how a setting ships, works all session, and is gone after a reload.
+        //
+        // ProjectRecord is hand-built field by field on both sides, which is the
+        // structure that makes this possible; this test is what makes it safe.
+        const project = makeProject({
+            bpm: 97,
+            key: 'G',
+            scale: 'harmonicMinor',
+            timeSignature: [7, 8],
+            latencyOffset: 8,
+            swing: 55,
+        });
+
+        await saveProject(project);
+        const loaded = await loadProject(project.id);
+        expect(loaded).not.toBeNull();
+
+        // tracks and clips live in their own stores and have their own tests;
+        // updatedAt is deliberately re-stamped on save.
+        const derived = new Set(['tracks', 'clips', 'updatedAt']);
+        for (const key of Object.keys(project) as (keyof Project)[]) {
+            if (derived.has(key)) continue;
+            expect(loaded?.[key], `Project.${key} did not survive save/load`)
+                .toEqual(project[key]);
+        }
+    });
+
     it('restores notes through their JSON round trip', async () => {
         const notes = [
             makeNote({ id: 'n1', pitch: 60, startBeat: 0, duration: 1, velocity: 100 }),
@@ -221,7 +252,8 @@ describe('project management', () => {
 describe('projectSaveSignature', () => {
     // Autosave only runs when this string changes. It used to be a hand-written
     // literal naming eight fields, so anything else could be edited all session
-    // and be gone after a reload — no error, no log, no warning.
+    // and be gone after a reload — no error, no log, no warning. Swing was the
+    // first field to fall through it.
     const FIELDS: { field: keyof Project; value: unknown }[] = [
         { field: 'id', value: 'other' },
         { field: 'name', value: 'Renamed' },
@@ -229,6 +261,7 @@ describe('projectSaveSignature', () => {
         { field: 'key', value: 'F' },
         { field: 'scale', value: 'lydian' },
         { field: 'timeSignature', value: [3, 4] },
+        { field: 'swing', value: 40 },
         { field: 'latencyOffset', value: 12 },
         { field: 'createdAt', value: 1 },
         { field: 'tracks', value: [makeTrack({ id: 'other', volume: 0.1 })] },
@@ -249,7 +282,7 @@ describe('projectSaveSignature', () => {
         // updatedAt is the one deliberate exclusion, so it is the only key
         // allowed to be missing here.
         const named = new Set<string>([...FIELDS.map((f) => f.field), 'updatedAt']);
-        const project = makeProject({ latencyOffset: 1 });
+        const project = makeProject({ swing: 1, latencyOffset: 1 });
         const missing = Object.keys(project).filter((key) => !named.has(key));
 
         expect(missing, 'add it to FIELDS so autosave is proven to notice it').toEqual([]);
@@ -334,6 +367,64 @@ describe('migrations', () => {
             value: 'still here',
         });
         latest.close();
+    });
+
+    it('rewrite the data they exist to rewrite', async () => {
+        // Both data migrations in one pass, because both are the same kind of
+        // risk: they change what is already on someone's machine, and getting
+        // one wrong is silent — the project simply plays or highlights
+        // differently the next time it is opened.
+        const name = 'migrate-data';
+
+        const old = await openDB(name, 2, {
+            async upgrade(database, oldVersion, newVersion, transaction) {
+                await runMigrations(database, oldVersion, newVersion, transaction);
+            },
+        });
+
+        // Migration 3: Groove and Space shipped at 50 while no macro did
+        // anything. Left alone, every clip would start playing half-swung and wet.
+        await old.put('clips', {
+            id: 'untouched', projectId: 'p1', trackId: 't1', type: 'midi',
+            name: 'Untouched', startBar: 0, lengthBars: 4,
+            energy: 50, brightness: 50, groove: 50, space: 50,
+        });
+        await old.put('clips', {
+            id: 'deliberate', projectId: 'p1', trackId: 't1', type: 'midi',
+            name: 'Deliberate', startBar: 4, lengthBars: 4,
+            energy: 50, brightness: 50, groove: 20, space: 70,
+        });
+        // Migration 4: the one scale value the new list has no name for.
+        await old.put('projects', {
+            id: 'p1', name: 'Legacy', bpm: 120, key: 'C', scale: 'pentatonic',
+            timeSignature: [4, 4], createdAt: 1, updatedAt: 1,
+        });
+        await old.put('projects', {
+            id: 'p2', name: 'Modern', bpm: 120, key: 'C', scale: 'dorian',
+            timeSignature: [4, 4], createdAt: 1, updatedAt: 1,
+        });
+        old.close();
+
+        const migrated = await openDB(name, LATEST_VERSION, {
+            async upgrade(database, oldVersion, newVersion, transaction) {
+                await runMigrations(database, oldVersion, newVersion, transaction);
+            },
+        });
+
+        const untouched = await migrated.get('clips', 'untouched');
+        expect(untouched.groove, 'the shipped default must become straight').toBe(0);
+        expect(untouched.space, 'the shipped default must become dry').toBe(0);
+        expect(untouched.energy, 'a bipolar macro is neutral at 50 and stays there').toBe(50);
+        expect(untouched.brightness).toBe(50);
+
+        const deliberate = await migrated.get('clips', 'deliberate');
+        expect(deliberate.groove, 'a value nobody defaulted to must survive').toBe(20);
+        expect(deliberate.space).toBe(70);
+
+        expect((await migrated.get('projects', 'p1')).scale).toBe('pentatonicMinor');
+        expect((await migrated.get('projects', 'p2')).scale, 'other scales are left alone')
+            .toBe('dorian');
+        migrated.close();
     });
 
     it('do nothing when the database is already current', async () => {

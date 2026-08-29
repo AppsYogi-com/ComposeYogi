@@ -82,6 +82,7 @@
     "tempo": "Tempo (pulsos por minuto)",
     "timeSignature": "Compás",
     "timeSignatureHint": "Compás (clic para cambiar)",
+    "scale": "Escala",
     "custom": "Personalizado",
     "apply": "Aplicar",
     "metronome": "Metrónomo",
@@ -137,7 +138,9 @@
       "title": "Proyecto",
       "key": "Tonalidad",
       "scale": "Escala",
-      "timeSignature": "Compás"
+      "timeSignature": "Compás",
+      "swing": "Swing",
+      "swingHint": "Retrasa una semicorchea de cada dos para dar un aire de shuffle. La macro Groove del clip se suma a esto."
     },
     "track": {
       "title": "Pista",
@@ -462,6 +465,23 @@
     "pentatonicMinor": "Pentatónica menor",
     "blues": "Blues",
     "chromatic": "Cromática"
+  },
+  "vibes": {
+    "chill": "Relajado",
+    "happy": "Alegre",
+    "sad": "Triste",
+    "dark": "Oscuro",
+    "dreamy": "Onírico",
+    "epic": "Épico",
+    "funky": "Funky",
+    "bluesy": "Bluesero",
+    "playful": "Juguetón"
+  },
+  "snap": {
+    "label": "Ajuste",
+    "off": "Libre",
+    "straight": "Regular",
+    "triplets": "Tresillos"
   },
   "language": {
     "label": "Idioma"

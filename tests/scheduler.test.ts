@@ -143,6 +143,18 @@ describe('clipPlayDuration', () => {
 // ============================================
 
 describe('buildRenderPlan', () => {
+    it('carries the project swing onto the plan', () => {
+        // The plan is where both the live and the offline path read it from, so
+        // a hard-coded value here would render every export straight however
+        // the project was set — and playback would not disagree, because it
+        // reads the same wrong number.
+        expect(buildRenderPlan(makeProject({ ...makeMixedProject(), swing: 65 })).swing).toBe(65);
+    });
+
+    it('treats a project saved before swing existed as straight', () => {
+        expect(buildRenderPlan(makeProject({ ...makeMixedProject(), swing: undefined })).swing).toBe(0);
+    });
+
     it('places clips at their bar positions in seconds', () => {
         const project = makeProject({
             clips: [
@@ -260,6 +272,7 @@ describe('buildRenderPlan', () => {
               },
             ],
             "durationSeconds": 24,
+            "swing": 0,
             "tracks": [
               {
                 "activeEffects": [],

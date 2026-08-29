@@ -18,6 +18,7 @@ import * as Tone from 'tone';
 
 import { createLogger } from '@/lib/logger';
 import {
+    effectiveGroove,
     energyVelocityScale,
     humanizeOffset,
     humanizeSeed,
@@ -52,6 +53,9 @@ export interface SchedulerContext {
     transport: SchedulerTransport;
     bpm: number;
     beatsPerBar: number;
+    /** Project-wide swing, 0-100. Required, not optional: a default here would
+     *  let a caller forget it and silently render straight. */
+    swing: number;
 }
 
 export interface ScheduledMidiClip {
@@ -160,6 +164,9 @@ export interface PlannedTrack {
 export interface RenderPlan {
     bpm: number;
     beatsPerBar: number;
+    /** Project-wide swing, 0-100. Carried on the plan so the live and offline
+     *  callers both read it from here rather than each reaching for the project. */
+    swing: number;
     /** Musical length in seconds, excluding any export tail. */
     durationSeconds: number;
     tracks: PlannedTrack[];
@@ -211,6 +218,7 @@ export function buildRenderPlan(project: Project): RenderPlan {
     return {
         bpm,
         beatsPerBar,
+        swing: project.swing ?? 0,
         durationSeconds: barsToSeconds(projectEndBar(project), bpm, beatsPerBar),
         tracks,
         clips,
@@ -443,11 +451,17 @@ export interface PlannedNote {
  * and jitter can reorder them, so the order has to be decided here rather than
  * inherited from however the array happened to be built.
  */
-export function planClipNotes(clip: Clip, startSeconds: number, bpm: number): PlannedNote[] {
+export function planClipNotes(
+    clip: Clip,
+    startSeconds: number,
+    bpm: number,
+    projectSwing: number
+): PlannedNote[] {
     if (!clip.notes?.length) return [];
 
     const macros = readClipMacros(clip);
     const energyScale = energyVelocityScale(macros.energy);
+    const groove = effectiveGroove(projectSwing, macros.groove);
     const planned: PlannedNote[] = [];
 
     clip.notes.forEach((note, index) => {
@@ -456,7 +470,7 @@ export function planClipNotes(clip: Clip, startSeconds: number, bpm: number): Pl
 
         const jitter = humanizeOffset(macros.humanize, humanizeSeed(clip.id, note, index));
         const beat =
-            note.startBeat + swingDelayBeats(macros.groove, note.startBeat) + jitter.timingBeats;
+            note.startBeat + swingDelayBeats(groove, note.startBeat) + jitter.timingBeats;
 
         planned.push({
             pitch,
@@ -590,7 +604,7 @@ export async function scheduleMidiClip(
 ): Promise<ScheduledMidiClip | null> {
     if (!clip.notes?.length) return null;
 
-    const planned = planClipNotes(clip, startSeconds, context.bpm);
+    const planned = planClipNotes(clip, startSeconds, context.bpm, context.swing);
     if (planned.length === 0) return null; // e.g. transposed clean off the keyboard
 
     const chain = await buildClipMacroChain(clip, destination);

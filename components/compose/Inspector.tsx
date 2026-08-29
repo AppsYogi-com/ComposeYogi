@@ -16,6 +16,7 @@ import {
 import { MACRO_NEUTRAL, TRANSPOSE_RANGE, isNeutral, readClipMacros } from '@/lib/audio/clip-macros';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { selectCollapsedSections, selectSelectedClipId } from '@/lib/store/ui';
+import { selectSwing } from '@/lib/store/project';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SCALES, NOTES, cn } from '@/lib/utils';
+import { NOTE_NAMES, SCALE_IDS } from '@/lib/music';
+import { cn } from '@/lib/utils';
 import { trackColorValue } from '@/lib/design';
 import type { Clip, InspectorSectionId, MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
 
@@ -81,7 +83,7 @@ export function Inspector() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {NOTES.map((note) => (
+                                {NOTE_NAMES.map((note) => (
                                     <SelectItem key={note} value={note}>
                                         {note}
                                     </SelectItem>
@@ -101,9 +103,9 @@ export function Inspector() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {SCALES.map((scale) => (
-                                    <SelectItem key={scale.id} value={scale.id}>
-                                        {tScales(scale.id)}
+                                {SCALE_IDS.map((scale) => (
+                                    <SelectItem key={scale} value={scale}>
+                                        {tScales(scale)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -117,6 +119,8 @@ export function Inspector() {
                             {project?.timeSignature[0]}/{project?.timeSignature[1]}
                         </div>
                     </div>
+
+                    <SwingSlider />
                 </Section>
 
                 {/* Selected track section */}
@@ -541,6 +545,56 @@ function FeelSection({ clip }: { clip: Clip }) {
                 </p>
             )}
         </Section>
+    );
+}
+
+/**
+ * Project-wide swing.
+ *
+ * Lives beside a clip's Groove macro rather than replacing it: this is the feel
+ * the whole song starts from, and Groove pushes an individual part further. The
+ * same commit-on-release rule applies for the same reason — swing is in the
+ * reschedule hash, so a write per pixel would rebuild every clip in the project
+ * dozens of times across one drag.
+ */
+function SwingSlider() {
+    const t = useTranslations('inspector.project');
+    const format = useFormatter();
+    const swing = useProjectStore(selectSwing);
+    const setSwing = useProjectStore((s) => s.setSwing);
+    const [dragging, setDragging] = useState<number | null>(null);
+
+    useEffect(() => setDragging(null), [swing]);
+    const shown = dragging ?? swing;
+
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs text-muted-foreground">{t('swing')}</Label>
+                <span
+                    className={
+                        shown === 0
+                            ? 'text-2xs font-mono text-muted-foreground'
+                            : 'text-2xs font-mono text-foreground'
+                    }
+                >
+                    {format.number(shown)}
+                </span>
+            </div>
+            <Slider
+                value={[shown]}
+                min={0}
+                max={100}
+                step={1}
+                onValueChange={([v]) => setDragging(v)}
+                onValueCommit={([v]) => setSwing(v)}
+                className="py-1"
+                aria-label={t('swing')}
+            />
+            <p className="text-2xs leading-relaxed text-muted-foreground">
+                {t('swingHint')}
+            </p>
+        </div>
     );
 }
 

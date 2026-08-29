@@ -27,6 +27,7 @@ import {
     ZoomOut,
 } from 'lucide-react';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
+import { VibeSelect } from './VibeSelect';
 import { ExportModal } from './ExportModal';
 import { ImportModal } from './ImportModal';
 import { useTheme } from 'next-themes';
@@ -581,6 +582,9 @@ export function Transport({
                             </div>
                         </PopoverContent>
                     </Popover>
+
+                    {/* Scale / key, as a vibe */}
+                    <VibeSelect />
 
                     {/* Metronome */}
                     <Tooltip>

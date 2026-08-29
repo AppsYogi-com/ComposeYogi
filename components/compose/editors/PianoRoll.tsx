@@ -4,17 +4,12 @@ import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { ZoomIn, ZoomOut, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
+import { SNAP_BEATS, scalePitchClasses, snapStepBeats } from '@/lib/music';
+import { SnapSelect } from '../SnapSelect';
 import { DefaultVelocityControl } from './DefaultVelocityControl';
 import { VelocityLane } from './VelocityLane';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import type { Clip, Note, MusicalScale } from '@/types';
+import type { Clip, Note } from '@/types';
 import * as Tone from 'tone';
 
 // ============================================
@@ -32,21 +27,6 @@ const MIN_PIXELS_PER_BEAT = 20;
 const MAX_PIXELS_PER_BEAT = 200;
 const DEFAULT_PIXELS_PER_BEAT = 60;
 
-// Scale intervals (semitones from root)
-const SCALE_INTERVALS: Record<MusicalScale, number[]> = {
-    major: [0, 2, 4, 5, 7, 9, 11],
-    minor: [0, 2, 3, 5, 7, 8, 10],
-    dorian: [0, 2, 3, 5, 7, 9, 10],
-    phrygian: [0, 1, 3, 5, 7, 8, 10],
-    lydian: [0, 2, 4, 6, 7, 9, 11],
-    mixolydian: [0, 2, 4, 5, 7, 9, 10],
-    locrian: [0, 1, 3, 5, 6, 8, 10],
-    pentatonic: [0, 2, 4, 7, 9],
-    blues: [0, 3, 5, 6, 7, 10],
-};
-
-type SnapValue = '1' | '1/2' | '1/4' | '1/8' | '1/16' | '1/32';
-
 interface PianoRollProps {
     clip: Clip;
 }
@@ -61,7 +41,8 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const setEditorFocused = useUIStore((s) => s.setEditorFocused);
     const defaultVelocity = useUIStore((s) => s.defaultVelocity);
 
-    const [snap, setSnap] = useState<SnapValue>('1/16');
+    const snap = useUIStore((s) => s.editorSnap);
+    const setSnap = useUIStore((s) => s.setEditorSnap);
     const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
     const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
     const [previewSynth, setPreviewSynth] = useState<Tone.PolySynth | null>(null);
@@ -88,25 +69,17 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const gridHeight = totalNotes * NOTE_HEIGHT;
     const clipWidth = totalBeats * pixelsPerBeat;
 
-    // Get snap value in beats
-    const snapBeats = useMemo(() => {
-        const snapMap: Record<SnapValue, number> = {
-            '1': 4, // Whole note (4 beats)
-            '1/2': 2,
-            '1/4': 1,
-            '1/8': 0.5,
-            '1/16': 0.25,
-            '1/32': 0.125,
-        };
-        return snapMap[snap];
-    }, [snap]);
+    const snapBeats = SNAP_BEATS[snap];
+    /** What a freshly drawn note is worth, and the shortest a resize may reach.
+     *  Never the raw snap value: with snapping off that is zero, which would
+     *  draw notes of no length at all. */
+    const noteStepBeats = snapStepBeats(snap);
 
     // Generate scale notes for highlighting
-    const scaleNotes = useMemo(() => {
-        const rootIndex = NOTE_NAMES.indexOf(musicalKey);
-        const intervals = SCALE_INTERVALS[musicalScale] || SCALE_INTERVALS.minor;
-        return new Set(intervals.map((i) => (rootIndex + i) % 12));
-    }, [musicalKey, musicalScale]);
+    const scaleNotes = useMemo(
+        () => scalePitchClasses(musicalKey, musicalScale),
+        [musicalKey, musicalScale]
+    );
 
     // Check if a note is in scale
     const isInScale = useCallback((pitch: number) => {
@@ -152,8 +125,10 @@ export function PianoRoll({ clip }: PianoRollProps) {
         return `${NOTE_NAMES[noteIndex]}${octave}`;
     }, []);
 
-    // Snap value to grid
+    // Snap value to grid. Snapping off leaves the value exactly where the
+    // pointer was, which is the whole point of the setting.
     const snapToGrid = useCallback((value: number) => {
+        if (snapBeats <= 0) return value;
         return Math.round(value / snapBeats) * snapBeats;
     }, [snapBeats]);
 
@@ -210,7 +185,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
         } else {
             // Add new note (toggle on)
             const maxDuration = totalBeats - beat;
-            const noteDuration = Math.min(snapBeats, maxDuration);
+            const noteDuration = Math.min(noteStepBeats, maxDuration);
 
             setSelectedNoteIds(new Set());
 
@@ -224,13 +199,13 @@ export function PianoRoll({ clip }: PianoRollProps) {
             if (newNote && previewSynth) {
                 previewSynth.triggerAttackRelease(
                     Tone.Frequency(pitch, 'midi').toNote(),
-                    snapBeats * (60 / (project?.bpm || 120))
+                    noteStepBeats * (60 / (project?.bpm || 120))
                 );
             }
         }
     }, [
-        snapBeats, pixelsPerBeat, clip.id, clip.notes, totalBeats,
-        pitchToRow, rowToPitch, snapToGrid, addNote, deleteNote,
+        noteStepBeats, pixelsPerBeat, clip.id, clip.notes, totalBeats,
+        pitchToRow, rowToPitch, snapToGrid, addNote,
         previewSynth, project?.bpm, isDragging, defaultVelocity
     ]);
 
@@ -313,7 +288,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
         const handleMouseMove = (e: MouseEvent) => {
             const deltaX = e.clientX - resizingNote.startX;
             const deltaDuration = deltaX / pixelsPerBeat;
-            const newDuration = Math.max(snapBeats, snapToGrid(resizingNote.startDuration + deltaDuration));
+            const newDuration = Math.max(noteStepBeats, snapToGrid(resizingNote.startDuration + deltaDuration));
 
             // Don't allow resizing beyond clip length
             const note = clip.notes?.find(n => n.id === resizingNote.id);
@@ -336,7 +311,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [resizingNote, pixelsPerBeat, snapBeats, snapToGrid, clip.id, clip.notes, totalBeats, updateNote]);
+    }, [resizingNote, pixelsPerBeat, noteStepBeats, snapToGrid, clip.id, clip.notes, totalBeats, updateNote]);
 
     // Zoom controls
     const zoomIn = () => setPixelsPerBeat((p) => Math.min(p * 1.25, MAX_PIXELS_PER_BEAT));
@@ -380,19 +355,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 {/* Snap selector */}
                 <div className="flex items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">{t('snap')}</span>
-                    <Select value={snap} onValueChange={(v) => setSnap(v as SnapValue)} disabled={!isCompatible}>
-                        <SelectTrigger className="h-7 w-16 text-xs">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="1">1</SelectItem>
-                            <SelectItem value="1/2">1/2</SelectItem>
-                            <SelectItem value="1/4">1/4</SelectItem>
-                            <SelectItem value="1/8">1/8</SelectItem>
-                            <SelectItem value="1/16">1/16</SelectItem>
-                            <SelectItem value="1/32">1/32</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <SnapSelect value={snap} onChange={setSnap} disabled={!isCompatible} />
                 </div>
 
                 <DefaultVelocityControl disabled={!isCompatible} />
