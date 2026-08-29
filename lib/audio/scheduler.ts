@@ -17,6 +17,19 @@
 import * as Tone from 'tone';
 
 import { createLogger } from '@/lib/logger';
+import {
+    energyVelocityScale,
+    humanizeOffset,
+    humanizeSeed,
+    isNeutral,
+    readClipMacros,
+    resolveVelocity,
+    spaceSpec,
+    swingDelayBeats,
+    toneFilterSpec,
+    toneTilt,
+    transposedPitch,
+} from './clip-macros';
 import { getAudioTake } from './recording-manager';
 import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
 
@@ -44,6 +57,14 @@ export interface SchedulerContext {
 export interface ScheduledMidiClip {
     synth: SynthType;
     eventIds: number[];
+    /** Per-clip macro nodes, for the caller to dispose alongside the synth. */
+    macroNodes: Tone.ToneAudioNode[];
+}
+
+export interface ScheduledAudioClip {
+    player: Tone.Player | null;
+    /** Per-clip macro nodes, for the caller to dispose alongside the player. */
+    macroNodes: Tone.ToneAudioNode[];
 }
 
 // ============================================
@@ -319,6 +340,138 @@ export async function buildEffectChain(
 }
 
 // ============================================
+// Clip Macros — per-clip DSP
+// ============================================
+//
+// The track chain is shared by everything on the track, so a macro that
+// belongs to one clip cannot live there: two clips on the same track have to
+// be able to sound different. These nodes sit between the clip's own source
+// and the track entry.
+//
+// A clip whose macros are all neutral gets no nodes at all and connects
+// straight to the track, exactly as it did before macros existed. That is not
+// only an optimisation — every clip saved before this feature shipped holds
+// the neutral values, and they must keep sounding the way their author left
+// them.
+
+/** Where a clip's source connects, plus whatever was created to get it there. */
+export interface ClipMacroChain {
+    input: Tone.ToneAudioNode;
+    nodes: Tone.ToneAudioNode[];
+}
+
+/**
+ * Wire `[tone filter] → [reverb] → destination` for one clip's macros.
+ *
+ * Async for the same reason the track effect chain is: a Reverb has to
+ * generate its impulse response before it passes signal, and not waiting is
+ * what makes the first bars render dry.
+ */
+export async function buildClipMacroChain(
+    clip: Clip,
+    destination: Tone.ToneAudioNode
+): Promise<ClipMacroChain> {
+    const macros = readClipMacros(clip);
+    if (isNeutral(macros)) return { input: destination, nodes: [] };
+
+    const nodes: Tone.ToneAudioNode[] = [];
+
+    const filter = toneFilterSpec(toneTilt(macros.brightness, macros.energy));
+    if (filter) {
+        nodes.push(new Tone.Filter({
+            type: filter.type,
+            frequency: filter.frequency,
+            gain: filter.gain,
+        }));
+    }
+
+    const space = spaceSpec(macros.space);
+    if (space) {
+        const reverb = new Tone.Reverb({
+            decay: space.decay,
+            preDelay: space.preDelay,
+            wet: space.wet,
+        });
+        await reverb.generate();
+        nodes.push(reverb);
+    }
+
+    if (nodes.length === 0) return { input: destination, nodes: [] };
+
+    for (let i = 0; i < nodes.length - 1; i++) {
+        nodes[i].connect(nodes[i + 1]);
+    }
+    nodes[nodes.length - 1].connect(destination);
+
+    return { input: nodes[0], nodes };
+}
+
+/** Dispose a macro chain's nodes. Safe on the neutral (empty) chain. */
+export function disposeMacroNodes(nodes: Tone.ToneAudioNode[]): void {
+    for (const node of nodes) {
+        try {
+            node.dispose();
+        } catch (error) {
+            logger.warn('Error disposing clip macro node', { error });
+        }
+    }
+}
+
+// ============================================
+// Note Planning — macros applied to notes
+// ============================================
+
+/** One note, fully resolved: nothing left to decide at trigger time. */
+export interface PlannedNote {
+    pitch: number;
+    /** Absolute transport time in seconds. */
+    timeSeconds: number;
+    durationSeconds: number;
+    /** Normalised 0–1, ready for `triggerAttackRelease`. */
+    velocity: number;
+}
+
+/**
+ * Turn a clip's notes into the events that will actually be played, with
+ * Transpose, Groove, Humanize and Energy already folded in.
+ *
+ * Kept separate from the scheduling itself so the musical result can be
+ * asserted in a test without an audio context — and so the live and offline
+ * paths cannot possibly compute it differently, because neither computes it.
+ *
+ * Sorted by time: the monophonic stagger below numbers notes within a chord,
+ * and jitter can reorder them, so the order has to be decided here rather than
+ * inherited from however the array happened to be built.
+ */
+export function planClipNotes(clip: Clip, startSeconds: number, bpm: number): PlannedNote[] {
+    if (!clip.notes?.length) return [];
+
+    const macros = readClipMacros(clip);
+    const energyScale = energyVelocityScale(macros.energy);
+    const planned: PlannedNote[] = [];
+
+    clip.notes.forEach((note, index) => {
+        const pitch = transposedPitch(note.pitch, macros.transpose);
+        if (pitch === null) return; // transposed off the keyboard
+
+        const jitter = humanizeOffset(macros.humanize, humanizeSeed(clip.id, note, index));
+        const beat =
+            note.startBeat + swingDelayBeats(macros.groove, note.startBeat) + jitter.timingBeats;
+
+        planned.push({
+            pitch,
+            // Humanize can pull a note earlier than the clip starts; the
+            // transport has no negative time to schedule it at.
+            timeSeconds: Math.max(0, startSeconds + beatsToSeconds(beat, bpm)),
+            durationSeconds: beatsToSeconds(note.duration, bpm),
+            velocity: resolveVelocity(note.velocity, energyScale, jitter.velocity) / 127,
+        });
+    });
+
+    return planned.sort((a, b) => a.timeSeconds - b.timeSeconds);
+}
+
+// ============================================
 // Audio Clips
 // ============================================
 
@@ -340,44 +493,57 @@ export function clipPlayDuration(clip: Clip, sourceDuration: number): number {
     return Math.max(0, sourceDuration - trimStart - trimEnd);
 }
 
+const NOTHING_SCHEDULED: ScheduledAudioClip = { player: null, macroNodes: [] };
+
 /**
- * Schedule one audio clip. Returns the transport-synced Player, or null when
- * there is nothing to play (missing take, fully trimmed away, decode failure).
+ * Schedule one audio clip through its macro chain.
+ *
+ * Only the DSP macros reach a recording: Transpose, Groove and Humanize are
+ * note-level ideas, and there are no notes here to move. Making them act on
+ * audio means time-stretching and pitch-shifting a buffer, which is its own
+ * piece of work (Sprint 8.7.4) rather than a variation on this one.
+ *
+ * Returns null for the player when there is nothing to play — a missing take,
+ * a clip trimmed away to nothing, a decode failure.
  */
 export async function scheduleAudioClip(
     clip: Clip,
     destination: Tone.ToneAudioNode,
     startSeconds: number
-): Promise<Tone.Player | null> {
-    if (!clip.activeTakeId) return null;
+): Promise<ScheduledAudioClip> {
+    if (!clip.activeTakeId) return NOTHING_SCHEDULED;
 
     const take = getAudioTake(clip.activeTakeId);
     if (!take) {
         logger.warn('AudioTake not found', { clipId: clip.id, takeId: clip.activeTakeId });
-        return null;
+        return NOTHING_SCHEDULED;
     }
+
+    const chain = await buildClipMacroChain(clip, destination);
 
     try {
         const buffer = await decodeTakeToBuffer(take);
         const player = new Tone.Player(buffer);
 
-        player.connect(destination);
+        player.connect(chain.input);
         player.fadeIn = clip.fadeIn || 0;
         player.fadeOut = clip.fadeOut || 0;
 
         const playDuration = clipPlayDuration(clip, buffer.duration);
         if (playDuration <= 0) {
             player.dispose();
-            return null;
+            disposeMacroNodes(chain.nodes);
+            return NOTHING_SCHEDULED;
         }
 
         player.sync();
         player.start(startSeconds, clip.trimStart || 0, playDuration);
 
-        return player;
+        return { player, macroNodes: chain.nodes };
     } catch (error) {
         logger.error('Failed to schedule audio clip', { clipId: clip.id, error });
-        return null;
+        disposeMacroNodes(chain.nodes);
+        return NOTHING_SCHEDULED;
     }
 }
 
@@ -386,20 +552,15 @@ export async function scheduleAudioClip(
 // ============================================
 
 /**
- * Group a clip's notes by absolute start time so monophonic instruments can be
- * given a tiny stagger instead of swallowing simultaneous notes.
+ * Group planned notes by start time so monophonic instruments can be given a
+ * tiny stagger instead of swallowing simultaneous notes.
  */
-function groupNotesByTime(
-    clip: Clip,
-    startSeconds: number,
-    bpm: number
-): Map<number, NonNullable<Clip['notes']>> {
-    const byTime = new Map<number, NonNullable<Clip['notes']>>();
+function groupNotesByTime(notes: PlannedNote[]): Map<number, PlannedNote[]> {
+    const byTime = new Map<number, PlannedNote[]>();
 
-    for (const note of clip.notes || []) {
-        const absoluteTime = startSeconds + beatsToSeconds(note.startBeat, bpm);
+    for (const note of notes) {
         // Quantize the key to 0.1ms so float drift doesn't split a chord.
-        const timeKey = Math.round(absoluteTime * 10000) / 10000;
+        const timeKey = Math.round(note.timeSeconds * 10000) / 10000;
 
         const existing = byTime.get(timeKey);
         if (existing) {
@@ -414,7 +575,11 @@ function groupNotesByTime(
 
 /**
  * Schedule one MIDI or drum clip onto the given transport.
- * Returns the synth plus the transport event ids so the caller can tear down.
+ *
+ * The notes have already been resolved by `planClipNotes`, so nothing musical
+ * is decided here — this walks a finished list and books it. Returns the synth,
+ * the transport event ids and the macro nodes so the caller can tear all three
+ * down together.
  */
 export async function scheduleMidiClip(
     clip: Clip,
@@ -425,34 +590,35 @@ export async function scheduleMidiClip(
 ): Promise<ScheduledMidiClip | null> {
     if (!clip.notes?.length) return null;
 
+    const planned = planClipNotes(clip, startSeconds, context.bpm);
+    if (planned.length === 0) return null; // e.g. transposed clean off the keyboard
+
+    const chain = await buildClipMacroChain(clip, destination);
     const synth = createSynthForClip(clip, track);
-    synth.connect(destination);
+    synth.connect(chain.input);
 
     // Samplers load their buffers asynchronously — playing before they are
     // ready is silent, which is why both paths wait here.
     await waitForSynthReady(synth);
 
     const isPolyphonic = synth instanceof Tone.PolySynth || synth instanceof Tone.Sampler;
-    const notesByTime = groupNotesByTime(clip, startSeconds, context.bpm);
     const eventIds: number[] = [];
 
-    for (const [timeKey, notes] of notesByTime) {
+    for (const [timeKey, notes] of groupNotesByTime(planned)) {
         notes.forEach((note, index) => {
-            const durationSeconds = beatsToSeconds(note.duration, context.bpm);
             // Monophonic voices get a 1ms stagger so a chord still articulates.
             const scheduledTime = timeKey + (isPolyphonic ? 0 : index * 0.001);
-            const velocity = note.velocity / 127;
 
             const eventId = context.transport.schedule((time) => {
                 if (synth instanceof Tone.NoiseSynth) {
                     // NoiseSynth has no pitch — duration and velocity only.
-                    synth.triggerAttackRelease(durationSeconds, time, velocity);
+                    synth.triggerAttackRelease(note.durationSeconds, time, note.velocity);
                 } else {
                     synth.triggerAttackRelease(
                         Tone.Frequency(note.pitch, 'midi').toFrequency(),
-                        durationSeconds,
+                        note.durationSeconds,
                         time,
-                        velocity
+                        note.velocity
                     );
                 }
             }, scheduledTime);
@@ -461,7 +627,7 @@ export async function scheduleMidiClip(
         });
     }
 
-    return { synth, eventIds };
+    return { synth, eventIds, macroNodes: chain.nodes };
 }
 
 // ============================================

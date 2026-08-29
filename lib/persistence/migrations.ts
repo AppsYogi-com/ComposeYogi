@@ -76,6 +76,34 @@ export const MIGRATIONS: Migration[] = [
             }
         },
     },
+    {
+        // Groove and Space started life at 50, alongside Energy and Brightness,
+        // back when no macro did anything. Now that they drive DSP the centre is
+        // the wrong neutral for them: there is no "less than straight" and no
+        // "drier than dry", so their neutral is 0 and the whole slider swings or
+        // reverberates. Left at 50 every clip ever saved would suddenly play
+        // half-swung and wet.
+        //
+        // Only the untouched default is rewritten. Nothing else can have set
+        // these — no UI exposed them until now — but matching exactly is what
+        // makes it safe to run against a database this assumption is wrong about.
+        version: 3,
+        name: 'macro-neutral-defaults',
+        run: async (_db, transaction) => {
+            const clips = transaction.objectStore('clips');
+
+            for await (const cursor of clips.iterate()) {
+                const clip = cursor.value as { groove?: number; space?: number };
+                if (clip.groove !== 50 && clip.space !== 50) continue;
+
+                await cursor.update({
+                    ...clip,
+                    groove: clip.groove === 50 ? 0 : clip.groove,
+                    space: clip.space === 50 ? 0 : clip.space,
+                });
+            }
+        },
+    },
 ];
 
 /** Highest migration version — db.ts opens the database at this version. */

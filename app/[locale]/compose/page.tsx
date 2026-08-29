@@ -177,8 +177,6 @@ function ComposePageContent() {
     const scheduleClipsRef = useRef(scheduleClips);
     scheduleClipsRef.current = scheduleClips;
 
-    // Hash of everything that changes how a clip *sounds*. If a new feature
-    // affects clip audio, it must appear here or playback goes silently stale.
     // What has to change before the audio is rebuilt. Defined in
     // lib/audio/schedule-hash.ts, where it can be tested: a field that affects
     // playback but is missing from the hash leaves the schedule stale with no
