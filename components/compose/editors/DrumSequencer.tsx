@@ -3,6 +3,8 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { Check, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
+import { DRUM_BG } from '@/lib/design/track-colors';
+import type { DrumFamily } from '@/lib/design/tokens';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -21,76 +23,77 @@ interface DrumSound {
     name: string;
     shortName: string;
     pitch: number; // MIDI note number
-    color: string;
+    /** Kit family — drives the lane colour via DRUM_BG. See lib/design/tokens.ts. */
+    family: DrumFamily;
 }
 
 // Full General MIDI Percussion Map (organized by category)
 const DRUM_SOUNDS: DrumSound[] = [
     // Kicks (35-36)
-    { name: 'Acoustic Bass Drum', shortName: 'BD1', pitch: 35, color: 'bg-red-600' },
-    { name: 'Bass Drum 1', shortName: 'BD2', pitch: 36, color: 'bg-red-500' },
+    { name: 'Acoustic Bass Drum', shortName: 'BD1', pitch: 35, family: 'kick' },
+    { name: 'Bass Drum 1', shortName: 'BD2', pitch: 36, family: 'kick' },
 
     // Snares & Rim (37-40)
-    { name: 'Side Stick', shortName: 'STK', pitch: 37, color: 'bg-orange-600' },
-    { name: 'Acoustic Snare', shortName: 'SN1', pitch: 38, color: 'bg-orange-500' },
-    { name: 'Hand Clap', shortName: 'CLP', pitch: 39, color: 'bg-pink-500' },
-    { name: 'Electric Snare', shortName: 'SN2', pitch: 40, color: 'bg-orange-400' },
+    { name: 'Side Stick', shortName: 'STK', pitch: 37, family: 'snare' },
+    { name: 'Acoustic Snare', shortName: 'SN1', pitch: 38, family: 'snare' },
+    { name: 'Hand Clap', shortName: 'CLP', pitch: 39, family: 'snare' },
+    { name: 'Electric Snare', shortName: 'SN2', pitch: 40, family: 'snare' },
 
     // Toms (41, 43, 45, 47, 48, 50)
-    { name: 'Low Floor Tom', shortName: 'LFT', pitch: 41, color: 'bg-purple-600' },
-    { name: 'High Floor Tom', shortName: 'HFT', pitch: 43, color: 'bg-purple-500' },
-    { name: 'Low Tom', shortName: 'LTM', pitch: 45, color: 'bg-purple-400' },
-    { name: 'Low-Mid Tom', shortName: 'LMT', pitch: 47, color: 'bg-purple-300' },
-    { name: 'Hi-Mid Tom', shortName: 'HMT', pitch: 48, color: 'bg-violet-400' },
-    { name: 'High Tom', shortName: 'HTM', pitch: 50, color: 'bg-violet-300' },
+    { name: 'Low Floor Tom', shortName: 'LFT', pitch: 41, family: 'tom' },
+    { name: 'High Floor Tom', shortName: 'HFT', pitch: 43, family: 'tom' },
+    { name: 'Low Tom', shortName: 'LTM', pitch: 45, family: 'tom' },
+    { name: 'Low-Mid Tom', shortName: 'LMT', pitch: 47, family: 'tom' },
+    { name: 'Hi-Mid Tom', shortName: 'HMT', pitch: 48, family: 'tom' },
+    { name: 'High Tom', shortName: 'HTM', pitch: 50, family: 'tom' },
 
     // Hi-Hats (42, 44, 46)
-    { name: 'Closed Hi-Hat', shortName: 'CHH', pitch: 42, color: 'bg-yellow-500' },
-    { name: 'Pedal Hi-Hat', shortName: 'PHH', pitch: 44, color: 'bg-yellow-400' },
-    { name: 'Open Hi-Hat', shortName: 'OHH', pitch: 46, color: 'bg-yellow-600' },
+    { name: 'Closed Hi-Hat', shortName: 'CHH', pitch: 42, family: 'hat' },
+    { name: 'Pedal Hi-Hat', shortName: 'PHH', pitch: 44, family: 'hat' },
+    { name: 'Open Hi-Hat', shortName: 'OHH', pitch: 46, family: 'hat' },
 
     // Cymbals (49, 51, 52, 53, 55, 57, 59)
-    { name: 'Crash Cymbal 1', shortName: 'CR1', pitch: 49, color: 'bg-cyan-500' },
-    { name: 'Ride Cymbal 1', shortName: 'RD1', pitch: 51, color: 'bg-cyan-400' },
-    { name: 'Chinese Cymbal', shortName: 'CHN', pitch: 52, color: 'bg-cyan-600' },
-    { name: 'Ride Bell', shortName: 'RBL', pitch: 53, color: 'bg-sky-400' },
-    { name: 'Splash Cymbal', shortName: 'SPL', pitch: 55, color: 'bg-sky-500' },
-    { name: 'Crash Cymbal 2', shortName: 'CR2', pitch: 57, color: 'bg-cyan-300' },
-    { name: 'Ride Cymbal 2', shortName: 'RD2', pitch: 59, color: 'bg-sky-300' },
+    { name: 'Crash Cymbal 1', shortName: 'CR1', pitch: 49, family: 'cymbal' },
+    { name: 'Ride Cymbal 1', shortName: 'RD1', pitch: 51, family: 'cymbal' },
+    { name: 'Chinese Cymbal', shortName: 'CHN', pitch: 52, family: 'cymbal' },
+    { name: 'Ride Bell', shortName: 'RBL', pitch: 53, family: 'cymbal' },
+    { name: 'Splash Cymbal', shortName: 'SPL', pitch: 55, family: 'cymbal' },
+    { name: 'Crash Cymbal 2', shortName: 'CR2', pitch: 57, family: 'cymbal' },
+    { name: 'Ride Cymbal 2', shortName: 'RD2', pitch: 59, family: 'cymbal' },
 
     // Latin - Bongos & Congas (60-64)
-    { name: 'Hi Bongo', shortName: 'HBG', pitch: 60, color: 'bg-amber-500' },
-    { name: 'Low Bongo', shortName: 'LBG', pitch: 61, color: 'bg-amber-600' },
-    { name: 'Mute Hi Conga', shortName: 'MHC', pitch: 62, color: 'bg-orange-700' },
-    { name: 'Open Hi Conga', shortName: 'OHC', pitch: 63, color: 'bg-amber-700' },
-    { name: 'Low Conga', shortName: 'LCG', pitch: 64, color: 'bg-amber-800' },
+    { name: 'Hi Bongo', shortName: 'HBG', pitch: 60, family: 'perc' },
+    { name: 'Low Bongo', shortName: 'LBG', pitch: 61, family: 'perc' },
+    { name: 'Mute Hi Conga', shortName: 'MHC', pitch: 62, family: 'perc' },
+    { name: 'Open Hi Conga', shortName: 'OHC', pitch: 63, family: 'perc' },
+    { name: 'Low Conga', shortName: 'LCG', pitch: 64, family: 'perc' },
 
     // Latin - Timbales (65-66)
-    { name: 'High Timbale', shortName: 'HTB', pitch: 65, color: 'bg-rose-400' },
-    { name: 'Low Timbale', shortName: 'LTB', pitch: 66, color: 'bg-rose-500' },
+    { name: 'High Timbale', shortName: 'HTB', pitch: 65, family: 'perc' },
+    { name: 'Low Timbale', shortName: 'LTB', pitch: 66, family: 'perc' },
 
     // Latin - Agogo & Bells (67-68, 56)
-    { name: 'High Agogo', shortName: 'HAG', pitch: 67, color: 'bg-emerald-400' },
-    { name: 'Low Agogo', shortName: 'LAG', pitch: 68, color: 'bg-emerald-500' },
-    { name: 'Cowbell', shortName: 'COW', pitch: 56, color: 'bg-lime-500' },
+    { name: 'High Agogo', shortName: 'HAG', pitch: 67, family: 'perc' },
+    { name: 'Low Agogo', shortName: 'LAG', pitch: 68, family: 'perc' },
+    { name: 'Cowbell', shortName: 'COW', pitch: 56, family: 'perc' },
 
     // Shakers & Tambourine (54, 69-71)
-    { name: 'Tambourine', shortName: 'TMB', pitch: 54, color: 'bg-yellow-300' },
-    { name: 'Cabasa', shortName: 'CAB', pitch: 69, color: 'bg-green-400' },
-    { name: 'Maracas', shortName: 'MRC', pitch: 70, color: 'bg-green-500' },
-    { name: 'Short Whistle', shortName: 'SWH', pitch: 71, color: 'bg-blue-300' },
+    { name: 'Tambourine', shortName: 'TMB', pitch: 54, family: 'perc' },
+    { name: 'Cabasa', shortName: 'CAB', pitch: 69, family: 'perc' },
+    { name: 'Maracas', shortName: 'MRC', pitch: 70, family: 'perc' },
+    { name: 'Short Whistle', shortName: 'SWH', pitch: 71, family: 'perc' },
 
     // More Percussion (72-81)
-    { name: 'Long Whistle', shortName: 'LWH', pitch: 72, color: 'bg-blue-400' },
-    { name: 'Short Guiro', shortName: 'SGU', pitch: 73, color: 'bg-lime-400' },
-    { name: 'Long Guiro', shortName: 'LGU', pitch: 74, color: 'bg-lime-600' },
-    { name: 'Claves', shortName: 'CLV', pitch: 75, color: 'bg-red-400' },
-    { name: 'Hi Wood Block', shortName: 'HWB', pitch: 76, color: 'bg-amber-300' },
-    { name: 'Low Wood Block', shortName: 'LWB', pitch: 77, color: 'bg-amber-400' },
-    { name: 'Mute Cuica', shortName: 'MCU', pitch: 78, color: 'bg-fuchsia-400' },
-    { name: 'Open Cuica', shortName: 'OCU', pitch: 79, color: 'bg-fuchsia-500' },
-    { name: 'Mute Triangle', shortName: 'MTR', pitch: 80, color: 'bg-indigo-300' },
-    { name: 'Open Triangle', shortName: 'OTR', pitch: 81, color: 'bg-indigo-400' },
+    { name: 'Long Whistle', shortName: 'LWH', pitch: 72, family: 'perc' },
+    { name: 'Short Guiro', shortName: 'SGU', pitch: 73, family: 'perc' },
+    { name: 'Long Guiro', shortName: 'LGU', pitch: 74, family: 'perc' },
+    { name: 'Claves', shortName: 'CLV', pitch: 75, family: 'perc' },
+    { name: 'Hi Wood Block', shortName: 'HWB', pitch: 76, family: 'perc' },
+    { name: 'Low Wood Block', shortName: 'LWB', pitch: 77, family: 'perc' },
+    { name: 'Mute Cuica', shortName: 'MCU', pitch: 78, family: 'perc' },
+    { name: 'Open Cuica', shortName: 'OCU', pitch: 79, family: 'perc' },
+    { name: 'Mute Triangle', shortName: 'MTR', pitch: 80, family: 'perc' },
+    { name: 'Open Triangle', shortName: 'OTR', pitch: 81, family: 'perc' },
 ];
 
 // Pattern presets
@@ -290,9 +293,9 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
         >
             {/* Incompatible clip warning */}
             {!isCompatible && (
-                <div className="flex items-center gap-2 border-b border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
-                    <AlertCircle className="h-4 w-4 text-yellow-500" />
-                    <span className="text-xs text-yellow-500">
+                <div className="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-3 py-2">
+                    <AlertCircle className="h-4 w-4 text-warning" />
+                    <span className="text-xs text-warning">
                         This is an audio clip. Switch to a MIDI or Drum clip to use the drum sequencer, or change the clip type.
                     </span>
                 </div>
@@ -351,7 +354,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                             style={{ height: ROW_HEIGHT }}
                                             onClick={() => previewSound(rowIndex)}
                                         >
-                                            <div className={`h-2 w-2 rounded-full ${sound.color}`} />
+                                            <div className={`h-2 w-2 rounded-full ${DRUM_BG[sound.family]}`} />
                                             <span className="truncate">{sound.shortName}</span>
                                         </button>
                                     </TooltipTrigger>
@@ -418,7 +421,7 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                                                 {isActive && (
                                                     <div
                                                         className={`
-                                                        absolute inset-1 rounded-sm ${sound.color}
+                                                        absolute inset-1 rounded-sm ${DRUM_BG[sound.family]}
                                                         transition-opacity
                                                     `}
                                                         style={{

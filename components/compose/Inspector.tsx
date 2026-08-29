@@ -225,7 +225,7 @@ export function Inspector() {
                                         <div className="flex items-center justify-between p-2 bg-muted/30 border-b border-border/50">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                                                    <span className="text-[10px] font-bold text-primary">
+                                                    <span className="text-2xs font-bold text-primary">
                                                         {index + 1}
                                                     </span>
                                                 </div>
@@ -250,8 +250,8 @@ export function Inspector() {
                                             {/* Common Wet/Dry Control */}
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
-                                                    <Label className="text-[10px] text-muted-foreground">Mix (Wet)</Label>
-                                                    <span className="text-[10px] font-mono">
+                                                    <Label className="text-2xs text-muted-foreground">Mix (Wet)</Label>
+                                                    <span className="text-2xs font-mono">
                                                         {Math.round((effect.params.wet ?? 0.5) * 100)}%
                                                     </span>
                                                 </div>
@@ -272,8 +272,8 @@ export function Inspector() {
                                             {effect.type === 'reverb' && (
                                                 <div className="space-y-1.5">
                                                     <div className="flex items-center justify-between">
-                                                        <Label className="text-[10px] text-muted-foreground">Decay</Label>
-                                                        <span className="text-[10px] font-mono">{effect.params.decay ?? 1.5}s</span>
+                                                        <Label className="text-2xs text-muted-foreground">Decay</Label>
+                                                        <span className="text-2xs font-mono">{effect.params.decay ?? 1.5}s</span>
                                                     </div>
                                                     <Slider
                                                         value={[(effect.params.decay ?? 1.5) * 10]}
@@ -292,8 +292,8 @@ export function Inspector() {
                                             {effect.type === 'delay' && (
                                                 <div className="space-y-1.5">
                                                     <div className="flex items-center justify-between">
-                                                        <Label className="text-[10px] text-muted-foreground">Feedback</Label>
-                                                        <span className="text-[10px] font-mono">{Math.round((effect.params.feedback ?? 0.5) * 100)}%</span>
+                                                        <Label className="text-2xs text-muted-foreground">Feedback</Label>
+                                                        <span className="text-2xs font-mono">{Math.round((effect.params.feedback ?? 0.5) * 100)}%</span>
                                                     </div>
                                                     <Slider
                                                         value={[(effect.params.feedback ?? 0.5) * 100]}
@@ -312,8 +312,8 @@ export function Inspector() {
                                             {effect.type === 'distortion' && (
                                                 <div className="space-y-1.5">
                                                     <div className="flex items-center justify-between">
-                                                        <Label className="text-[10px] text-muted-foreground">Drive</Label>
-                                                        <span className="text-[10px] font-mono">{Math.round((effect.params.distortion ?? 0.4) * 100)}%</span>
+                                                        <Label className="text-2xs text-muted-foreground">Drive</Label>
+                                                        <span className="text-2xs font-mono">{Math.round((effect.params.distortion ?? 0.4) * 100)}%</span>
                                                     </div>
                                                     <Slider
                                                         value={[(effect.params.distortion ?? 0.4) * 100]}
@@ -434,8 +434,8 @@ export function InspectorCollapsedBar() {
                 className="h-full w-6 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
                 <ChevronLeft className="h-3 w-3" />
-                <span className="writing-mode-vertical text-[10px] tracking-wider">INSPECTOR</span>
-                <kbd className="px-1 py-0.5 text-[10px] font-mono bg-muted border border-border rounded">I</kbd>
+                <span className="writing-mode-vertical text-2xs tracking-wider">INSPECTOR</span>
+                <kbd className="px-1 py-0.5 text-2xs font-mono bg-muted border border-border rounded">I</kbd>
             </button>
         </div>
     );

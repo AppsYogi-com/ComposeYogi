@@ -313,9 +313,9 @@ export function PianoRoll({ clip }: PianoRollProps) {
         >
             {/* Incompatible clip warning */}
             {!isCompatible && (
-                <div className="flex items-center gap-2 border-b border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
-                    <AlertCircle className="h-4 w-4 text-yellow-500" />
-                    <span className="text-xs text-yellow-500">
+                <div className="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-3 py-2">
+                    <AlertCircle className="h-4 w-4 text-warning" />
+                    <span className="text-xs text-warning">
                         This is {clip.type === 'audio' ? 'an audio' : 'a drum'} clip. Switch to a MIDI clip to use the piano roll, or change the clip type.
                     </span>
                 </div>
@@ -380,8 +380,8 @@ export function PianoRoll({ clip }: PianoRollProps) {
                                 className={`
                                     flex-shrink-0 flex items-center justify-end pr-1.5 text-2xs font-medium transition-all
                                     ${isBlack
-                                        ? 'bg-zinc-800 text-zinc-400 border-b border-zinc-700'
-                                        : 'bg-zinc-200 text-zinc-700 border-b border-zinc-300'
+                                        ? 'bg-piano-black text-piano-black-foreground border-b border-black/40'
+                                        : 'bg-piano-white text-piano-white-foreground border-b border-black/15'
                                     }
                                     ${isInScale(pitch) ? '' : 'opacity-40'}
                                     hover:brightness-110 active:brightness-90
@@ -422,8 +422,8 @@ export function PianoRoll({ clip }: PianoRollProps) {
                                 key={pitch}
                                 className={`
                                     absolute border-b border-border/30
-                                    ${isBlack ? 'bg-zinc-900/50' : 'bg-zinc-900/20'}
-                                    ${isInScale(pitch) ? '' : 'bg-zinc-900/70'}
+                                    ${isBlack ? 'bg-foreground/[0.06]' : 'bg-foreground/[0.02]'}
+                                    ${isInScale(pitch) ? '' : 'bg-foreground/[0.10]'}
                                 `}
                                 style={{
                                     top: i * NOTE_HEIGHT,
@@ -436,7 +436,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
 
                         {/* Grayed out area beyond clip */}
                         <div
-                            className="absolute top-0 bottom-0 bg-zinc-950/80 pointer-events-none"
+                            className="absolute top-0 bottom-0 bg-background/80 pointer-events-none"
                             style={{
                                 left: clipWidth,
                                 right: 0,

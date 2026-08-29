@@ -147,7 +147,7 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
         >
             {/* Loop region background */}
             <div
-                className={`absolute inset-0 pointer-events-auto cursor-grab ${loopEnabled ? 'bg-yellow-500/30' : 'bg-gray-500/20'
+                className={`absolute inset-0 pointer-events-auto cursor-grab ${loopEnabled ? 'bg-accent/30' : 'bg-muted-foreground/20'
                     } ${dragMode === 'move' ? 'cursor-grabbing' : ''}`}
                 onMouseDown={handleMiddleMouseDown}
                 onDoubleClick={handleDoubleClick}
@@ -156,7 +156,7 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
 
             {/* Left bracket/handle */}
             <div
-                className={`absolute left-0 top-0 bottom-0 pointer-events-auto cursor-ew-resize flex items-center justify-center ${loopEnabled ? 'bg-yellow-500' : 'bg-gray-500'
+                className={`absolute left-0 top-0 bottom-0 pointer-events-auto cursor-ew-resize flex items-center justify-center ${loopEnabled ? 'bg-accent' : 'bg-muted-foreground'
                     }`}
                 style={{ width: HANDLE_WIDTH }}
                 onMouseDown={handleLeftMouseDown}
@@ -166,7 +166,7 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
 
             {/* Right bracket/handle */}
             <div
-                className={`absolute right-0 top-0 bottom-0 pointer-events-auto cursor-ew-resize flex items-center justify-center ${loopEnabled ? 'bg-yellow-500' : 'bg-gray-500'
+                className={`absolute right-0 top-0 bottom-0 pointer-events-auto cursor-ew-resize flex items-center justify-center ${loopEnabled ? 'bg-accent' : 'bg-muted-foreground'
                     }`}
                 style={{ width: HANDLE_WIDTH }}
                 onMouseDown={handleRightMouseDown}
@@ -176,7 +176,7 @@ export function LoopBraces({ pixelsPerBar, rulerHeight }: LoopBracesProps) {
 
             {/* Loop region indicator line at bottom */}
             <div
-                className={`absolute bottom-0 left-0 right-0 h-0.5 ${loopEnabled ? 'bg-yellow-500' : 'bg-gray-500'
+                className={`absolute bottom-0 left-0 right-0 h-0.5 ${loopEnabled ? 'bg-accent' : 'bg-muted-foreground'
                     }`}
             />
         </div>

@@ -22,6 +22,7 @@ const esbuild = require('esbuild');
 const ROOT = path.join(__dirname, '..');
 const TOKENS_TS = path.join(ROOT, 'lib', 'design', 'tokens.ts');
 const GLOBALS_CSS = path.join(ROOT, 'app', 'globals.css');
+const MANIFEST = path.join(ROOT, 'public', 'manifest.json');
 
 const BEGIN = '/* === BEGIN generated design tokens — npm run design:tokens === */';
 const END = '/* === END generated design tokens === */';
@@ -146,25 +147,52 @@ function splice(css, block) {
     return css.slice(0, start) + block + css.slice(end + END.length);
 }
 
+// ============================================
+// The PWA manifest
+// ============================================
+//
+// manifest.json is static JSON that cannot import anything, so its two colours
+// are written from the tokens here. Same guarantee, one more surface.
+
+function manifestUpdate(tokens) {
+    const current = fs.readFileSync(MANIFEST, 'utf8');
+    const parsed = JSON.parse(current);
+    const updated = {
+        ...parsed,
+        background_color: tokens.THEME_COLOR_HEX,
+        theme_color: tokens.THEME_COLOR_HEX,
+    };
+    // Match the file's existing indentation so the diff stays to the two lines.
+    const indent = /\n(\s+)"/.exec(current)?.[1]?.length ?? 4;
+    return { current, next: JSON.stringify(updated, null, indent) + '\n' };
+}
+
 function main() {
     const check = process.argv.includes('--check');
     const tokens = loadTokens();
-    const css = fs.readFileSync(GLOBALS_CSS, 'utf8');
-    const next = splice(css, build(tokens));
 
-    if (next === css) {
-        console.log('✓ Design tokens in app/globals.css match lib/design/tokens.ts');
+    const css = fs.readFileSync(GLOBALS_CSS, 'utf8');
+    const nextCss = splice(css, build(tokens));
+    const manifest = manifestUpdate(tokens);
+
+    const stale = [];
+    if (nextCss !== css) stale.push('app/globals.css');
+    if (manifest.next !== manifest.current) stale.push('public/manifest.json');
+
+    if (stale.length === 0) {
+        console.log('✓ app/globals.css and public/manifest.json match lib/design/tokens.ts');
         return;
     }
 
     if (check) {
-        console.error('✗ app/globals.css is out of date with lib/design/tokens.ts.');
+        console.error(`✗ Out of date with lib/design/tokens.ts: ${stale.join(', ')}`);
         console.error('  Run `npm run design:tokens` and commit the result.');
         process.exit(1);
     }
 
-    fs.writeFileSync(GLOBALS_CSS, next);
-    console.log('✓ Wrote design tokens into app/globals.css');
+    if (nextCss !== css) fs.writeFileSync(GLOBALS_CSS, nextCss);
+    if (manifest.next !== manifest.current) fs.writeFileSync(MANIFEST, manifest.next);
+    console.log(`✓ Wrote design tokens into ${stale.join(', ')}`);
 }
 
 try {

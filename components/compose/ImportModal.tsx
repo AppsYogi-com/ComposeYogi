@@ -201,11 +201,11 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                             />
 
                             <div className="flex justify-center gap-4 mb-4">
-                                <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                                    <FileJson className="h-6 w-6 text-purple-500" />
+                                <div className="w-12 h-12 rounded-full bg-track-keys/10 flex items-center justify-center">
+                                    <FileJson className="h-6 w-6 text-track-keys" />
                                 </div>
-                                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                    <Music className="h-6 w-6 text-blue-500" />
+                                <div className="w-12 h-12 rounded-full bg-track-bass/10 flex items-center justify-center">
+                                    <Music className="h-6 w-6 text-track-bass" />
                                 </div>
                             </div>
 
@@ -224,9 +224,9 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                             {/* File Info */}
                             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                                 {fileType === 'midi' ? (
-                                    <Music className="h-8 w-8 text-blue-500" />
+                                    <Music className="h-8 w-8 text-track-bass" />
                                 ) : (
-                                    <FileJson className="h-8 w-8 text-purple-500" />
+                                    <FileJson className="h-8 w-8 text-track-keys" />
                                 )}
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium truncate">{selectedFile?.name}</p>
@@ -309,7 +309,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
                     {/* Complete State */}
                     {importState === 'complete' && (
                         <div className="space-y-4">
-                            <div className="flex items-center gap-3 text-green-500">
+                            <div className="flex items-center gap-3 text-success">
                                 <CheckCircle className="h-5 w-5" />
                                 <span className="font-medium">Import Complete!</span>
                             </div>
@@ -325,8 +325,8 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
 
                             {/* Warnings */}
                             {importResult?.warnings && importResult.warnings.length > 0 && (
-                                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
-                                    <div className="flex items-center gap-2 text-yellow-600 mb-2">
+                                <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+                                    <div className="flex items-center gap-2 text-warning mb-2">
                                         <FileWarning className="h-4 w-4" />
                                         <span className="text-sm font-medium">Warnings</span>
                                     </div>

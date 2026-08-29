@@ -147,8 +147,8 @@ export function EditorCollapsedBar() {
                 className="w-full flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
                 <ChevronUp className="h-3 w-3" />
-                <span className="text-[10px] tracking-wider">EDITOR</span>
-                <kbd className="px-1 py-0.5 text-[10px] font-mono bg-muted border border-border rounded">E</kbd>
+                <span className="text-2xs tracking-wider">EDITOR</span>
+                <kbd className="px-1 py-0.5 text-2xs font-mono bg-muted border border-border rounded">E</kbd>
             </button>
         </div>
     );

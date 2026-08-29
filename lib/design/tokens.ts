@@ -72,6 +72,12 @@ export interface ThemeColors {
     /** The playhead. Deliberately the one red that is never a button. */
     playhead: Hsl;
 
+    // Instrument surfaces — see the note on the piano keys in DARK below.
+    'piano-white': Hsl;
+    'piano-white-foreground': Hsl;
+    'piano-black': Hsl;
+    'piano-black-foreground': Hsl;
+
     // Categorical — track roles
     'track-drums': Hsl;
     'track-bass': Hsl;
@@ -132,6 +138,15 @@ export const DARK: ThemeColors = {
 
     playhead: '358 85% 62%',
 
+    // A piano is black and white in any room, so these are identical in both
+    // themes. They are still tokens rather than literals: a fixed colour that
+    // is deliberately fixed belongs in the system, where the decision is
+    // visible, not scattered through a component as `bg-zinc-800`.
+    'piano-white': '40 12% 92%',
+    'piano-white-foreground': '30 8% 28%',
+    'piano-black': '30 6% 16%',
+    'piano-black-foreground': '35 6% 62%',
+
     'track-drums': '358 72% 62%',
     'track-bass': '232 70% 64%',
     'track-keys': '272 60% 68%',
@@ -189,6 +204,12 @@ export const LIGHT: ThemeColors = {
     'info-foreground': '0 0% 100%',
 
     playhead: '358 75% 50%',
+
+    // Identical to the dark theme — see the note in DARK.
+    'piano-white': '40 12% 92%',
+    'piano-white-foreground': '30 8% 28%',
+    'piano-black': '30 6% 16%',
+    'piano-black-foreground': '35 6% 62%',
 
     'track-drums': '358 68% 50%',
     'track-bass': '232 62% 52%',
@@ -381,6 +402,14 @@ export const COLOR_GROUPS: { title: string; note: string; tokens: (keyof ThemeCo
         tokens: ['playhead'],
     },
     {
+        title: 'Instrument surfaces',
+        note: 'Fixed in both themes on purpose — a piano does not restyle.',
+        tokens: [
+            'piano-white', 'piano-white-foreground',
+            'piano-black', 'piano-black-foreground',
+        ],
+    },
+    {
         title: 'Track roles',
         note: 'The categorical scale. Reused anywhere things need telling apart.',
         tokens: [
@@ -397,3 +426,47 @@ export const COLOR_GROUPS: { title: string; note: string; tokens: (keyof ThemeCo
         ],
     },
 ];
+
+// ============================================
+// Hex forms
+// ============================================
+//
+// A few surfaces cannot read a CSS variable: the PWA manifest, the
+// `<meta name="theme-color">` tag, and anything an OS renders on our behalf.
+// They get a hex derived from the same token rather than a second opinion —
+// `npm run design:tokens` writes public/manifest.json from these, and
+// `npm run check` fails if someone edits it by hand.
+
+/** Convert a bare HSL triple ("35 100% 55%") to `#rrggbb`. */
+export function hslToHex(hsl: Hsl): string {
+    const [h, s, l] = hsl.split(/\s+/).map((part) => parseFloat(part));
+    const saturation = s / 100;
+    const lightness = l / 100;
+
+    const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+    const second = chroma * (1 - Math.abs(((h / 60) % 2) - 1));
+    const match = lightness - chroma / 2;
+
+    const [r, g, b] =
+        h < 60 ? [chroma, second, 0] :
+        h < 120 ? [second, chroma, 0] :
+        h < 180 ? [0, chroma, second] :
+        h < 240 ? [0, second, chroma] :
+        h < 300 ? [second, 0, chroma] :
+        [chroma, 0, second];
+
+    const channel = (value: number) =>
+        Math.round((value + match) * 255).toString(16).padStart(2, '0');
+
+    return `#${channel(r)}${channel(g)}${channel(b)}`;
+}
+
+/**
+ * The colour the browser paints its own chrome with. The dark ground rather
+ * than the accent: ComposeYogi opens dark, and an amber address bar above a
+ * near-black studio reads as a mistake rather than as branding.
+ */
+export const THEME_COLOR_HEX = hslToHex(DARK.background);
+
+/** The accent, for places that need the brand as a literal. */
+export const ACCENT_HEX = hslToHex(DARK.accent);

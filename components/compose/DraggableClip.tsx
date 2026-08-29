@@ -9,20 +9,12 @@ import { useRef, useCallback, useEffect, useState, useMemo, memo } from 'react';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { getAudioTake, audioEngine } from '@/lib/audio';
 import { AudioClip } from './AudioClip';
-import type { Clip, Track, TrackColor } from '@/types';
+import { TRACK_BG } from '@/lib/design/track-colors';
+import type { Clip, Track } from '@/types';
 
 const TRACK_HEIGHT = 80;
 const RESIZE_HANDLE_WIDTH = 8; // Width of resize handle zone
 const MIN_CLIP_BARS = 0.25; // Minimum clip length (1 beat in 4/4)
-
-const TRACK_COLORS: Record<TrackColor, string> = {
-    drums: 'bg-track-drums',
-    bass: 'bg-track-bass',
-    keys: 'bg-track-keys',
-    melody: 'bg-track-melody',
-    vocals: 'bg-track-vocals',
-    fx: 'bg-track-fx',
-};
 
 type DragMode = 'move' | 'resize-left' | 'resize-right' | null;
 
@@ -331,7 +323,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
             {/* Ghost duplicate preview during Alt+drag */}
             {isDuplicating && ghostLeft !== null && (
                 <div
-                    className={`clip ${TRACK_COLORS[track.color] || 'bg-accent'} pointer-events-none`}
+                    className={`clip ${TRACK_BG[track.color] || 'bg-accent'} pointer-events-none`}
                     style={{
                         left: ghostLeft,
                         width: clipWidth,
@@ -342,7 +334,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                     }}
                 >
                     {/* Duplication indicator on ghost */}
-                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded bg-white/90 px-1.5 py-0.5 text-2xs font-medium text-gray-800 shadow-sm">
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-sm bg-foreground/90 px-1.5 py-0.5 text-2xs font-medium text-background shadow-clip">
                         + Copy
                     </div>
                     <div className="flex h-full flex-col p-1 px-2">
@@ -355,7 +347,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
 
             {/* Original clip */}
             <div
-                className={`clip ${TRACK_COLORS[track.color] || 'bg-accent'} ${isSelected ? 'selected' : ''} ${dragMode && !isDuplicating ? 'opacity-90' : ''}`}
+                className={`clip ${TRACK_BG[track.color] || 'bg-accent'} ${isSelected ? 'selected' : ''} ${dragMode && !isDuplicating ? 'opacity-90' : ''}`}
                 style={{
                     left: clipLeft,
                     width: clipWidth,

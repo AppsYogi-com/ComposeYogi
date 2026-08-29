@@ -44,21 +44,13 @@ import { useViewportWidth, useVisibleClips } from '@/hooks';
 import type { Viewport } from '@/hooks/useVisibleClips';
 import { DraggableClip } from './DraggableClip';
 import { LoopBraces } from './LoopBraces';
-import type { Track, TrackColor } from '@/types';
+import { trackColorValue } from '@/lib/design/track-colors';
+import type { Track } from '@/types';
 
 const TRACK_HEIGHT = 80;
 const TRACK_HEADER_WIDTH = 180;
 const RULER_HEIGHT = 24;
 const DEFAULT_PROJECT_BARS = 32;
-
-const TRACK_HEADER_COLORS: Record<TrackColor, string> = {
-    drums: '#ef4444',
-    bass: '#f97316',
-    keys: '#22c55e',
-    melody: '#3b82f6',
-    vocals: '#a855f7',
-    fx: '#ec4899',
-};
 
 const FX_ABBR: Record<string, string> = {
     reverb: 'REV',
@@ -1197,7 +1189,7 @@ function _TrackHeader({
                 <GripVertical className="h-4 w-4 cursor-grab text-muted-foreground/50" />
                 <div
                     className="h-3 w-3 rounded-sm"
-                    style={{ backgroundColor: TRACK_HEADER_COLORS[track.color] || '#888' }}
+                    style={{ backgroundColor: trackColorValue(track.color) }}
                 />
                 <span className="flex-1 truncate text-sm font-medium">
                     {track.name}
@@ -1220,7 +1212,7 @@ function _TrackHeader({
                 {track.effects?.filter((fx) => fx.active).map((fx) => (
                     <div
                         key={fx.id}
-                        className="text-[9px] font-bold px-1 rounded-[2px] bg-pink-500/10 text-pink-500 border border-pink-500/20 flex items-center justify-center uppercase tracking-wider"
+                        className="text-2xs font-bold px-1 rounded-xs bg-track-fx/10 text-track-fx border border-track-fx/20 flex items-center justify-center uppercase tracking-wider"
                         title={`${fx.type} active`}
                     >
                         {FX_ABBR[fx.type] || fx.type.substring(0, 3)}
@@ -1282,7 +1274,7 @@ function _TrackHeader({
                     value={track.volume}
                     onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
                     onClick={(e) => e.stopPropagation()}
-                    className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-muted [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                    className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-input [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
                 />
             </div>
         </div>
@@ -1326,7 +1318,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                     </div>
                     <div
                         className="h-3 w-3 rounded-sm"
-                        style={{ backgroundColor: TRACK_HEADER_COLORS[props.track.color] || '#888' }}
+                        style={{ backgroundColor: trackColorValue(props.track.color) }}
                     />
                     <span className="flex-1 truncate text-sm font-medium">
                         {props.track.name}
@@ -1398,7 +1390,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                         value={props.track.volume}
                         onChange={(e) => props.onVolumeChange(parseFloat(e.target.value))}
                         onClick={(e) => e.stopPropagation()}
-                        className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-muted [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                        className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-input [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
                     />
                 </div>
 
@@ -1410,7 +1402,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                                 <Tooltip key={fx.id}>
                                     <TooltipTrigger asChild>
                                         <div
-                                            className="text-[9px] font-bold px-1 rounded-[2px] bg-pink-500/20 text-pink-400 border border-pink-500/30 flex items-center justify-center uppercase tracking-wider shrink-0 cursor-default"
+                                            className="text-2xs font-bold px-1 rounded-xs bg-track-fx/20 text-track-fx border border-track-fx/30 flex items-center justify-center uppercase tracking-wider shrink-0 cursor-default"
                                         >
                                             {FX_ABBR[fx.type] || fx.type.substring(0, 3).toUpperCase()}
                                         </div>
@@ -1424,7 +1416,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <div
-                                            className="text-[9px] font-bold px-1 rounded-[2px] bg-muted text-muted-foreground flex items-center justify-center shrink-0 cursor-default"
+                                            className="text-2xs font-bold px-1 rounded-xs bg-muted text-muted-foreground flex items-center justify-center shrink-0 cursor-default"
                                         >
                                             +{props.track.effects.filter((fx) => fx.active).length - 3}
                                         </div>

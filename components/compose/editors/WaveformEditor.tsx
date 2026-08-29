@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
 import {
     ZoomIn,
     ZoomOut,
@@ -13,6 +14,7 @@ import {
     Repeat
 } from 'lucide-react';
 import { useProjectStore } from '@/lib/store';
+import { monoFont, tokenColor } from '@/lib/design';
 import { getAudioTake, audioEngine } from '@/lib/audio';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -50,6 +52,9 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
     const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // The canvas draws with resolved token values, so it has to repaint on a
+    // theme change — nothing else would invalidate it.
+    const { resolvedTheme } = useTheme();
     const [zoom, setZoom] = useState(1);
     const [scrollX, setScrollX] = useState(0);
     const [player, setPlayer] = useState<Tone.Player | null>(null);
@@ -171,7 +176,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
         ctx.scale(dpr, dpr);
 
         // Clear
-        ctx.fillStyle = '#1a1a1a';
+        ctx.fillStyle = tokenColor('surface');
         ctx.fillRect(0, 0, displayWidth, displayHeight);
 
         // Get channel data
@@ -192,7 +197,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
         const scale = globalPeak > 0 ? 1 / globalPeak : 1;
 
         // Draw waveform
-        ctx.fillStyle = '#f97316'; // Orange accent
+        ctx.fillStyle = tokenColor('accent');
         ctx.globalAlpha = 0.8;
         ctx.beginPath();
         ctx.moveTo(0, centerY);
@@ -234,19 +239,19 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
         const trimEndX = displayWidth - (trimHandles.endOffset / duration) * displayWidth;
 
         // Dimmed areas for trimmed regions
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillStyle = tokenColor('background', 0.6);
         ctx.fillRect(0, 0, trimStartX, displayHeight);
         ctx.fillRect(trimEndX, 0, displayWidth - trimEndX, displayHeight);
 
         // Trim handles
-        ctx.fillStyle = '#3b82f6';
+        ctx.fillStyle = tokenColor('info');
         ctx.fillRect(trimStartX - 2, 0, 4, displayHeight);
         ctx.fillRect(trimEndX - 2, 0, 4, displayHeight);
 
         // Fade curves
         if (fadeIn > 0) {
             const fadeInWidth = (fadeIn / duration) * displayWidth;
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+            ctx.fillStyle = tokenColor('info', 0.3);
             ctx.beginPath();
             ctx.moveTo(trimStartX, displayHeight);
             ctx.lineTo(trimStartX, 0);
@@ -257,7 +262,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
 
         if (fadeOut > 0) {
             const fadeOutWidth = (fadeOut / duration) * displayWidth;
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+            ctx.fillStyle = tokenColor('info', 0.3);
             ctx.beginPath();
             ctx.moveTo(trimEndX, displayHeight);
             ctx.lineTo(trimEndX, 0);
@@ -274,18 +279,18 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
             const selWidth = Math.abs(selEndX - selStartX);
 
             // Selection highlight
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.25)';
+            ctx.fillStyle = tokenColor('info', 0.25);
             ctx.fillRect(selLeft, 0, selWidth, displayHeight);
 
             // Selection borders
-            ctx.strokeStyle = '#3b82f6';
+            ctx.strokeStyle = tokenColor('info');
             ctx.lineWidth = 1;
             ctx.strokeRect(selLeft, 0, selWidth, displayHeight);
         }
 
         // Time markers
-        ctx.fillStyle = '#666';
-        ctx.font = '10px system-ui';
+        ctx.fillStyle = tokenColor('muted-foreground');
+        ctx.font = monoFont(10);
         const secondsVisible = duration * zoom;
         const markerInterval = secondsVisible > 10 ? 1 : 0.5;
 
@@ -298,7 +303,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
         // Playhead
         if (playheadPosition > 0) {
             const playheadX = (playheadPosition / duration) * displayWidth;
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = tokenColor('playhead');
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(playheadX, 0);
@@ -306,7 +311,7 @@ export function WaveformEditor({ clip }: WaveformEditorProps) {
             ctx.stroke();
         }
 
-    }, [audioBuffer, zoom, trimHandles, fadeIn, fadeOut, playheadPosition, selection]);
+    }, [audioBuffer, zoom, trimHandles, fadeIn, fadeOut, playheadPosition, selection, resolvedTheme]);
 
     // Handle trim drag and region selection
     const handleMouseDown = useCallback((e: React.MouseEvent) => {

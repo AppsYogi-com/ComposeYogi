@@ -70,6 +70,12 @@
         /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
         --playhead: 358 75% 50%;
 
+        /* Instrument surfaces — Fixed in both themes on purpose — a piano does not restyle. */
+        --piano-white: 40 12% 92%;
+        --piano-white-foreground: 30 8% 28%;
+        --piano-black: 30 6% 16%;
+        --piano-black-foreground: 35 6% 62%;
+
         /* Track roles — The categorical scale. Reused anywhere things need telling apart. */
         --track-drums: 358 68% 50%;
         --track-bass: 232 62% 52%;
@@ -127,6 +133,12 @@
 
         /* Transport — The playhead red is reserved. Nothing else in the product uses it. */
         --playhead: 358 85% 62%;
+
+        /* Instrument surfaces — Fixed in both themes on purpose — a piano does not restyle. */
+        --piano-white: 40 12% 92%;
+        --piano-white-foreground: 30 8% 28%;
+        --piano-black: 30 6% 16%;
+        --piano-black-foreground: 35 6% 62%;
 
         /* Track roles — The categorical scale. Reused anywhere things need telling apart. */
         --track-drums: 358 72% 62%;

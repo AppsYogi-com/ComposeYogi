@@ -258,10 +258,10 @@ export function Transport({
                                 <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
                             )}
                             {saveStatus === 'saved' && (
-                                <Check className="h-3.5 w-3.5 text-green-500" />
+                                <Check className="h-3.5 w-3.5 text-success" />
                             )}
                             {saveStatus === 'pending' && (
-                                <Cloud className="h-3.5 w-3.5 text-yellow-500" />
+                                <Cloud className="h-3.5 w-3.5 text-warning" />
                             )}
                             {saveStatus === 'error' && (
                                 <CloudOff className="h-3.5 w-3.5 text-destructive" />
