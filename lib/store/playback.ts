@@ -115,7 +115,7 @@ export const usePlaybackStore = create<PlaybackStore>()(
         isLooping: false,
         currentTime: 0,
         positionVersion: 0,
-        metronomeEnabled: true,
+        metronomeEnabled: false,
         metronomeVolume: DEFAULT_METRONOME_VOLUME,
         countInBars: DEFAULT_COUNT_IN,
         isCountingIn: false,

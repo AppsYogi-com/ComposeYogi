@@ -2,14 +2,32 @@
 // ComposeYogi — Audio Playout System
 // Schedules clips to Tone.js Transport
 // ============================================
+//
+// The live half of the engine. All of the musical decisions — timing,
+// instrument resolution, effect construction, solo/mute gating — live in
+// lib/audio/scheduler.ts and are shared with the offline export renderer, so
+// what you hear here is what gets rendered on export.
 
 import * as Tone from 'tone';
-import type { Clip, Project, Track, TrackEffect } from '@/types';
+
 import { createLogger } from '@/lib/logger';
+import {
+    MASTER_GAIN,
+    MASTER_LIMITER_THRESHOLD_DB,
+    PARAM_RAMP_SECONDS,
+    barsToSeconds,
+    buildEffectChain,
+    effectiveTrackGain,
+    isTrackAudible,
+    releaseSynth,
+    scheduleAudioClip,
+    scheduleMidiClip,
+} from './scheduler';
+
+import type { Clip, Project, Track, TrackEffect } from '@/types';
+import type { SynthType } from './synth-presets';
 
 const logger = createLogger('Playout');
-import { getAudioTake } from './recording-manager';
-import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
 
 // ============================================
 // Types
@@ -18,9 +36,9 @@ import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synt
 interface ScheduledClip {
     clipId: string;
     player: Tone.Player | SynthType | null;
+    eventIds: number[];
     startBar: number;
     lengthBars: number;
-    events: Tone.ToneEvent[];
 }
 
 interface PlayoutState {
@@ -43,6 +61,7 @@ class PlayoutManager {
     };
 
     private masterGain: Tone.Gain | null = null;
+    private masterLimiter: Tone.Limiter | null = null;
     private analyser: Tone.Analyser | null = null;
     private trackGains: Map<string, Tone.Gain> = new Map();
     private trackPanners: Map<string, Tone.Panner> = new Map();
@@ -51,6 +70,8 @@ class PlayoutManager {
 
     // Version counter to prevent concurrent scheduleProject races
     private scheduleVersion = 0;
+    // Per-track counter for the same reason on async effect-chain rebuilds
+    private effectsVersion: Map<string, number> = new Map();
 
     // ========================================
     // Initialization
@@ -59,12 +80,14 @@ class PlayoutManager {
     async initialize(): Promise<void> {
         if (this.state.isLoaded) return;
 
-        // Create analyser for visualization
+        // Master chain mirrors the offline renderer exactly:
+        //   masterGain (headroom) -> limiter -> analyser -> destination
         this.analyser = new Tone.Analyser('fft', 256);
+        this.masterLimiter = new Tone.Limiter(MASTER_LIMITER_THRESHOLD_DB);
+        this.masterGain = new Tone.Gain(MASTER_GAIN);
 
-        // Create master gain and connect through analyser
-        this.masterGain = new Tone.Gain(1);
-        this.masterGain.connect(this.analyser);
+        this.masterGain.connect(this.masterLimiter);
+        this.masterLimiter.connect(this.analyser);
         this.analyser.toDestination();
 
         this.state.isLoaded = true;
@@ -74,16 +97,23 @@ class PlayoutManager {
     dispose(): void {
         this.clearAllScheduled();
 
+        this.trackEffects.forEach((nodes) => nodes.forEach((node) => node.dispose()));
+        this.trackEntries.forEach((entry) => entry.dispose());
         this.trackGains.forEach((gain) => gain.dispose());
         this.trackPanners.forEach((panner) => panner.dispose());
         this.masterGain?.dispose();
+        this.masterLimiter?.dispose();
         this.analyser?.dispose();
 
+        this.trackEffects.clear();
+        this.trackEntries.clear();
         this.trackGains.clear();
         this.trackPanners.clear();
+        this.effectsVersion.clear();
         this.state.audioBuffers.clear();
         this.state.scheduledClips.clear();
         this.masterGain = null;
+        this.masterLimiter = null;
         this.analyser = null;
         this.state.isLoaded = false;
     }
@@ -104,9 +134,9 @@ class PlayoutManager {
         if (!entry || !gain || !panner) {
             entry = new Tone.Gain(1);
             panner = new Tone.Panner(track.pan || 0);
-            gain = new Tone.Gain(track.volume || 0.8);
+            gain = new Tone.Gain(track.volume ?? 0.8);
 
-            // Default Chain: entry -> gain -> panner -> master
+            // Default chain: entry -> gain -> panner -> master
             entry.connect(gain);
             gain.connect(panner);
             panner.connect(this.masterGain);
@@ -115,9 +145,8 @@ class PlayoutManager {
             this.trackGains.set(track.id, gain);
             this.trackPanners.set(track.id, panner);
 
-            // Initialize effects if present
             if (track.effects && track.effects.length > 0) {
-                this.rebuildTrackEffects(track.id, track.effects);
+                void this.rebuildTrackEffects(track.id, track.effects);
             }
         }
 
@@ -125,90 +154,35 @@ class PlayoutManager {
     }
 
     public updateTrackEffects(trackId: string, effects: TrackEffect[]): void {
-        this.rebuildTrackEffects(trackId, effects);
+        void this.rebuildTrackEffects(trackId, effects);
     }
 
-    private rebuildTrackEffects(trackId: string, effects: TrackEffect[]): void {
+    /**
+     * Rebuild a track's insert chain. Async because a Reverb has to generate its
+     * impulse response first; a per-track version guard drops the result of a
+     * rebuild that a newer one has already superseded.
+     */
+    private async rebuildTrackEffects(trackId: string, effects: TrackEffect[]): Promise<void> {
         const entry = this.trackEntries.get(trackId);
         const gain = this.trackGains.get(trackId);
-
         if (!entry || !gain) return;
 
-        // Dispose old effects
-        const oldEffects = this.trackEffects.get(trackId);
-        if (oldEffects) {
-            oldEffects.forEach(node => node.dispose());
-        }
+        const version = (this.effectsVersion.get(trackId) || 0) + 1;
+        this.effectsVersion.set(trackId, version);
 
-        // Always disconnect entry from whatever it was connected to
+        const previousNodes = this.trackEffects.get(trackId) || [];
         entry.disconnect();
 
-        if (!effects || effects.length === 0) {
-            // No effects: entry -> gain
-            entry.connect(gain);
-            this.trackEffects.set(trackId, []);
+        const nodes = await buildEffectChain(effects, entry, gain);
+
+        if (this.effectsVersion.get(trackId) !== version) {
+            // A newer rebuild won the race — throw away what we just built.
+            nodes.forEach((node) => node.dispose());
             return;
         }
 
-        // Build new chain
-        const effectNodes: Tone.ToneAudioNode[] = [];
-        let currentNode: Tone.ToneAudioNode = entry;
-
-        effects.forEach(effect => {
-            const node = this.createEffectNode(effect);
-            if (node) {
-                currentNode.connect(node);
-                currentNode = node;
-                effectNodes.push(node);
-            }
-        });
-
-        currentNode.connect(gain);
-        this.trackEffects.set(trackId, effectNodes);
-    }
-
-    private createEffectNode(effect: TrackEffect): Tone.ToneAudioNode | null {
-        try {
-            switch (effect.type) {
-                case 'reverb':
-                    const rev = new Tone.Reverb({
-                        decay: effect.params.decay || 1.5,
-                        preDelay: 0.01,
-                        wet: effect.params.wet || 0.5
-                    });
-                    // rev.generate(); // Tone v14.8+ auto-generates on connect/start usually, but manual call is safe
-                    // Calling generate() helps ensure silent impulse generation
-                    void rev.generate();
-                    return rev;
-                case 'delay':
-                    return new Tone.FeedbackDelay({
-                        delayTime: effect.params.delayTime || 0.25,
-                        feedback: effect.params.feedback || 0.5,
-                        wet: effect.params.wet || 0.5
-                    });
-                case 'distortion':
-                    return new Tone.Distortion({
-                        distortion: effect.params.distortion || 0.4,
-                        wet: effect.params.wet || 0.5
-                    });
-                case 'filter':
-                    return new Tone.Filter({
-                        frequency: effect.params.frequency || 1000,
-                        type: effect.params.filterType || 'lowpass',
-                        Q: effect.params.Q || 1
-                    });
-                case 'compression':
-                    return new Tone.Compressor({
-                        threshold: effect.params.threshold || -30,
-                        ratio: effect.params.ratio || 12
-                    });
-                default:
-                    return null;
-            }
-        } catch (e) {
-            console.error('Error creating effect:', e);
-            return null;
-        }
+        previousNodes.forEach((node) => node.dispose());
+        this.trackEffects.set(trackId, nodes);
     }
 
     /**
@@ -218,25 +192,45 @@ class PlayoutManager {
         return this.analyser;
     }
 
+    // ========================================
+    // Live Mixer Parameters
+    // ========================================
+    //
+    // These ramp existing nodes instead of rescheduling the project, so moving
+    // a fader or hitting solo is instant and never interrupts playback.
+
     updateTrackVolume(trackId: string, volume: number): void {
-        const gain = this.trackGains.get(trackId);
-        if (gain) {
-            gain.gain.rampTo(volume, 0.05);
-        }
+        this.trackGains.get(trackId)?.gain.rampTo(volume, PARAM_RAMP_SECONDS);
     }
 
     updateTrackPan(trackId: string, pan: number): void {
-        const panner = this.trackPanners.get(trackId);
-        if (panner) {
-            panner.pan.rampTo(pan, 0.05);
+        this.trackPanners.get(trackId)?.pan.rampTo(pan, PARAM_RAMP_SECONDS);
+    }
+
+    /**
+     * Apply the whole mixer state — fader, pan, mute and solo — for every track.
+     * Solo is exclusive, so it can only be resolved with the full track list.
+     */
+    applyMixState(tracks: Track[]): void {
+        for (const track of tracks) {
+            this.updateTrackVolume(track.id, effectiveTrackGain(track, tracks));
+            this.updateTrackPan(track.id, track.pan);
         }
     }
 
-    updateTrackMute(trackId: string, muted: boolean): void {
-        const gain = this.trackGains.get(trackId);
-        if (gain) {
-            gain.gain.rampTo(muted ? 0 : 1, 0.01);
+    /**
+     * Solo/mute changes. Clips stay scheduled — only the gains move — so
+     * toggling solo mid-playback is sample-accurate and free.
+     */
+    updateSoloState(tracks: Track[]): void {
+        for (const track of tracks) {
+            this.updateTrackVolume(track.id, effectiveTrackGain(track, tracks));
         }
+    }
+
+    /** True when this track would currently be heard, given solo/mute. */
+    isTrackAudible(track: Track, tracks: Track[]): boolean {
+        return isTrackAudible(track, tracks);
     }
 
     // ========================================
@@ -264,265 +258,58 @@ class PlayoutManager {
     // Clip Scheduling
     // ========================================
 
-    /**
-     * Convert bars to seconds based on BPM and time signature
-     */
-    private barsToSeconds(bars: number, bpm: number, beatsPerBar: number = 4): number {
-        const beatsPerSecond = bpm / 60;
-        const secondsPerBeat = 1 / beatsPerSecond;
-        const totalBeats = bars * beatsPerBar;
-        return totalBeats * secondsPerBeat;
-    }
-
-    /**
-     * Convert beats to seconds
-     */
-    private beatsToSeconds(beats: number, bpm: number): number {
-        return (beats / bpm) * 60;
-    }
-
     async scheduleClip(clip: Clip, track: Track, project: Project): Promise<void> {
-        // Remove any existing schedule for this clip
         this.unscheduleClip(clip.id);
 
-        // Get track entry point (effects -> volume -> pan)
         const chain = this.getOrCreateTrackChain(track);
         const scheduled: ScheduledClip = {
             clipId: clip.id,
             player: null,
+            eventIds: [],
             startBar: clip.startBar,
             lengthBars: clip.lengthBars,
-            events: [],
         };
 
-        const _beatsPerBar = project.timeSignature[0];
+        const beatsPerBar = project.timeSignature[0];
+        const startSeconds = barsToSeconds(clip.startBar, project.bpm, beatsPerBar);
 
         if (clip.type === 'audio' && clip.activeTakeId) {
-            // Schedule audio clip from AudioTake
-            await this.scheduleAudioClip(clip, track, chain.input, scheduled, project);
+            scheduled.player = await scheduleAudioClip(clip, chain.input, startSeconds);
         } else if ((clip.type === 'midi' || clip.type === 'drum') && clip.notes) {
-            // Schedule MIDI/Drum clip
-            await this.scheduleMidiClip(clip, track, chain.input, scheduled, project);
+            const result = await scheduleMidiClip(clip, track, chain.input, startSeconds, {
+                transport: Tone.getTransport(),
+                bpm: project.bpm,
+                beatsPerBar,
+            });
+            if (result) {
+                scheduled.player = result.synth;
+                scheduled.eventIds = result.eventIds;
+            }
         }
 
         this.state.scheduledClips.set(clip.id, scheduled);
-    }
-
-    /**
-     * Schedule an audio clip using its AudioTake data
-     */
-    private async scheduleAudioClip(
-        clip: Clip,
-        track: Track,
-        destination: Tone.Gain,
-        scheduled: ScheduledClip,
-        project: Project
-    ): Promise<void> {
-        if (!clip.activeTakeId) {
-            console.warn('[PlayoutManager] No activeTakeId for clip:', clip.id);
-            return;
-        }
-
-        // Get the audio take data
-        const take = getAudioTake(clip.activeTakeId);
-        if (!take) {
-            console.warn('[PlayoutManager] AudioTake not found:', clip.activeTakeId);
-            return;
-        }
-
-
-        try {
-            // Convert WAV Uint8Array back to AudioBuffer
-            const audioBuffer = await this.uint8ArrayToAudioBuffer(take.audioData, take.sampleRate);
-
-            // Create Tone.js buffer from AudioBuffer
-            const toneBuffer = new Tone.ToneAudioBuffer(audioBuffer);
-
-            // Create player and set it to sync with transport
-            const player = new Tone.Player(toneBuffer);
-            player.sync(); // Sync to transport
-            player.connect(destination);
-
-            // Apply fades (Tone.Player supports simple curves)
-            player.fadeIn = clip.fadeIn || 0;
-            player.fadeOut = clip.fadeOut || 0;
-
-            // Calculate start time in seconds
-            const bpm = project.bpm;
-            const beatsPerBar = project.timeSignature[0];
-            const clipStartSeconds = this.barsToSeconds(clip.startBar, bpm, beatsPerBar);
-
-            // Calculate trim/duration
-            const trimStart = clip.trimStart || 0;
-            const trimEnd = clip.trimEnd || 0;
-            const sourceDuration = toneBuffer.duration;
-            const playDuration = Math.max(0, sourceDuration - trimStart - trimEnd);
-
-            // Schedule the player to start at the clip position
-            // using sync() + start(startTime, offset, duration)
-            if (playDuration > 0) {
-                player.start(clipStartSeconds, trimStart, playDuration);
-            }
-
-            scheduled.player = player;
-        } catch (error) {
-            console.error('[PlayoutManager] Failed to schedule audio clip:', error);
-        }
-    }
-
-    /**
-     * Convert WAV Uint8Array back to AudioBuffer
-     */
-    private async uint8ArrayToAudioBuffer(data: Uint8Array, _sampleRate: number): Promise<AudioBuffer> {
-        const audioContext = Tone.getContext().rawContext;
-
-        // Create a proper ArrayBuffer copy from the Uint8Array
-        const arrayBuffer = new ArrayBuffer(data.byteLength);
-        new Uint8Array(arrayBuffer).set(data);
-
-        return audioContext.decodeAudioData(arrayBuffer);
-    }
-
-    private async scheduleMidiClip(
-        clip: Clip,
-        track: Track,
-        destination: Tone.Gain,
-        scheduled: ScheduledClip,
-        project: Project
-    ): Promise<void> {
-        if (!clip.notes?.length) {
-            return;
-        }
-
-        // Create synth: prefer clip-level instrument, fall back to track
-        const synth = clip.instrumentPreset
-            ? createSynthFromPreset(clip.instrumentPreset)
-            : this.createSynthForTrack(track);
-        synth.connect(destination);
-
-        // Wait for synth to be ready (important for Sampler which loads async)
-        await waitForSynthReady(synth);
-
-        const bpm = project.bpm;
-        const beatsPerBar = project.timeSignature[0];
-
-        // Convert clip start from bars to seconds
-        const clipStartSeconds = this.barsToSeconds(clip.startBar, bpm, beatsPerBar);
-
-
-        // Check if synth is polyphonic (PolySynth and Sampler can handle multiple notes at same time)
-        const isPolyphonic = synth instanceof Tone.PolySynth || synth instanceof Tone.Sampler;
-
-        // Group notes by start time to handle concurrent notes for monophonic synths
-        const notesByTime = new Map<number, typeof clip.notes>();
-        for (const note of clip.notes) {
-            const noteOffsetSeconds = this.beatsToSeconds(note.startBeat, bpm);
-            const absoluteTime = clipStartSeconds + noteOffsetSeconds;
-            // Round to avoid floating point issues
-            const timeKey = Math.round(absoluteTime * 10000) / 10000;
-
-            if (!notesByTime.has(timeKey)) {
-                notesByTime.set(timeKey, []);
-            }
-            notesByTime.get(timeKey)!.push(note);
-        }
-
-        // Schedule notes, adding tiny offsets for monophonic synths with concurrent notes
-        for (const [timeKey, notes] of notesByTime) {
-            notes.forEach((note, index) => {
-                const noteDurationSeconds = this.beatsToSeconds(note.duration, bpm);
-                // For monophonic synths, add 1ms offset for each concurrent note
-                const offset = isPolyphonic ? 0 : index * 0.001;
-                const scheduledTime = timeKey + offset;
-
-                // Use Transport.schedule for proper transport sync
-                const eventId = Tone.getTransport().schedule((time) => {
-                    if (synth instanceof Tone.NoiseSynth) {
-                        // NoiseSynth has no pitch — just trigger duration and velocity
-                        synth.triggerAttackRelease(
-                            noteDurationSeconds,
-                            time,
-                            note.velocity / 127
-                        );
-                    } else {
-                        synth.triggerAttackRelease(
-                            Tone.Frequency(note.pitch, 'midi').toFrequency(),
-                            noteDurationSeconds,
-                            time,
-                            note.velocity / 127
-                        );
-                    }
-                }, scheduledTime);
-
-                // Create a dummy event to track disposal
-                const event = {
-                    stop: () => { },
-                    dispose: () => {
-                        Tone.getTransport().clear(eventId);
-                    },
-                } as Tone.ToneEvent;
-                scheduled.events.push(event);
-            });
-        }
-
-        scheduled.player = synth;
-    }
-
-    private createSynthForTrack(track: Track): SynthType {
-        // First, check if track has a specific instrument preset
-        if (track.instrumentPreset) {
-            return createSynthFromPreset(track.instrumentPreset);
-        }
-
-        // Fallback: Use track color to determine synth type
-        // This provides sensible defaults based on musical role
-        switch (track.color) {
-            case 'bass':
-                return createSynthFromPreset('synth-bass');
-            case 'keys':
-                return createSynthFromPreset('electric-piano');
-            case 'melody':
-                return createSynthFromPreset('saw-lead');
-            case 'drums':
-                return createSynthFromPreset('drum-synth');
-            case 'fx':
-                return createSynthFromPreset('warm-pad');
-            case 'vocals':
-            default:
-                return createSynthFromPreset('basic-synth');
-        }
     }
 
     unscheduleClip(clipId: string): void {
         const scheduled = this.state.scheduledClips.get(clipId);
         if (!scheduled) return;
 
-        // Stop and dispose events
-        scheduled.events.forEach((event) => {
-            event.stop();
-            event.dispose();
-        });
+        const transport = Tone.getTransport();
+        scheduled.eventIds.forEach((eventId) => transport.clear(eventId));
 
-        // Unsync and dispose player/synth
         if (scheduled.player) {
             try {
                 if (scheduled.player instanceof Tone.Player) {
-                    // Unsync first to detach from Transport checks that can cause RangeErrors
+                    // Unsync before stopping: a synced Player checks the
+                    // Transport on stop and can throw once detached.
                     scheduled.player.unsync();
                     scheduled.player.stop();
-                } else if (scheduled.player instanceof Tone.PolySynth) {
-                    scheduled.player.releaseAll();
-                } else if (scheduled.player instanceof Tone.Sampler) {
-                    scheduled.player.releaseAll();
-                } else if (scheduled.player instanceof Tone.MonoSynth || scheduled.player instanceof Tone.MembraneSynth) {
-                    scheduled.player.triggerRelease();
-                } else if (scheduled.player instanceof Tone.NoiseSynth) {
-                    scheduled.player.triggerRelease();
+                } else {
+                    releaseSynth(scheduled.player);
                 }
             } catch (error) {
-                console.warn('[PlayoutManager] Error stopping clip player:', error);
+                logger.warn('Error stopping clip player', { clipId, error });
             } finally {
-                // Always dispose to ensure disconnect
                 scheduled.player.dispose();
             }
         }
@@ -540,52 +327,46 @@ class PlayoutManager {
     // Project Scheduling
     // ========================================
 
+    /**
+     * Schedule every clip in the project.
+     *
+     * Muted and non-soloed tracks are scheduled too — their audibility is a
+     * gain value, not a scheduling decision — so mixer moves never require a
+     * reschedule and mute/solo respond instantly.
+     */
     async scheduleProject(project: Project): Promise<void> {
         // Increment version to invalidate any in-flight scheduling
         const version = ++this.scheduleVersion;
-        logger.debug('Scheduling project', { clips: project.clips.length, tracks: project.tracks.length, version });
+        logger.debug('Scheduling project', {
+            clips: project.clips.length,
+            tracks: project.tracks.length,
+            version,
+        });
 
-        // Clear existing schedules
         this.clearAllScheduled();
 
-        // Schedule all clips, checking version after each async op
         for (const clip of project.clips) {
             // Abort if a newer scheduleProject call has started
             if (this.scheduleVersion !== version) {
                 logger.debug('Aborting stale schedule', { version, current: this.scheduleVersion });
                 return;
             }
+
             const track = project.tracks.find((t) => t.id === clip.trackId);
-            if (track && !track.muted) {
+            if (track) {
                 await this.scheduleClip(clip, track, project);
             }
         }
 
-        // Final check before applying track settings
         if (this.scheduleVersion !== version) {
             logger.debug('Aborting stale schedule (post-clips)', { version, current: this.scheduleVersion });
             return;
         }
 
-        // Update track volumes and pans
         for (const track of project.tracks) {
             this.getOrCreateTrackChain(track);
-            this.updateTrackVolume(track.id, track.muted ? 0 : track.volume);
-            this.updateTrackPan(track.id, track.pan);
         }
-    }
-
-    // ========================================
-    // Solo Management
-    // ========================================
-
-    updateSoloState(tracks: Track[]): void {
-        const hasSoloedTrack = tracks.some((t) => t.solo);
-
-        for (const track of tracks) {
-            const _shouldPlay = !hasSoloedTrack || track.solo;
-            this.updateTrackMute(track.id, track.muted || (hasSoloedTrack && !track.solo));
-        }
+        this.applyMixState(project.tracks);
     }
 
     // ========================================

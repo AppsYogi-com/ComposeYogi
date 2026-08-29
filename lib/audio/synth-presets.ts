@@ -1213,7 +1213,11 @@ const createMaracas = (): Tone.NoiseSynth => {
 // Preset Registry
 // ============================================
 
-export const SYNTH_PRESETS: Record<string, SynthPreset> = {
+// `satisfies` rather than a type annotation: an annotation of
+// Record<string, SynthPreset> widens the keys to `string` and SynthPresetId
+// below would be useless. `satisfies` checks the shape while keeping the
+// literal ids, which is what makes INSTRUMENT_META provably exhaustive.
+export const SYNTH_PRESETS = {
     // Keys
     'electric-piano': {
         id: 'electric-piano',
@@ -1621,7 +1625,13 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
         category: 'synth',
         createSynth: createSawtoothWave,
     },
-};
+} satisfies Record<string, SynthPreset>;
+
+/** Every id in the preset registry — the canonical list of instruments. */
+export type SynthPresetId = keyof typeof SYNTH_PRESETS;
+
+/** Preset ids in declaration order (grouped by category in this file). */
+export const SYNTH_PRESET_IDS = Object.keys(SYNTH_PRESETS) as SynthPresetId[];
 
 // ============================================
 // Helper Functions
@@ -1631,7 +1641,7 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
  * Get a synth preset by ID
  */
 export function getSynthPreset(presetId: string): SynthPreset | undefined {
-    return SYNTH_PRESETS[presetId];
+    return (SYNTH_PRESETS as Record<string, SynthPreset>)[presetId];
 }
 
 /**
@@ -1639,8 +1649,9 @@ export function getSynthPreset(presetId: string): SynthPreset | undefined {
  * Falls back to basic synth if preset not found
  */
 export function createSynthFromPreset(presetId: string | undefined): SynthType {
-    if (presetId && SYNTH_PRESETS[presetId]) {
-        return SYNTH_PRESETS[presetId].createSynth();
+    const preset = presetId ? getSynthPreset(presetId) : undefined;
+    if (preset) {
+        return preset.createSynth();
     }
     // Default fallback
     return createBasicSynth();
@@ -1650,5 +1661,5 @@ export function createSynthFromPreset(presetId: string | undefined): SynthType {
  * Get all presets for a category
  */
 export function getPresetsByCategory(category: SynthPreset['category']): SynthPreset[] {
-    return Object.values(SYNTH_PRESETS).filter((p) => p.category === category);
+    return Object.values(SYNTH_PRESETS as Record<string, SynthPreset>).filter((p) => p.category === category);
 }
