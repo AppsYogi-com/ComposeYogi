@@ -5,6 +5,7 @@ import * as Tone from 'tone';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
 import { audioEngine } from '@/lib/audio';
+import { isTrackAudible } from '@/lib/audio/scheduler';
 import { loadSampleAsAudioTake, loadUserSampleAsAudioTake } from '@/lib/audio/sample-loader';
 import { getDemoNotesForInstrument } from '@/lib/browser/demo-notes';
 import {
@@ -37,6 +38,17 @@ import { useProjectStore, useUIStore, usePlaybackStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
 import { Button } from '@/components/ui';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { buttonVariants } from '@/components/ui/button';
+import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
@@ -67,6 +79,7 @@ const FX_ABBR: Record<string, string> = {
 
 export function TrackList() {
     const t = useTranslations('tracks');
+    const tCommon = useTranslations('common');
     const tSnap = useTranslations('snap');
     const { resolvedTheme } = useTheme();
     const project = useProjectStore((s) => s.project);
@@ -408,9 +421,15 @@ export function TrackList() {
         updateTrack(track.id, { volume });
     }, [updateTrack]);
 
-    const handleDeleteTrack = useCallback((trackId: string) => {
-        deleteTrack(trackId);
-    }, [deleteTrack]);
+    // A track takes its clips with it, so deleting one asks first — an
+    // AlertDialog rather than a Dialog: no dismiss-by-clicking-away, and the
+    // buttons carry their roles.
+    const [trackToDelete, setTrackToDelete] = useState<Track | null>(null);
+
+    const confirmDeleteTrack = useCallback(() => {
+        if (trackToDelete) deleteTrack(trackToDelete.id);
+        setTrackToDelete(null);
+    }, [deleteTrack, trackToDelete]);
 
     if (!project) return null;
 
@@ -463,12 +482,13 @@ export function TrackList() {
                                     track={track}
                                     isSelected={selectedTrackId === track.id}
                                     isRecordingHere={isRecording && recordingSession?.trackId === track.id}
+                                    isAudible={isTrackAudible(track, project.tracks)}
                                     onSelect={() => selectTrack(track.id)}
                                     onMuteToggle={() => handleMuteToggle(track)}
                                     onSoloToggle={() => handleSoloToggle(track)}
                                     onArmToggle={() => handleArmToggle(track)}
                                     onVolumeChange={(v) => handleVolumeChange(track, v)}
-                                    onDelete={() => handleDeleteTrack(track.id)}
+                                    onDelete={() => setTrackToDelete(track)}
                                 />
                             ))}
 
@@ -576,6 +596,29 @@ export function TrackList() {
             </div>
 
             <CountInOverlay />
+
+            <AlertDialog
+                open={trackToDelete !== null}
+                onOpenChange={(open) => !open && setTrackToDelete(null)}
+            >
+                <AlertDialogContent className="max-w-sm">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('delete')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('confirmDelete', { name: trackToDelete?.name ?? '' })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDeleteTrack}
+                            className={buttonVariants({ variant: 'destructive' })}
+                        >
+                            {t('delete')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
@@ -589,6 +632,12 @@ interface TrackHeaderProps {
     isSelected: boolean;
     /** This track is the one currently being recorded onto. */
     isRecordingHere: boolean;
+    /**
+     * Whether this track will be heard, asked of the scheduler's own rule
+     * rather than of `muted` — a track silenced by somebody else's solo is
+     * just as silent, and used to look exactly like one that was playing.
+     */
+    isAudible: boolean;
     onSelect: () => void;
     onMuteToggle: () => void;
     onSoloToggle: () => void;
@@ -634,11 +683,17 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                     >
                         <GripVertical className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
                     </div>
+                    {/* Silence dims what the track *is* — its colour and its
+                        name — and never the controls beside them: mute and solo
+                        are the way back out of the state, and a dimmed control
+                        reads as a disabled one. */}
                     <div
-                        className="h-3 w-3 rounded-sm"
+                        className={`h-3 w-3 rounded-sm transition-opacity duration-base ${props.isAudible ? 'opacity-100' : 'opacity-50'}`}
                         style={{ backgroundColor: trackColorValue(props.track.color) }}
                     />
-                    <span className="flex-1 truncate text-sm font-medium">
+                    <span
+                        className={`flex-1 truncate text-sm font-medium transition-opacity duration-base ${props.isAudible ? 'opacity-100' : 'opacity-50'}`}
+                    >
                         {props.track.name}
                     </span>
                     {/* The arm button turns red and the transport names the armed
@@ -731,16 +786,21 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                         </Tooltip>
                     )}
 
-                    <Slider
-                        aria-label={t('volume')}
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={[props.track.volume]}
-                        onValueChange={([v]) => props.onVolumeChange(v)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1"
-                    />
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Slider
+                                aria-label={t('volume')}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                value={[props.track.volume]}
+                                onValueChange={([v]) => props.onVolumeChange(v)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex-1"
+                            />
+                        </TooltipTrigger>
+                        <TooltipContent>{t('volume')}</TooltipContent>
+                    </Tooltip>
                 </div>
 
                 {/* Active Effects Indicators */}
@@ -992,10 +1052,15 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
 
     if (!project) return null;
 
+    // The same question the scheduler asks before it decides to make a sound,
+    // so a track silenced by another track's solo dims exactly like a muted
+    // one. Asking `track.muted` here is what made solo invisible.
+    const audible = isTrackAudible(track, project.tracks);
+
     return (
         <div
-            className={`absolute left-0 right-0 border-b border-border/50 transition-colors ${isSelected ? 'bg-accent/5' : ''
-                } ${track.muted ? 'opacity-50' : ''} ${isDragOver ? 'bg-accent/20 ring-1 ring-accent ring-inset' : ''
+            className={`absolute left-0 right-0 border-b border-border/50 transition-[background-color,opacity] duration-base ${isSelected ? 'bg-accent/5' : ''
+                } ${audible ? '' : 'opacity-50'} ${isDragOver ? 'bg-accent/20 ring-1 ring-accent ring-inset' : ''
                 }`}
             style={{
                 top: index * TRACK_HEIGHT,

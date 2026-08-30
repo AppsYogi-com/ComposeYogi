@@ -5,7 +5,14 @@
 // These guard the contract that makes an export sound like the playback:
 // both paths schedule from the render plan produced here, so if the plan is
 // right for a project, both paths are right for that project.
+//
+// The last section extends that contract to the screen: what the arrangement
+// draws as silent has to be what this file decides is silent.
 
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -298,5 +305,113 @@ describe('buildRenderPlan', () => {
             ],
           }
         `);
+    });
+});
+
+// ============================================
+// The picture agrees with the sound
+// ============================================
+//
+// `isTrackAudible` is the whole definition of silence, and the arrangement used
+// to keep a second one: the lane dimmed on `track.muted`, so a track silenced
+// by somebody else's solo looked exactly like one that was playing. Solo was
+// audible and invisible, which is the worst way for a mixer to be wrong —
+// nothing on screen is missing, it is just quietly answering a different
+// question.
+//
+// Two rules, one in each direction. Neither can check that a dim is *right*;
+// only that the question was asked of the one function that knows. A condition
+// laundered through a local variable walks past rule 1, the same way an `id` no
+// label points at walks past the accessibility suite.
+
+const ROOT = join(__dirname, '..');
+const SOURCE_DIRS = ['app', 'components'];
+
+/** Deciding one of these from a raw mix flag is the mistake. */
+const SILENCE_CUE = /\bopacity-|\bgrayscale\b/;
+
+/** The flags that only `isTrackAudible` knows how to combine. */
+const RAW_MIX_FLAGS = /\.(muted|solo)\b/;
+
+function walkTsx(dir: string): string[] {
+    const found: string[] = [];
+    for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) found.push(...walkTsx(full));
+        else if (entry.endsWith('.tsx')) found.push(full);
+    }
+    return found;
+}
+
+function sourceFiles(): ts.SourceFile[] {
+    return SOURCE_DIRS
+        .flatMap((dir) => walkTsx(join(ROOT, dir)))
+        .map((file) => ts.createSourceFile(
+            file,
+            readFileSync(file, 'utf8'),
+            ts.ScriptTarget.Latest,
+            true,
+            ts.ScriptKind.TSX
+        ));
+}
+
+describe('the arrangement draws the mix the scheduler renders', () => {
+    it('never decides a dim from muted or solo directly', () => {
+        const files = sourceFiles();
+        expect(files.length, 'the scan found no components — it has broken').toBeGreaterThan(0);
+
+        const offenders: string[] = [];
+
+        for (const sf of files) {
+            const visit = (node: ts.Node) => {
+                let condition: ts.Node | null = null;
+                let branches: ts.Node[] = [];
+
+                if (ts.isConditionalExpression(node)) {
+                    condition = node.condition;
+                    branches = [node.whenTrue, node.whenFalse];
+                } else if (
+                    ts.isBinaryExpression(node) &&
+                    (node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken ||
+                        node.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+                ) {
+                    condition = node.left;
+                    branches = [node.right];
+                }
+
+                if (condition && RAW_MIX_FLAGS.test(condition.getText(sf))) {
+                    for (const branch of branches) {
+                        if (!SILENCE_CUE.test(branch.getText(sf))) continue;
+                        const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+                        offenders.push(
+                            `${relative(ROOT, sf.fileName)}:${line}  ${node.getText(sf).replace(/\s+/g, ' ').slice(0, 100)}`
+                        );
+                    }
+                }
+
+                ts.forEachChild(node, visit);
+            };
+            ts.forEachChild(sf, visit);
+        }
+
+        expect(
+            offenders,
+            'a track silenced by another track\'s solo is just as silent as a muted one — '
+            + 'ask isTrackAudible(track, project.tracks) instead:\n' + offenders.join('\n')
+        ).toEqual([]);
+    });
+
+    it('asks isTrackAudible somewhere in the arrangement', () => {
+        // Rule 1 alone would stay green if the dimming were deleted outright,
+        // which is the same silent failure in a new place.
+        const callers = walkTsx(join(ROOT, 'components', 'compose'))
+            .filter((file) => /\bisTrackAudible\b/.test(readFileSync(file, 'utf8')))
+            .map((file) => relative(ROOT, file));
+
+        expect(
+            callers,
+            'nothing in components/compose reads isTrackAudible, so the arrangement '
+            + 'no longer shows which tracks a solo has silenced'
+        ).not.toEqual([]);
     });
 });

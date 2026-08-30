@@ -367,7 +367,13 @@ export function Transport({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
-                                    variant={isRecording ? "transport-record-active" : "transport-record"}
+                                    variant={
+                                        isRecording
+                                            ? "transport-record-active"
+                                            : armedTrack
+                                                ? "transport-record-armed"
+                                                : "transport-record"
+                                    }
                                     size="icon-sm"
                                     onClick={handleRecord}
                                     disabled={!isRecording && !isCountingIn && !armedTrack}

@@ -333,6 +333,7 @@
   "tracks": {
     "add": "Añadir pista",
     "delete": "Eliminar pista",
+    "confirmDelete": "¿Eliminar \"{name}\"? Todos sus clips se eliminarán también.",
     "defaultName": "Pista {index}",
     "mute": "Silenciar",
     "solo": "Solo",

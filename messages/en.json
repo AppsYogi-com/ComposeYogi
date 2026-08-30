@@ -333,6 +333,7 @@
   "tracks": {
     "add": "Add Track",
     "delete": "Delete track",
+    "confirmDelete": "Delete \"{name}\"? Every clip on it goes too.",
     "defaultName": "Track {index}",
     "mute": "Mute",
     "solo": "Solo",
