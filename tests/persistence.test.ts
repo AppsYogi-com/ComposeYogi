@@ -329,7 +329,8 @@ describe('migrations', () => {
         });
 
         expect([...db.objectStoreNames].sort()).toEqual([
-            'audioTakes', 'clips', 'projects', 'settings', 'tracks', 'userSamples',
+            'audioTakes', 'clips', 'projects', 'settings', 'tracks',
+            'userInstruments', 'userSamples',
         ]);
         db.close();
     });
@@ -345,6 +346,7 @@ describe('migrations', () => {
             },
         });
         expect(v1.objectStoreNames.contains('userSamples')).toBe(false);
+        expect(v1.objectStoreNames.contains('userInstruments')).toBe(false);
         await v1.put('settings', { key: 'from-v1', value: 'still here' });
         v1.close();
 
@@ -357,6 +359,7 @@ describe('migrations', () => {
         });
 
         expect(latest.objectStoreNames.contains('userSamples')).toBe(true);
+        expect(latest.objectStoreNames.contains('userInstruments')).toBe(true);
         expect(await latest.get('settings', 'from-v1')).toEqual({
             key: 'from-v1',
             value: 'still here',

@@ -55,3 +55,60 @@ export {
     type ImportOptions,
     type ValidationResult,
 } from './sample-import';
+export {
+    buildInstrumentFromSpec,
+    clearCustomInstruments,
+    customInstrumentsHash,
+    draftFromPreset,
+    duplicateCustomInstrument,
+    getCustomInstrument,
+    getCustomInstruments,
+    hydrateCustomInstruments,
+    registerCustomInstrument,
+    removeCustomInstrument,
+    resolveCustomInstrument,
+    saveCustomInstrument,
+    subscribeToCustomInstruments,
+    useCustomInstruments,
+} from './custom-instruments';
+export {
+    CUSTOMIZABLE_PRESET_IDS,
+    PRESET_SPECS,
+    isCustomizablePreset,
+    specForPreset,
+} from './preset-specs';
+export {
+    CUSTOM_INSTRUMENT_PREFIX,
+    ENVELOPE_RANGES,
+    MACRO_RANGES,
+    NEUTRAL_MACROS,
+    brightnessToFrequency,
+    clampSpec,
+    filterSpecFor,
+    isCustomInstrumentId,
+    parseInstrumentSpec,
+    resonanceToQ,
+    voiceOptions,
+    OSCILLATOR_SHAPES,
+    type OscillatorShape,
+} from './instrument-spec';
+export {
+    INSTRUMENT_FILE_EXTENSION,
+    INSTRUMENT_SCHEMA_VERSION,
+    downloadInstrument,
+    exportInstrumentToJSON,
+    importInstrumentFromFile,
+    importInstrumentFromJSON,
+    type ExportedInstrument,
+    type InstrumentImportResult,
+} from './instrument-io';
+export {
+    SYNTH_PRESETS,
+    SYNTH_PRESET_IDS,
+    createVoice,
+    getSynthPreset,
+    getSynthPresetName,
+    type SynthPreset,
+    type SynthPresetId,
+    type ResolvedInstrument,
+} from './synth-presets';

@@ -108,8 +108,38 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   place, `scheduleAudioClip`, which takes a **required** `TempoContext` so the compiler
   forces both the live and offline callers. Fades are stored in source seconds and Tone
   runs them in wall-clock, so they are divided by the rate there.
-- `synth-presets.ts` — 64 preset factories (`SYNTH_PRESETS`). Resolution order at schedule
-  time: `clip.instrumentPreset` → `track.instrumentPreset` → fallback by track color.
+- `instrument-spec.ts` — an instrument as plain data, and the arithmetic turning a knob
+  position into an audio value. **Imports no Tone deliberately**: Web Audio does not exist
+  in the test environment, so anything touching Tone cannot be unit-tested at all, and this
+  is where everything testable lives. Full Brightness builds **no filter node**, which is
+  what makes an unedited custom instrument its source preset exactly rather than
+  approximately — don't "simplify" that to an always-on filter at 20kHz.
+- `preset-specs.ts` — every built-in as data; the single source for what the 52 melodic
+  presets sound like. Not hand-written: extracted mechanically from the option literals the
+  old factories passed, with those literals committed as
+  `tests/golden/preset-voice-options.json` **before** the factories were deleted.
+  `tests/instrument-spec.test.ts` asserts `voiceOptions(spec)` still reproduces all 52
+  exactly, so a change here that retunes a shipped sound fails the build. The 12 drum kits
+  are `null` — `Record<SynthPresetId, InstrumentSpec | null>` forces a new preset to say
+  which it is, where `Partial<>` would let it be silently uncustomizable.
+- `synth-presets.ts` — `SYNTH_PRESETS` (64 entries; the 52 melodic ones built from
+  `preset-specs.ts` via `createVoice`, the 12 drum/sampler ones still bespoke factories) and
+  `ResolvedInstrument`. Knows nothing about custom instruments by design — user content is
+  resolved one layer up, in the scheduler, so the built-in library never imports
+  IndexedDB-backed state. Resolution order at schedule time: `clip.instrumentPreset` →
+  `track.instrumentPreset` → fallback by track color.
+- `custom-instruments.ts` — the user's own instruments (#21): in-memory registry backed by
+  IndexedDB (the `AudioTake` pattern, and for the same reason — the scheduler resolves
+  instruments synchronously and cannot await a read per clip), plus the one place a custom
+  voice is built. React reads it via `useSyncExternalStore`, **not** a fourth Zustand store:
+  the scheduler and offline renderer are not React and must read it without one.
+  `hydrateCustomInstruments()` must run before anything schedules.
+  **`revision` is load-bearing** — `instrumentPreset` holds an id, editing an instrument
+  changes the sound without changing the id, so without the revision in the reschedule hash
+  an edit to an instrument already on a track leaves playback on the old voice. That is #22
+  in a new place; `saveCustomInstrument` is the only writer and it always bumps.
+- `instrument-io.ts` — a custom instrument as a `.cyi.json` file, mirroring `project-io.ts`.
+  Import always mints a new id, so importing never overwrites something already saved.
 - MP3 via lamejs loaded by `<script>` tag (`public/workers/lame.min.js`) — deliberate
   workaround for webpack/CJS issues; don't "fix" it back into the bundle.
 
@@ -129,7 +159,9 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - Schema changes go in `migrations.ts` as a new numbered migration; `DB_VERSION` tracks
   it automatically (a test enforces this). Never edit a shipped migration.
 - IndexedDB `composeyogi` via idb. Stores: projects (metadata only), tracks, clips
-  (notes JSON-stringified), audioTakes (ArrayBuffer + serialized peaks), userSamples, settings.
+  (notes JSON-stringified), audioTakes (ArrayBuffer + serialized peaks), userSamples,
+  userInstruments (migration 5 — stored as the domain object, no record type and no mapping
+  either way, which is the one store immune to the `ProjectRecord` disease below), settings.
 - `autosave.ts` — 3s debounce for project saves; audio takes save immediately;
   `beforeunload` guard. `projectSaveSignature` decides whether anything changed and is
   **derived from the project object**, never a list of fields — as a literal it silently
@@ -233,10 +265,15 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   in a real browser before chasing it.
 
 ### Instruments & templates
-- `SYNTH_PRESETS` (lib/audio/synth-presets.ts) is canonical. `INSTRUMENTS`
+- `SYNTH_PRESETS` (lib/audio/synth-presets.ts) is canonical for identity. `INSTRUMENTS`
   (lib/browser/index.ts) derives id/name/category from it; only browser metadata
   (description, trackType, trackColor) lives there, typed `Record<SynthPresetId, …>` so a
-  missing entry **fails the build**. Adding an instrument touches both places by design.
+  missing entry **fails the build**. `PRESET_SPECS` (lib/audio/preset-specs.ts) is canonical
+  for *sound* and is typed the same way. Adding a melodic instrument now means a spec, an
+  entry, and metadata — three places, all three compiler-enforced.
+- A custom instrument's id is `custom:<uuid>`, and `Track`/`Clip.instrumentPreset` is a
+  plain `string`, so assigning one needs **no project schema change** — which is convenient
+  and is exactly why the revision counter above exists.
 - `DEMO_TEMPLATES` (`lib/templates/demo-templates.ts`) is the single template source; the
   browser panel's `TEMPLATES` derives from it and `createProject(name, templateId)` loads
   the full arrangement via `loadDemoTemplate`.
@@ -308,7 +345,7 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **No SEO content scaling** (maintainer rule): every public page must be something a
   musician would want to land on. Discoverability comes from real shared music.
 
-## Known gaps & active issues (updated 2026-08-30 after Sprint 8.7.4 — verify before relying on)
+## Known gaps & active issues (updated 2026-08-30 after Sprint 8.7.5 — verify before relying on)
 
 - **Three hand-maintained lists of `Project` fields**, each of which fails silently when a
   new field is forgotten, and each of which has now cost a bug: the reschedule hash
@@ -326,6 +363,19 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   `Required<Project>` — **add a field to either type and the fixture stops compiling**,
   which is the only reminder that cannot be skipped. Keep it that way; a plain literal
   there silently switches all three tests off.
+- **Tone cannot be constructed in the test environment.** `new Tone.PolySynth(...)` throws
+  `param must be an AudioParam` under vitest's node environment — there is no Web Audio — so
+  **no unit test can ever prove a synth sounds right**. This is why `instrument-spec.ts`
+  imports no Tone and why the guard on the instrument library is a golden fixture of the
+  *options objects* rather than of rendered audio. Anything that must be verified as sound
+  has to be verified in a browser; the pattern that worked (Sprint 8.7.5) is a throwaway
+  route under `app/[locale]/` that renders through `renderProjectToAudioBuffer` and measures
+  RMS and high-frequency ratio, deleted afterwards. **Mutate something deliberately first
+  and confirm the harness fails** — 8.7.5's first two harnesses both reported success while
+  measuring nothing (one compared `envelope:{}` to `envelope:{}` because a key array passed
+  to `JSON.stringify` is a replacer applied at every level; the other rendered silence for
+  every case, including the control, because `Track.volume` is 0-1 linear and the fixture
+  set it to 0).
 - **Unverified performance claims**: frame rate, Lighthouse, the offline walkthrough and
   the cross-browser matrix have NOT been measured on real hardware since the 8.5 work
   (rAF doesn't run in a headless pane). Don't quote numbers for these.
@@ -337,8 +387,14 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   1536 (the `2xl` the design targets); it already overflowed slightly before Sprint 8.7.
   Anything new there has to buy its space — the vibe selector hides its caption below `2xl`,
   and the snap picker went into the arrangement's ruler spacer instead.
-- Open issues: **#21** Custom Instruments (answered 2026-08-29, scheduled v1.4/Sprint
-  8.7.5, awaiting requester's scoping input), **#23–#30** good-first-issues.
+- Open issues: **#21** Custom Instruments — **built 2026-08-30** in Sprint 8.7.5. The
+  requester never answered the four scoping questions (their consistent pattern across
+  #16–#19), so the scope was set from prior art — GarageBand Smart Controls — and the
+  reasoning is recorded in the TaskList so it can be defended or revised. Reply on the issue
+  before closing it. **#23–#30** good-first-issues.
+- **Not verified by ear.** Every claim about 8.7.5's audio is a measurement (rendered RMS,
+  high-frequency ratio, deep-compared Tone options), not a listening test. Nobody has heard
+  a custom instrument, and the same caveat still stands for the 8.7.3 clip macros.
 - **Sprint 8.5 shipped as v1.2.0**; **Sprint 8.6 (design system) shipped as v1.3.0**, both
   on 2026-08-29. Sprint 8.7.1–8.7.3 are built on `feat/feel-and-musicality` and unreleased;
   CHANGELOG/ROADMAP are updated at the v1.4 release, not per sprint section.

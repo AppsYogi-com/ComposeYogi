@@ -33,7 +33,8 @@ import {
 } from './clip-macros';
 import { getAudioTake } from './recording-manager';
 import { stretchRate } from './stretch';
-import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
+import { resolveCustomInstrument } from './custom-instruments';
+import { createSynthFromPreset, waitForSynthReady, type ResolvedInstrument, type SynthType } from './synth-presets';
 
 import type { AudioTake, Clip, Project, Track, TrackEffect } from '@/types';
 
@@ -239,37 +240,54 @@ export function buildRenderPlan(project: Project): RenderPlan {
 // Instrument Resolution
 // ============================================
 
+/** Wrap a built-in synth as a resolved instrument: nothing after the voice. */
+function bare(synth: SynthType): ResolvedInstrument {
+    return { synth, output: synth, nodes: [] };
+}
+
 /**
  * Fallback instrument when a track carries no explicit preset — chosen from the
  * track's musical role (its color) so a new track still makes a sensible sound.
  */
-export function createSynthForTrack(track: Track): SynthType {
+export function createSynthForTrack(track: Track): ResolvedInstrument {
     if (track.instrumentPreset) {
-        return createSynthFromPreset(track.instrumentPreset);
+        const custom = resolveCustomInstrument(track.instrumentPreset);
+        if (custom) return custom;
+        return bare(createSynthFromPreset(track.instrumentPreset));
     }
 
     switch (track.color) {
         case 'bass':
-            return createSynthFromPreset('synth-bass');
+            return bare(createSynthFromPreset('synth-bass'));
         case 'keys':
-            return createSynthFromPreset('electric-piano');
+            return bare(createSynthFromPreset('electric-piano'));
         case 'melody':
-            return createSynthFromPreset('saw-lead');
+            return bare(createSynthFromPreset('saw-lead'));
         case 'drums':
-            return createSynthFromPreset('drum-synth');
+            return bare(createSynthFromPreset('drum-synth'));
         case 'fx':
-            return createSynthFromPreset('warm-pad');
+            return bare(createSynthFromPreset('warm-pad'));
         case 'vocals':
         default:
-            return createSynthFromPreset('basic-synth');
+            return bare(createSynthFromPreset('basic-synth'));
     }
 }
 
-/** Resolution order: clip preset → track preset → track-color fallback. */
-export function createSynthForClip(clip: Clip, track: Track): SynthType {
-    return clip.instrumentPreset
-        ? createSynthFromPreset(clip.instrumentPreset)
-        : createSynthForTrack(track);
+/**
+ * Resolution order: clip preset → track preset → track-color fallback.
+ *
+ * The single place user-made instruments enter the audio path. Both the live
+ * playout and the offline render reach a clip's voice through here, so custom
+ * instruments export exactly as they play — the property the scheduler exists
+ * to hold, and the one a second resolution site would quietly break.
+ */
+export function createSynthForClip(clip: Clip, track: Track): ResolvedInstrument {
+    if (clip.instrumentPreset) {
+        const custom = resolveCustomInstrument(clip.instrumentPreset);
+        if (custom) return custom;
+        return bare(createSynthFromPreset(clip.instrumentPreset));
+    }
+    return createSynthForTrack(track);
 }
 
 // ============================================
@@ -633,8 +651,11 @@ export async function scheduleMidiClip(
     if (planned.length === 0) return null; // e.g. transposed clean off the keyboard
 
     const chain = await buildClipMacroChain(clip, destination);
-    const synth = createSynthForClip(clip, track);
-    synth.connect(chain.input);
+    const instrument = createSynthForClip(clip, track);
+    const { synth } = instrument;
+    // `output`, not `synth` — a custom instrument's Brightness filter sits
+    // between them, and connecting the voice directly would bypass it.
+    instrument.output.connect(chain.input);
 
     // Samplers load their buffers asynchronously — playing before they are
     // ready is silent, which is why both paths wait here.
@@ -666,7 +687,9 @@ export async function scheduleMidiClip(
         });
     }
 
-    return { synth, eventIds, macroNodes: chain.nodes };
+    // The instrument's own nodes ride along with the macro chain's, so both are
+    // torn down by the single `disposeMacroNodes` call the caller already makes.
+    return { synth, eventIds, macroNodes: [...instrument.nodes, ...chain.nodes] };
 }
 
 // ============================================
