@@ -71,7 +71,7 @@ export function scalePitchClasses(key: MusicalKey, scale: MusicalScale): Set<num
 /**
  * A vibe is a key and a scale under a word a beginner already knows.
  *
- * design.md asks the transport for a "vibe-based selector" rather than the
+ * The PRD asks the transport for a "vibe-based selector" rather than the
  * thirteen mode names, and the reason is the north star: someone who has never
  * heard of Phrygian still knows what "Dark" means. The Inspector keeps the
  * literal key and scale for anyone who wants them, so this hides the vocabulary

@@ -4,7 +4,7 @@
 // ComposeYogi — Vibe Selector
 // ============================================
 //
-// design.md puts "Scale: Chill ▾" in the transport bar, and the reason is the
+// The PRD puts a vibe selector in the transport bar, and the reason is the
 // north star rather than the layout: someone opening a DAW for the first time
 // has no idea what Phrygian is, but they know exactly what "Dark" means. This
 // picks the key and the scale together behind a word they already have.
