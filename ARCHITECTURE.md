@@ -154,8 +154,10 @@ Autosave debounces project writes by 3s; audio takes save immediately, and a
 
 ## Rendering
 
-- **Canvas** for the ruler and grid (`lib/canvas/`, DPR-aware).
-- **DOM** for clips — they need drag, resize, context menus and selection.
+- **Canvas** for the arrangement ruler, drawn inline in `TrackList.tsx` (DPR-aware),
+  and for a clip's waveform, drawn inline in `AudioClip.tsx`.
+- **DOM** for everything else — the grid is `.grid-line` divs from `GridLines`,
+  and clips are divs because they need drag, resize, context menus and selection.
 - **Peaks** are computed in `public/workers/audio-peaks-worker.js` and returned
   as Transferables (zero-copy).
 - **Clips are virtualized** (`hooks/useVisibleClips.ts`): a lane mounts only the

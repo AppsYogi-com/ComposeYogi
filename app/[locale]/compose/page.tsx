@@ -4,7 +4,7 @@ import { useEffect, useCallback, useMemo, useState, useRef, Suspense } from 'rea
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
-import { audioEngine, playoutManager, registerAudioTake, clearAudioTakes, customInstrumentsHash, hydrateCustomInstruments, useCustomInstruments, type LatencyCalibrationResult } from '@/lib/audio';
+import { audioEngine, playoutManager, recordingManager, registerAudioTake, clearAudioTakes, customInstrumentsHash, hydrateCustomInstruments, useCustomInstruments, type LatencyCalibrationResult } from '@/lib/audio';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('Compose');
@@ -385,10 +385,19 @@ function ComposePageContent() {
             <Transport
                 onPlayPause={handlePlay}
                 onStop={() => {
+                    // Stop has to reach the recorder, not just the transport.
+                    // It used to stop only the engine, so a count-in kept its
+                    // timeout, fired, and started the take anyway — you pressed
+                    // stop and got a clip.
+                    if (recordingManager.isPending()) {
+                        void recordingManager.stopRecording();
+                        return;
+                    }
                     stop();
                     audioEngine.stop();
                 }}
                 isAudioReady={isAudioReady}
+                onRequestAudio={initAudio}
                 onOpenSettings={() => setShowLatencyModal(true)}
                 onOpenProjects={() => setShowProjectsModal(true)}
                 saveStatus={saveStatus}

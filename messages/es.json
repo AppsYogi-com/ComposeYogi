@@ -99,6 +99,9 @@
     "darkMode": "Modo oscuro",
     "recordedClipName": "Grabación"
   },
+  "recording": {
+    "countIn": "Grabando en"
+  },
   "browser": {
     "title": "Explorador",
     "collapse": "Contraer explorador",
@@ -330,12 +333,15 @@
   "tracks": {
     "add": "Añadir pista",
     "delete": "Eliminar pista",
+    "confirmDelete": "¿Eliminar \"{name}\"? Todos sus clips se eliminarán también.",
     "defaultName": "Pista {index}",
     "mute": "Silenciar",
     "solo": "Solo",
     "volume": "Volumen",
     "arm": "Activar para grabar",
-    "disarm": "Desactivar"
+    "disarm": "Desactivar",
+    "armed": "Armada",
+    "rec": "Grab"
   },
   "clips": {
     "duplicateBadge": "+ Copia"

@@ -288,6 +288,38 @@ body {
     clip-path: polygon(50% 100%, 0 0, 100% 0);
 }
 
+/* Recording, in the arrangement.
+   The playhead red is the reserved one, so recording does not recolour it — it
+   turns it up. Brighter playhead, dimmer grid (that pair is one idea; doing
+   either alone reads as a rendering bug) and a soft pulse on the take being
+   captured. */
+.playhead-unified.is-recording {
+    box-shadow:
+        0 0 8px hsl(var(--playhead)),
+        0 0 20px hsl(var(--playhead) / 0.7);
+}
+
+.recording-region {
+    position: absolute;
+    background-color: hsl(var(--destructive) / 0.16);
+    border-left: 2px solid hsl(var(--destructive));
+    pointer-events: none;
+    z-index: 25;
+    animation: recording-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
 /* Playhead marker only (for Timeline ruler) */
 .playhead-marker {
     position: absolute;
@@ -543,3 +575,81 @@ body {
     text-orientation: mixed;
 }
 
+/* ============================================
+   Reduced motion
+   ============================================
+   `design/README.md` has promised "motion respects prefers-reduced-motion"
+   since the design system shipped, and nothing implemented it. This is the one
+   place that answers it, so there is one answer rather than a per-component
+   guess — the same reasoning as the cursor table.
+
+   0.01ms rather than `none`: Radix unmounts a dialog on `animationend`, and an
+   animation that never runs never ends, so `none` would leave closed dialogs in
+   the DOM forever. 0.01ms is imperceptible and still fires the event. */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* The carve-out. A spinner reports that work is still happening, and frozen
+       it reports the opposite — a hung app. Rotation in place is not what
+       triggers vestibular symptoms; travel, parallax and zoom are. So it keeps
+       turning, slower. */
+    .animate-spin {
+        animation: spin 1.8s linear infinite !important;
+    }
+
+    /* Everything below is a state rather than a flourish, and has to keep
+       saying what it says once it stops moving.
+
+       `!important` on every one of them, deliberately. A running animation
+       outranks a normal declaration, so a resting state written plainly only
+       wins if that animation happens to have finished — measured, `.skeleton`
+       kept rendering its keyframe while `.music-bar` took the static value, from
+       the same block, in the same frame. `!important` outranks animations
+       unconditionally, which is the only version of this that is not luck. */
+
+    /* The take being recorded stays tinted instead of breathing. */
+    .recording-region {
+        opacity: 0.85 !important;
+    }
+
+    /* The record button settles at its brightest, so "rolling" still reads. */
+    .transport-btn.record.active {
+        box-shadow: 0 0 20px currentColor !important;
+    }
+
+    /* The logo is a wave. Every bar frozen on the same keyframe is the same
+       height, which is a flat block and not a wave at all, so the bars hold a
+       static one instead. */
+    .music-bar:nth-child(4n + 1) {
+        height: 45% !important;
+    }
+
+    .music-bar:nth-child(4n + 2) {
+        height: 90% !important;
+    }
+
+    .music-bar:nth-child(4n + 3) {
+        height: 65% !important;
+    }
+
+    .music-bar:nth-child(4n + 4) {
+        height: 100% !important;
+    }
+
+    /* A placeholder that has stopped shimmering still has to read as a
+       placeholder rather than as empty content. */
+    .skeleton {
+        animation: none !important;
+        opacity: 0.5 !important;
+    }
+}

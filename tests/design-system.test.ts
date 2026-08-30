@@ -187,6 +187,79 @@ describe('generated files match lib/design/tokens.ts', () => {
 // Icons
 // ============================================
 
+describe('motion respects prefers-reduced-motion', () => {
+    // design/README.md promised this from the day the design system shipped and
+    // nothing implemented it for two sprints — the kind of claim a document can
+    // hold indefinitely and a test cannot. Every failure here is a motion that
+    // has not said what it does when someone has asked for less of it.
+    const css = readFileSync(join(ROOT, 'app/globals.css'), 'utf8');
+
+    const reducedMotionBlock = (): string => {
+        const start = css.indexOf('@media (prefers-reduced-motion: reduce)');
+        if (start === -1) return '';
+        // Walk the braces, since the block contains nested rules.
+        let depth = 0;
+        for (let i = css.indexOf('{', start); i < css.length; i++) {
+            if (css[i] === '{') depth++;
+            else if (css[i] === '}' && --depth === 0) return css.slice(start, i + 1);
+        }
+        return css.slice(start);
+    };
+
+    it('declares a reduced-motion block at all', () => {
+        expect(
+            reducedMotionBlock(),
+            'app/globals.css must answer prefers-reduced-motion. design/README.md says it does.'
+        ).not.toBe('');
+    });
+
+    it('neutralises animation and transition across the whole document', () => {
+        const block = reducedMotionBlock();
+        for (const property of [
+            'animation-duration',
+            'animation-iteration-count',
+            'transition-duration',
+        ]) {
+            expect(block, `the blanket rule must set ${property}`).toContain(property);
+        }
+        // 0.01ms, never `none`: Radix unmounts on animationend, and an animation
+        // that never runs never ends, so `none` strands closed dialogs in the DOM.
+        expect(
+            block.replace(/animation:[^;]*;/g, ''),
+            'use 0.01ms, not `none` — see the comment in globals.css'
+        ).toContain('0.01ms');
+    });
+
+    it('says what every looping animation becomes when it stops', () => {
+        // A `… infinite` animation freezes on one arbitrary keyframe under the
+        // blanket rule. That is fine for some and wrong for others — the logo
+        // wave freezes into a flat block — so each one has to be named here and
+        // given a resting state deliberately.
+        const block = reducedMotionBlock();
+        const body = css.slice(0, css.indexOf('@media (prefers-reduced-motion: reduce)'));
+
+        const looping = new Set<string>();
+        // Selector(s) immediately preceding a declaration block containing an
+        // infinite animation.
+        const rule = /([^{}]+)\{([^{}]*)\}/g;
+        let match: RegExpExecArray | null;
+        while ((match = rule.exec(body)) !== null) {
+            if (!/animation:[^;]*infinite/.test(match[2])) continue;
+            for (const cls of match[1].matchAll(/\.([a-zA-Z][\w-]*)/g)) looping.add(cls[1]);
+        }
+
+        const unanswered = [...looping].filter((cls) => !block.includes(`.${cls}`));
+        expect(
+            unanswered,
+            'These loop forever but say nothing about reduced motion. Add each to the ' +
+            '@media (prefers-reduced-motion: reduce) block in app/globals.css with the ' +
+            'state it should rest in.'
+        ).toEqual([]);
+        // Guard the guard: if the scan stops finding anything, it stops checking.
+        expect(looping.size, 'the scan found no looping animations — it has broken').toBeGreaterThan(0);
+    });
+});
+
 describe('icons follow the design system', () => {
     it('sizes every dialog header icon at h-5 w-5', () => {
         // A header icon at h-4 reads as a lighter title than the dialogs

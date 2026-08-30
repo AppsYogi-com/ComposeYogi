@@ -65,6 +65,8 @@ import type { SaveStatus } from '@/lib/persistence/autosave';
 interface TransportProps {
     onPlayPause: () => void;
     onStop: () => void;
+    /** Starts the audio context. The record button is a user gesture too. */
+    onRequestAudio: () => Promise<void>;
     isAudioReady: boolean;
     onOpenSettings?: () => void;
     onOpenProjects?: () => void;
@@ -75,6 +77,7 @@ interface TransportProps {
 export function Transport({
     onPlayPause,
     onStop,
+    onRequestAudio,
     isAudioReady,
     onOpenSettings,
     onOpenProjects,
@@ -187,18 +190,29 @@ export function Transport({
     }, [metronomeEnabled, metronomeVolume, toggleMetronomeState, isAudioReady]);
 
     const handleRecord = useCallback(async () => {
-        if (!isAudioReady) return;
-
-        if (isRecording) {
-            // Stop recording
+        // Counting in counts as recording for this button. It is not
+        // `isRecording` yet, so this used to fall through to the else branch and
+        // start a *second* take on top of the one counting in — and the count-in
+        // itself had no way to be stopped at all.
+        if (isRecording || isCountingIn) {
             await recordingManager.stopRecording();
-        } else {
-            // Start recording - need an armed track
-            if (!armedTrack) {
-                console.warn('[Transport] No armed track for recording');
-                return;
-            }
+            return;
+        }
 
+        // Start recording - need an armed track
+        if (!armedTrack) {
+            console.warn('[Transport] No armed track for recording');
+            return;
+        }
+
+        // This click is itself the gesture the audio context needs. Waiting for
+        // `isAudioReady` meant the record button stayed dead until the user
+        // happened to press Play first, which is not a thing anyone would guess.
+        if (!isAudioReady) {
+            await onRequestAudio();
+        }
+
+        {
             // Initialize recorder on-demand if not ready
             if (!isRecorderReady) {
                 try {
@@ -225,7 +239,7 @@ export function Transport({
                 console.error('[Transport] Failed to start recording:', error);
             }
         }
-    }, [isAudioReady, isRecording, armedTrack, countInBars, isRecorderReady, t]);
+    }, [isAudioReady, isRecording, isCountingIn, armedTrack, countInBars, isRecorderReady, onRequestAudio, t]);
 
     if (!project) return null;
 
@@ -353,10 +367,16 @@ export function Transport({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
-                                    variant={isRecording ? "transport-record-active" : "transport-record"}
+                                    variant={
+                                        isRecording
+                                            ? "transport-record-active"
+                                            : armedTrack
+                                                ? "transport-record-armed"
+                                                : "transport-record"
+                                    }
                                     size="icon-sm"
                                     onClick={handleRecord}
-                                    disabled={!isAudioReady || (!isRecording && !armedTrack)}
+                                    disabled={!isRecording && !isCountingIn && !armedTrack}
                                     className={isCountingIn ? 'animate-pulse' : ''}
                                     // The tooltip can show a recorder error; a name has to
                                     // stay a name, so it tracks the armed track instead.

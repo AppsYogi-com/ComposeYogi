@@ -73,6 +73,10 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   `temporal` (limit 100, JSON-stringify equality). All mutations immutable, stamp `updatedAt`.
 - `playback.ts` — transport state **plus** exported `playbackRefs` (plain `{current}` refs
   that bypass React for 60fps playhead animation). Never put per-frame values in React state.
+  `recordingSession` is how recording reaches the arrangement: `isRecording` alone said only
+  *that* a recording was happening, never which track or from which bar, so the timeline
+  could not have drawn one had it wanted to. Cleared by both `stopRecording()` and `stop()` —
+  a transport stopped from anywhere must not leave a recording region on screen.
 - `ui.ts` — panels, selection, zoom, drag state, custom keybindings.
 
 ### Audio (`lib/audio/`)
@@ -96,6 +100,26 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   nodes and must NEVER reschedule.
 - `recorder.ts` + `recording-manager.ts` — mic → trim to loop bounds → fades → WAV bytes
   → `AudioTake` (in-memory map + IndexedDB). Latency offset from `latency-calibration.ts`.
+  The count-in has **two shapes and the sign of `startBar - countInBars` picks which**: with
+  music before the punch point it is a *lead-in* and the transport plays those bars; at the
+  top of the song that subtraction is negative, and a transport parked at a negative time is
+  not a count-in but a wrong answer — so it is *pre-roll*, where the clock runs and the
+  transport waits. Recording from the top with the default two bars is the second case, so
+  it was the shipped default that was broken. `recording-manager` is also the only writer of
+  `recordingSession` (below), and it writes it **twice**: an estimate as the count-in begins,
+  then the bar the transport actually reports once recording starts.
+  The count-in **always clicks**, whatever `metronomeEnabled` says, and the click comes from
+  `audioEngine.playCountIn()` rather than the metronome: the metronome is a `Tone.Loop` that
+  returns unless the transport is running, so it can never sound during pre-roll — which is
+  the count-in nearly every first-time user gets. `playCountIn` schedules against
+  `context.currentTime` instead, which covers both shapes identically, and the metronome loop
+  stands down for the duration (`countInUntil`) so a lead-in does not click twice.
+  `stopCountIn()` silences an abandoned count-in, except for anything already inside Tone's
+  0.1s lookAhead — audio already rendered cannot be unrendered.
+- `count-in.ts` — the countdown arithmetic, on the **wall clock** rather than transport
+  position, because pre-roll has no transport position to read. Imports nothing, which is
+  the point: it is the only part of the recording visuals a unit test can reach. `ceil`, not
+  `round` — that is what makes the last beat read "1" for its whole duration.
 - `offline-renderer.ts` — WAV/MP3 export inside `Tone.Offline()`. Renders from the same
   render plan as `playout.ts`; no scheduling logic of its own.
 - `stretch.ts` — Stretch-to-BPM, v1 by `playbackRate` (so it repitches; true time-stretch
@@ -170,7 +194,8 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   `saveProject` and `loadProject`; a round-trip test over `keyof Project` enforces it.
 
 ### Rendering
-- Canvas for ruler/grid (`lib/canvas/`, DPR-aware); DOM for clips.
+- Canvas for the arrangement ruler (drawn inline in `TrackList.tsx`, DPR-aware); DOM for
+  everything else — the grid is `.grid-line` divs from `GridLines`, and clips are divs.
 - Peaks computed in `public/workers/audio-peaks-worker.js` with Transferable zero-copy.
 
 ### Design system (`lib/design/` + `design/`)
@@ -186,7 +211,15 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   `resolvedTheme` in its effect deps, or it keeps the previous theme's paint.
 - `tests/design-system.test.ts` fails the build on raw palette classes, hex literals,
   interpolated class names, off-scale type/radius, non-exhaustive class maps, a track hue
-  inside the accent band, and any colour pair that misses WCAG AA.
+  inside the accent band, any colour pair that misses WCAG AA, and a looping animation that
+  has not said what it rests as under reduced motion.
+- **Reduced motion is answered in one block** at the end of `app/globals.css`, not per
+  component — `design/README.md` § "Motion, when someone has asked for less of it" is the
+  rulebook. Three things there are load-bearing: the blanket rule is `0.01ms` and never
+  `none` (Radix unmounts on `animationend`, so `none` strands closed dialogs in the DOM); a
+  spinner keeps turning, because frozen it reports a hung app; and every resting state is
+  `!important`, because a running animation outranks a plain declaration and two rules from
+  that same block were measured disagreeing in one frame.
 - `npm run design:artboards` re-exports `design/artboards/*.png` and `public/og-image.png`
   (needs Chrome; the HTML previews in `design/previews/` are the reference and open by
   double-clicking, no server).
@@ -345,7 +378,7 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **No SEO content scaling** (maintainer rule): every public page must be something a
   musician would want to land on. Discoverability comes from real shared music.
 
-## Known gaps & active issues (updated 2026-08-30 after Sprint 8.7.5 — verify before relying on)
+## Known gaps & active issues (updated 2026-08-30 after Sprint 8.7.7 — verify before relying on)
 
 - **Three hand-maintained lists of `Project` fields**, each of which fails silently when a
   new field is forgotten, and each of which has now cost a bug: the reschedule hash
@@ -379,6 +412,36 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **Unverified performance claims**: frame rate, Lighthouse, the offline walkthrough and
   the cross-browser matrix have NOT been measured on real hardware since the 8.5 work
   (rAF doesn't run in a headless pane). Don't quote numbers for these.
+- **The Browser pane denies `getUserMedia`**, so nothing downstream of the microphone can be
+  verified there — 8.7.7's every run reached "Recorder not initialized" after all the state
+  and all the visuals but before a sample. It also **suspends rAF while the pane is hidden**,
+  which makes any animation look frozen: verify animated state by stepping the *inputs* (a
+  store write whose dep change ticks the effect synchronously) rather than watching it run,
+  and take a screenshot to force a frame. Two 8.7.7 measurements were void before this was
+  understood — one because the pane was hidden, one because a page reload had left the audio
+  engine uninitialized so `audioEngine.play()` silently no-opped. **Check `isReady()` and
+  that the recording manager has no stale session before trusting a transport measurement.**
+- **Recording is hard to reach, and two of its controls do not exist** (Sprint 8.7.8):
+  `+ Add Track` only makes MIDI tracks and the arm button only renders for `type === 'audio'`,
+  so the sole route to a recordable track is Inspector → Type → Audio; and `setCountInBars`
+  has no callers, so every count-in is the hardcoded 2 bars. (The record button's tooltip
+  also advertises `R` with no such shortcut registered.) Verified by walking the path in a
+  browser, not by reading the code.
+- **A recording in flight is two phases, and both stop paths must cover both.** `isRecording`
+  is false for the whole count-in, so anything that means "is a take in progress" has to ask
+  `recordingManager.isPending()`, not the store flag. Guarding on `this.session` is the
+  specific mistake that made the count-in uncancellable — it does not exist until after the
+  count-in, so every stop was a no-op and the take began anyway.
+- **The track headers are translated, not scrolled.** One scroll container (the lanes) owns
+  the vertical position and `handleScroll` writes the header column's transform. Two
+  containers mirroring `scrollTop` drift by construction, because their travel differs by the
+  ruler, the trailing pad, the Add Track button and the horizontal scrollbar's reserved
+  height. Do not reintroduce a second `overflow-y-auto` there.
+- **The metronome still defaults OFF** (`metronomeEnabled: false`) even though PRD §9 lists
+  it ON among the recording defaults. Deliberate: §9's defaults are the *Recording UX*
+  section's, the count-in now clicks unconditionally, and a click running through the take
+  itself would bleed into any recording made on speakers. Turning it on globally would also
+  put a click over every demo template the moment a first-time visitor presses Play.
 - **Macro audio is unit-tested, not heard**: the clip macros and global swing are proven
   at the schedule level (`tests/clip-macros.test.ts`) but nobody has listened to them, and
   per-clip `Tone.Reverb.generate()` cost on reschedule for Space-heavy projects is

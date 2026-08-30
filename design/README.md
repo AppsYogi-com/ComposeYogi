@@ -432,9 +432,32 @@ Check both. The tests cannot see either of these.
   without replacing it with something at least as loud.
 - Colour never carries meaning alone — pair it with a label, an icon, or a
   position.
-- Motion respects `prefers-reduced-motion`.
+- Motion respects `prefers-reduced-motion` — see below.
 - Every control reachable by mouse is reachable by keyboard, and the shortcut
   registry in `lib/shortcuts` is the source of truth for what those keys are.
+
+### Motion, when someone has asked for less of it
+
+One block in `app/globals.css` answers `prefers-reduced-motion`, so there is one
+answer rather than a decision per component — the same reasoning as the cursor
+table. `tests/design-system.test.ts` fails the build if it goes missing, and if a
+new `infinite` animation appears without saying what it rests as.
+
+- **The blanket rule is `0.01ms`, never `none`.** Radix unmounts a dialog on
+  `animationend`, and an animation that never runs never ends: `none` would leave
+  every closed dialog in the DOM. 0.01ms cannot be perceived and still fires.
+- **A spinner is the one carve-out.** It reports that work is still happening, and
+  frozen it reports the opposite. Rotation in place is not what triggers
+  vestibular symptoms — travel, parallax and zoom are — so it keeps turning,
+  slower.
+- **A motion that is a *state* has to keep saying so when it stops.** The record
+  glow settles at its brightest, the recording region stays tinted, the logo wave
+  holds a static wave rather than freezing flat. Ask what the animation was
+  telling the user, then say it without moving.
+- **Write those resting states `!important`.** A running animation outranks a
+  normal declaration, so a resting state written plainly wins only if that
+  animation happens to have finished — measured, two rules from the same block
+  disagreed in the same frame. `!important` outranks animations unconditionally.
 
 ---
 

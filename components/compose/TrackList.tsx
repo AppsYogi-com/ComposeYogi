@@ -5,6 +5,7 @@ import * as Tone from 'tone';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
 import { audioEngine } from '@/lib/audio';
+import { isTrackAudible } from '@/lib/audio/scheduler';
 import { loadSampleAsAudioTake, loadUserSampleAsAudioTake } from '@/lib/audio/sample-loader';
 import { getDemoNotesForInstrument } from '@/lib/browser/demo-notes';
 import {
@@ -37,6 +38,17 @@ import { useProjectStore, useUIStore, usePlaybackStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
 import { Button } from '@/components/ui';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { buttonVariants } from '@/components/ui/button';
+import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
@@ -47,6 +59,7 @@ import type { Viewport } from '@/hooks/useVisibleClips';
 import { DraggableClip } from './DraggableClip';
 import { LoopBraces } from './LoopBraces';
 import { SnapSelect } from './SnapSelect';
+import { CountInOverlay } from './CountInOverlay';
 import { Slider } from '@/components/ui/slider';
 import { trackColorValue } from '@/lib/design/track-colors';
 import type { Track } from '@/types';
@@ -66,6 +79,7 @@ const FX_ABBR: Record<string, string> = {
 
 export function TrackList() {
     const t = useTranslations('tracks');
+    const tCommon = useTranslations('common');
     const tSnap = useTranslations('snap');
     const { resolvedTheme } = useTheme();
     const project = useProjectStore((s) => s.project);
@@ -89,7 +103,6 @@ export function TrackList() {
     // their vertical scroll has to be kept in step by hand — otherwise past a
     // screenful of tracks the names drift out of line with their lanes.
     const trackHeadersRef = useRef<HTMLDivElement>(null);
-    const syncingScrollRef = useRef(false);
 
     // Visible horizontal window, used to virtualize clips. Width comes from a
     // ResizeObserver so panel toggles and window resizes are picked up, not
@@ -102,9 +115,12 @@ export function TrackList() {
     const rulerCanvasRef = useRef<HTMLCanvasElement>(null);
     const isPlaying = usePlaybackStore((s) => s.isPlaying);
     const isRecording = usePlaybackStore((s) => s.isRecording);
+    const isCountingIn = usePlaybackStore((s) => s.isCountingIn);
+    const recordingSession = usePlaybackStore((s) => s.recordingSession);
     const positionVersion = usePlaybackStore((s) => s.positionVersion);
 
     const playheadRef = useRef<HTMLDivElement>(null);
+    const recordRegionRef = useRef<HTMLDivElement>(null);
     const animationRef = useRef<number>(0);
 
     const beatsPerBar = project?.timeSignature[0] || 4;
@@ -200,9 +216,21 @@ export function TrackList() {
         ctx.stroke();
     }, [project, pixelsPerBeat, projectLengthBeats, resolvedTheme]);
 
-    // Update playhead position (during playback AND recording)
+    // Where the recording region starts, in pixels. Recomputed with the frame
+    // loop rather than inside it: the bar and the zoom both hold still for the
+    // length of a take.
+    const recordTrackIndex = recordingSession
+        ? project?.tracks.findIndex((t) => t.id === recordingSession.trackId) ?? -1
+        : -1;
+    const recordRegionLeft = recordingSession
+        ? recordingSession.startBar * beatsPerBar * pixelsPerBeat
+        : 0;
+
+    // Update playhead position (during playback, recording AND the count-in —
+    // a lead-in count-in moves the transport, so the playhead has to move with
+    // it or the count reads as a frozen app)
     useEffect(() => {
-        const isActive = isPlaying || isRecording;
+        const isActive = isPlaying || isRecording || isCountingIn;
 
         const updatePlayhead = () => {
             if (!playheadRef.current || !project) return;
@@ -220,6 +248,14 @@ export function TrackList() {
             const absoluteX = beatsElapsed * pixelsPerBeat;
 
             playheadRef.current.style.transform = `translate3d(${absoluteX}px, 0, 0)`;
+
+            // The take so far: from the bar recording began at, to wherever the
+            // playhead has got to. Written straight to the node, like the
+            // playhead — a width that changes every frame has no business in
+            // React state.
+            if (recordRegionRef.current) {
+                recordRegionRef.current.style.width = `${Math.max(0, absoluteX - recordRegionLeft)}px`;
+            }
 
             // Auto-scroll when playhead goes near edge (during playback or recording)
             if (playbackRefs.isPlayingRef.current && scrollContainerRef.current) {
@@ -251,7 +287,7 @@ export function TrackList() {
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [isPlaying, isRecording, positionVersion, project, pixelsPerBeat]);
+    }, [isPlaying, isRecording, isCountingIn, positionVersion, project, pixelsPerBeat, recordRegionLeft]);
 
     // Redraw ruler on changes
     useEffect(() => {
@@ -296,29 +332,29 @@ export function TrackList() {
         setScrollX(target.scrollLeft);
         setScrollY(target.scrollTop);
 
-        // Keep the header column aligned with the lanes.
-        if (syncingScrollRef.current) return;
+        // The header column does not scroll — it is *moved*, by exactly the
+        // amount the lanes moved. It used to be a second scroll container with
+        // its own scrollTop mirrored 1:1, which only stays aligned while both
+        // can travel the same distance, and they cannot: the lanes carry the
+        // ruler and a 100px tail, the headers carry an "Add Track" button, and
+        // the lanes lose a few more pixels to their horizontal scrollbar on the
+        // platforms that reserve space for one. Measured with both bottom panels
+        // open, the lanes could scroll 234px and the headers 179px, so past
+        // 179px the names simply stopped following the lanes. Translating the
+        // column cannot drift, whatever either side's height turns out to be.
         const headers = trackHeadersRef.current;
-        if (headers && headers.scrollTop !== target.scrollTop) {
-            syncingScrollRef.current = true;
-            headers.scrollTop = target.scrollTop;
-            syncingScrollRef.current = false;
+        if (headers) {
+            headers.style.transform = `translate3d(0, ${-target.scrollTop}px, 0)`;
         }
     }, [setScrollX, setScrollY]);
 
-    // …and the other way, so scrolling with the pointer over the track names
-    // moves the lanes too.
-    const handleTrackHeadersScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-        if (syncingScrollRef.current) return;
-        const target = e.target as HTMLDivElement;
+    // Scrolling with the pointer over the track names has to move the lanes,
+    // since the names themselves no longer scroll.
+    const handleTrackHeadersWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
         const lanes = scrollContainerRef.current;
-        if (lanes && lanes.scrollTop !== target.scrollTop) {
-            syncingScrollRef.current = true;
-            lanes.scrollTop = target.scrollTop;
-            syncingScrollRef.current = false;
-            setScrollY(target.scrollTop);
-        }
-    }, [setScrollY]);
+        if (!lanes || e.ctrlKey || e.metaKey) return;
+        lanes.scrollTop += e.deltaY;
+    }, []);
 
     // Handle mouse wheel zoom (Ctrl/Cmd + scroll)
     const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
@@ -385,9 +421,15 @@ export function TrackList() {
         updateTrack(track.id, { volume });
     }, [updateTrack]);
 
-    const handleDeleteTrack = useCallback((trackId: string) => {
-        deleteTrack(trackId);
-    }, [deleteTrack]);
+    // A track takes its clips with it, so deleting one asks first — an
+    // AlertDialog rather than a Dialog: no dismiss-by-clicking-away, and the
+    // buttons carry their roles.
+    const [trackToDelete, setTrackToDelete] = useState<Track | null>(null);
+
+    const confirmDeleteTrack = useCallback(() => {
+        if (trackToDelete) deleteTrack(trackToDelete.id);
+        setTrackToDelete(null);
+    }, [deleteTrack, trackToDelete]);
 
     if (!project) return null;
 
@@ -395,7 +437,7 @@ export function TrackList() {
     const trackIds = project.tracks.map((t) => t.id);
 
     return (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="relative flex flex-1 overflow-hidden">
             {/* Track headers column (fixed left) */}
             <div
                 className="flex flex-col border-r border-border bg-surface flex-shrink-0"
@@ -427,21 +469,26 @@ export function TrackList() {
                 >
                     <SortableContext items={trackIds} strategy={verticalListSortingStrategy}>
                         <div
+                            className="relative flex-1 overflow-hidden"
+                            onWheel={handleTrackHeadersWheel}
+                        >
+                        <div
                             ref={trackHeadersRef}
-                            onScroll={handleTrackHeadersScroll}
-                            className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
+                            className="absolute inset-x-0 top-0 will-change-transform"
                         >
                             {project.tracks.map((track) => (
                                 <SortableTrackHeader
                                     key={track.id}
                                     track={track}
                                     isSelected={selectedTrackId === track.id}
+                                    isRecordingHere={isRecording && recordingSession?.trackId === track.id}
+                                    isAudible={isTrackAudible(track, project.tracks)}
                                     onSelect={() => selectTrack(track.id)}
                                     onMuteToggle={() => handleMuteToggle(track)}
                                     onSoloToggle={() => handleSoloToggle(track)}
                                     onArmToggle={() => handleArmToggle(track)}
                                     onVolumeChange={(v) => handleVolumeChange(track, v)}
-                                    onDelete={() => handleDeleteTrack(track.id)}
+                                    onDelete={() => setTrackToDelete(track)}
                                 />
                             ))}
 
@@ -452,6 +499,7 @@ export function TrackList() {
                                 <Plus className="h-4 w-4" />
                                 {t('add')}
                             </button>
+                        </div>
                         </div>
                     </SortableContext>
                 </DndContext>
@@ -500,6 +548,7 @@ export function TrackList() {
                             pixelsPerBeat={pixelsPerBeat}
                             trackCount={project.tracks.length}
                             projectLengthBeats={projectLengthBeats}
+                            dimmed={isRecording}
                         />
 
                         {/* Track lanes */}
@@ -517,10 +566,26 @@ export function TrackList() {
                         ))}
                     </div>
 
+                    {/* The take being captured, on the track capturing it.
+                        Starts at the bar recording began at and grows with the
+                        playhead; the pulse is CSS, so it costs nothing per frame. */}
+                    {isRecording && recordingSession && recordTrackIndex >= 0 && (
+                        <div
+                            ref={recordRegionRef}
+                            className="recording-region"
+                            style={{
+                                left: recordRegionLeft,
+                                top: RULER_HEIGHT + recordTrackIndex * TRACK_HEIGHT,
+                                height: TRACK_HEIGHT,
+                                width: 0,
+                            }}
+                        />
+                    )}
+
                     {/* Single unified playhead (ruler + tracks) */}
                     <div
                         ref={playheadRef}
-                        className="playhead-unified"
+                        className={`playhead-unified${isRecording ? ' is-recording' : ''}`}
                         style={{
                             transform: 'translate3d(0, 0, 0)',
                             top: 0,
@@ -529,6 +594,31 @@ export function TrackList() {
                     />
                 </div>
             </div>
+
+            <CountInOverlay />
+
+            <AlertDialog
+                open={trackToDelete !== null}
+                onOpenChange={(open) => !open && setTrackToDelete(null)}
+            >
+                <AlertDialogContent className="max-w-sm">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('delete')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('confirmDelete', { name: trackToDelete?.name ?? '' })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDeleteTrack}
+                            className={buttonVariants({ variant: 'destructive' })}
+                        >
+                            {t('delete')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
@@ -540,6 +630,14 @@ export function TrackList() {
 interface TrackHeaderProps {
     track: Track;
     isSelected: boolean;
+    /** This track is the one currently being recorded onto. */
+    isRecordingHere: boolean;
+    /**
+     * Whether this track will be heard, asked of the scheduler's own rule
+     * rather than of `muted` — a track silenced by somebody else's solo is
+     * just as silent, and used to look exactly like one that was playing.
+     */
+    isAudible: boolean;
     onSelect: () => void;
     onMuteToggle: () => void;
     onSoloToggle: () => void;
@@ -585,13 +683,32 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                     >
                         <GripVertical className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
                     </div>
+                    {/* Silence dims what the track *is* — its colour and its
+                        name — and never the controls beside them: mute and solo
+                        are the way back out of the state, and a dimmed control
+                        reads as a disabled one. */}
                     <div
-                        className="h-3 w-3 rounded-sm"
+                        className={`h-3 w-3 rounded-sm transition-opacity duration-base ${props.isAudible ? 'opacity-100' : 'opacity-50'}`}
                         style={{ backgroundColor: trackColorValue(props.track.color) }}
                     />
-                    <span className="flex-1 truncate text-sm font-medium">
+                    <span
+                        className={`flex-1 truncate text-sm font-medium transition-opacity duration-base ${props.isAudible ? 'opacity-100' : 'opacity-50'}`}
+                    >
                         {props.track.name}
                     </span>
+                    {/* The arm button turns red and the transport names the armed
+                        track — the header itself said nothing, which is the one
+                        place you look when you are about to sing into it. */}
+                    {props.track.armed && (
+                        <span
+                            className={`shrink-0 rounded-xs border px-1 text-2xs font-bold uppercase tracking-wider ${props.isRecordingHere
+                                ? 'animate-pulse border-destructive bg-destructive text-destructive-foreground'
+                                : 'border-destructive/40 bg-destructive/15 text-destructive'
+                                }`}
+                        >
+                            {props.isRecordingHere ? t('rec') : t('armed')}
+                        </span>
+                    )}
                     <Button
                         aria-label={t('delete')}
                         variant="ghost"
@@ -669,16 +786,21 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                         </Tooltip>
                     )}
 
-                    <Slider
-                        aria-label={t('volume')}
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={[props.track.volume]}
-                        onValueChange={([v]) => props.onVolumeChange(v)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1"
-                    />
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Slider
+                                aria-label={t('volume')}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                value={[props.track.volume]}
+                                onValueChange={([v]) => props.onVolumeChange(v)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex-1"
+                            />
+                        </TooltipTrigger>
+                        <TooltipContent>{t('volume')}</TooltipContent>
+                    </Tooltip>
                 </div>
 
                 {/* Active Effects Indicators */}
@@ -930,10 +1052,15 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
 
     if (!project) return null;
 
+    // The same question the scheduler asks before it decides to make a sound,
+    // so a track silenced by another track's solo dims exactly like a muted
+    // one. Asking `track.muted` here is what made solo invisible.
+    const audible = isTrackAudible(track, project.tracks);
+
     return (
         <div
-            className={`absolute left-0 right-0 border-b border-border/50 transition-colors ${isSelected ? 'bg-accent/5' : ''
-                } ${track.muted ? 'opacity-50' : ''} ${isDragOver ? 'bg-accent/20 ring-1 ring-accent ring-inset' : ''
+            className={`absolute left-0 right-0 border-b border-border/50 transition-[background-color,opacity] duration-base ${isSelected ? 'bg-accent/5' : ''
+                } ${audible ? '' : 'opacity-50'} ${isDragOver ? 'bg-accent/20 ring-1 ring-accent ring-inset' : ''
                 }`}
             style={{
                 top: index * TRACK_HEIGHT,
@@ -964,9 +1091,11 @@ interface GridLinesProps {
     pixelsPerBeat: number;
     trackCount: number;
     projectLengthBeats: number;
+    /** Recede while recording, so the playhead and the take are what is left. */
+    dimmed?: boolean;
 }
 
-function GridLines({ bpm, timeSignature, pixelsPerBeat, trackCount, projectLengthBeats }: GridLinesProps) {
+function GridLines({ bpm, timeSignature, pixelsPerBeat, trackCount, projectLengthBeats, dimmed = false }: GridLinesProps) {
     const beatsPerBar = timeSignature[0];
     const totalBeats = Math.max(projectLengthBeats, Math.ceil(300 * (bpm / 60)));
     const lines = [];
@@ -998,7 +1127,10 @@ function GridLines({ bpm, timeSignature, pixelsPerBeat, trackCount, projectLengt
     }
 
     return (
-        <div className="absolute inset-0 pointer-events-none" style={{ height: totalHeight }}>
+        <div
+            className={`absolute inset-0 pointer-events-none transition-opacity duration-slow ${dimmed ? 'opacity-40' : 'opacity-100'}`}
+            style={{ height: totalHeight }}
+        >
             {lines}
         </div>
     );

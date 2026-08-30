@@ -10,6 +10,33 @@ import { subscribeWithSelector } from 'zustand/middleware';
 // Store Types
 // ============================================
 
+/**
+ * What a recording in flight looks like to everything that is not the recorder.
+ *
+ * Before this, `isRecording` was the whole story, and it reached the transport
+ * and the track headers only — the arrangement could not have drawn a recording
+ * if it wanted to, because it had no idea which track was being recorded or
+ * which bar the take began at. Set when the count-in begins (or at record start
+ * when there is none), replaced once the transport reports the bar the take
+ * actually landed on, and cleared when recording stops, is cancelled, or the
+ * transport stops underneath it.
+ */
+export interface RecordingSession {
+    /** The armed track the take will land on. */
+    trackId: string;
+    /** Bar the take begins at — where the pulsing region starts. */
+    startBar: number;
+    /**
+     * `performance.now()` at which the count-in ends and recording begins, or
+     * null once there is no count-in left to draw. Wall clock rather than
+     * transport position, because a count-in before bar 0 has no transport
+     * position — see lib/audio/count-in.ts.
+     */
+    countInEndsAt: number | null;
+    /** Beats in the count-in — one pip each. 0 when there is none. */
+    countInBeats: number;
+}
+
 interface PlaybackState {
     // Transport state (triggers re-renders when changed)
     isPlaying: boolean;
@@ -30,6 +57,9 @@ interface PlaybackState {
     // Count-in
     countInBars: number;
     isCountingIn: boolean;
+
+    /** The recording in flight, or null. See RecordingSession. */
+    recordingSession: RecordingSession | null;
 
     // Loop
     loopEnabled: boolean;
@@ -66,6 +96,7 @@ interface PlaybackActions {
     // Count-in
     setCountInBars: (bars: number) => void;
     setCountingIn: (counting: boolean) => void;
+    setRecordingSession: (session: RecordingSession | null) => void;
 
     // Loop
     toggleLoop: () => void;
@@ -119,6 +150,7 @@ export const usePlaybackStore = create<PlaybackStore>()(
         metronomeVolume: DEFAULT_METRONOME_VOLUME,
         countInBars: DEFAULT_COUNT_IN,
         isCountingIn: false,
+        recordingSession: null,
         loopEnabled: false,
         loopStartBar: DEFAULT_LOOP_START,
         loopEndBar: DEFAULT_LOOP_END,
@@ -144,6 +176,9 @@ export const usePlaybackStore = create<PlaybackStore>()(
                 isPaused: false,
                 isRecording: false,
                 isCountingIn: false,
+                // A stopped transport cannot still be recording, whoever
+                // stopped it, so the arrangement must not be left drawing one.
+                recordingSession: null,
                 currentBar: 0,
                 currentBeat: 0,
                 currentTime: 0,
@@ -166,7 +201,7 @@ export const usePlaybackStore = create<PlaybackStore>()(
         },
 
         stopRecording: () => {
-            set({ isRecording: false });
+            set({ isRecording: false, isCountingIn: false, recordingSession: null });
         },
 
         toggleRecording: () => {
@@ -221,6 +256,10 @@ export const usePlaybackStore = create<PlaybackStore>()(
             set({ isCountingIn: counting });
         },
 
+        setRecordingSession: (session) => {
+            set({ recordingSession: session });
+        },
+
         // Loop
         toggleLoop: () => {
             set((state) => ({
@@ -257,6 +296,7 @@ export const usePlaybackStore = create<PlaybackStore>()(
 
 export const selectIsPlaying = (state: PlaybackStore) => state.isPlaying;
 export const selectIsRecording = (state: PlaybackStore) => state.isRecording;
+export const selectRecordingSession = (state: PlaybackStore) => state.recordingSession;
 export const selectMetronomeEnabled = (state: PlaybackStore) => state.metronomeEnabled;
 export const selectLoopEnabled = (state: PlaybackStore) => state.loopEnabled;
 export const selectLoopRegion = (state: PlaybackStore) => ({

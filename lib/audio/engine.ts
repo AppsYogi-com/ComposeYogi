@@ -9,6 +9,16 @@ import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('AudioEngine');
 
+/**
+ * Scheduling headroom for the count-in click. Web Audio will not play a note
+ * scheduled at or behind the write cursor, and the first click of a count-in is
+ * the one that matters most.
+ */
+const LOOKAHEAD_SECONDS = 0.05;
+
+/** Release tail of one click, so disposal never truncates the last beat. */
+const CLICK_TAIL_SECONDS = 0.3;
+
 // ============================================
 // Types
 // ============================================
@@ -38,6 +48,11 @@ class AudioEngine {
     private scheduledEvents: Map<string, ScheduledEvent> = new Map();
     private metronome: Tone.Synth | null = null;
     private metronomeLoop: Tone.Loop | null = null;
+    /** Its own voice, so cancelling a count-in can dispose it mid-flight. */
+    private countInSynth: Tone.Synth | null = null;
+    /** Audio-context time the count-in ends; the transport click waits it out. */
+    private countInUntil = 0;
+    private countInDisposeId: ReturnType<typeof setTimeout> | null = null;
     private onBeatCallback: ((bar: number, beat: number) => void) | null = null;
 
     // ============================================
@@ -185,6 +200,11 @@ class AudioEngine {
             // Only play if transport is actually running
             if (transport.state !== 'started') return;
 
+            // A lead-in count-in runs the transport, so this loop and
+            // playCountIn() would both click the same beats. The count-in owns
+            // them; this waits until it is done.
+            if (time < this.countInUntil) return;
+
             const position = transport.position.toString();
             const [bar, beat] = position.split(':').map(Number);
 
@@ -209,6 +229,86 @@ class AudioEngine {
             this.metronomeLoop = null;
         }
         this.metronomeRunning = false;
+    }
+
+    /**
+     * Click the count-in, on the audio clock rather than the transport.
+     *
+     * The transport cannot be the source here. The metronome loop is a
+     * `Tone.Loop` that returns unless the transport is running, and the default
+     * count-in — record from the top of an empty song — is *pre-roll*: the
+     * transport deliberately waits at bar 0 while the count-in happens (see
+     * recording-manager). So the one count-in nearly every first-time user hears
+     * is the one the transport can never click. Scheduling against
+     * `context.currentTime` covers pre-roll and lead-in identically.
+     *
+     * Unconditional, and not gated on `metronomeEnabled`: a count-in you cannot
+     * hear is not a count-in. It stops before the take begins, so it can never
+     * bleed into a recording made on speakers — which is exactly why the
+     * metronome *during* the take stays the user's choice.
+     *
+     * @returns the audio-context time the count-in ends.
+     */
+    playCountIn(beats: number, secondsPerBeat: number, beatsPerBar: number, volume = 0.7): number {
+        this.stopCountIn();
+        if (!this.isInitialized || beats <= 0 || secondsPerBeat <= 0) return 0;
+
+        // Volume in the constructor, not assigned afterwards. Setting
+        // `.volume.value` on a freshly built Synth does not reach its own first
+        // note: measured, the "1" of every count-in came out at 0.97 against
+        // 0.38 for every beat after it — the one beat that has to be right,
+        // 8dB loud.
+        this.countInSynth = new Tone.Synth({
+            volume: Tone.gainToDb(volume) - 6,
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 },
+        }).toDestination();
+
+        // A beat of lookahead. Scheduling the first click at `currentTime` puts
+        // it at or behind the write cursor, so it either arrives late or is
+        // dropped — and the beat it would be dropping is the "1".
+        const start = Tone.getContext().currentTime + LOOKAHEAD_SECONDS;
+        for (let beat = 0; beat < beats; beat++) {
+            const accent = beat % beatsPerBar === 0;
+            this.countInSynth.triggerAttackRelease(
+                accent ? 1000 : 800,
+                '32n',
+                start + beat * secondsPerBeat
+            );
+        }
+
+        this.countInUntil = start + beats * secondsPerBeat;
+
+        // Clean up after the last click's release has rung out. Disposing on
+        // the beat itself would cut the "1" short — the one click that has to
+        // land properly.
+        const lifetimeMs = (this.countInUntil - Tone.getContext().currentTime + CLICK_TAIL_SECONDS) * 1000;
+        this.countInDisposeId = setTimeout(() => {
+            this.countInDisposeId = null;
+            this.stopCountIn();
+        }, lifetimeMs);
+
+        return this.countInUntil;
+    }
+
+    /**
+     * Silence a count-in that was abandoned partway through.
+     *
+     * Everything not yet rendered stops. One click can still get through: Tone
+     * runs a 0.1s lookAhead over a ~5ms base latency, and audio already written
+     * cannot be unwritten. Measured — cancelling mid-gap silences it completely;
+     * cancelling within a click's lookahead lets that one click sound.
+     */
+    stopCountIn(): void {
+        if (this.countInDisposeId) {
+            clearTimeout(this.countInDisposeId);
+            this.countInDisposeId = null;
+        }
+        if (this.countInSynth) {
+            this.countInSynth.dispose();
+            this.countInSynth = null;
+        }
+        this.countInUntil = 0;
     }
 
     setMetronomeVolume(volume: number): void {
@@ -345,6 +445,7 @@ class AudioEngine {
     dispose(): void {
         this.stop();
         this.stopMetronome();
+        this.stopCountIn();
         this.clearAllScheduledEvents();
 
         if (this.metronome) {

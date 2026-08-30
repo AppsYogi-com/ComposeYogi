@@ -26,6 +26,11 @@ const buttonVariants = cva(
           "bg-accent text-accent-foreground hover:bg-accent/90",
         "transport-record":
           "bg-transparent text-muted-foreground hover:bg-destructive/20 hover:text-destructive",
+        // Armed, but not yet rolling: red so the transport says what the track
+        // header says. Colour only — same box, same size, no layout shift when
+        // the state flips.
+        "transport-record-armed":
+          "bg-transparent text-destructive hover:bg-destructive/20 hover:text-destructive",
         "transport-record-active":
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 animate-pulse",
       },
