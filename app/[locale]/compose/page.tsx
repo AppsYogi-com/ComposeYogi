@@ -216,9 +216,23 @@ function ComposePageContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mixerHash, isAudioReady]);
 
-    // Sync BPM with audio engine
+    // Sync BPM with audio engine.
+    //
+    // Runs on `isAudioReady` like its neighbours, but unlike them it does NOT
+    // wait for it. Both halves are load-bearing:
+    //
+    //   not gated — audioEngine.secondsToBar reads the transport's tempo, and
+    //     the arrangement sizes every audio clip it creates with it. Waiting
+    //     for the first user gesture meant a sample dropped or a take recorded
+    //     before anyone pressed play was measured against Tone's default 120
+    //     instead of the song's: in an 85 BPM project, 41% too long, drawn that
+    //     way, with nothing to say so. Setting a param on a suspended context
+    //     is fine; only starting one needs a gesture.
+    //
+    //   still in the deps — starting the context is the moment a fresh
+    //     transport can appear, so the tempo has to be re-applied after it.
     useEffect(() => {
-        if (project && isAudioReady) {
+        if (project) {
             audioEngine.setBpm(project.bpm);
             audioEngine.setTimeSignature(project.timeSignature[0], project.timeSignature[1]);
         }
