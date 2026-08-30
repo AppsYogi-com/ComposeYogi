@@ -180,7 +180,10 @@ export async function renderProjectToAudioBuffer(
             if (!entry || !clip || !track) continue;
 
             if (plannedClip.kind === 'audio') {
-                await scheduleAudioClip(clip, entry, plannedClip.startSeconds);
+                await scheduleAudioClip(clip, entry, plannedClip.startSeconds, {
+                    bpm: plan.bpm,
+                    beatsPerBar: plan.beatsPerBar,
+                });
             } else {
                 await scheduleMidiClip(clip, track, entry, plannedClip.startSeconds, {
                     transport,

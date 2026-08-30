@@ -28,7 +28,7 @@ import {
     trackScheduleHash,
 } from '@/lib/audio/schedule-hash';
 
-import { makeClip, makeNote, makeProject, makeTrack } from './fixtures';
+import { makeClip, makeFullClip, makeFullProject, makeNote, makeProject, makeTrack } from './fixtures';
 
 import type { Clip, Project } from '@/types';
 
@@ -40,6 +40,7 @@ import type { Clip, Project } from '@/types';
 const ALL_CLIP_FIELDS: (keyof Clip)[] = [
     'id', 'trackId', 'type', 'name', 'startBar', 'lengthBars',
     'audioTakeIds', 'activeTakeId', 'trimStart', 'trimEnd', 'fadeIn', 'fadeOut',
+    'stretchToBpm', 'sourceBpm',
     'notes', 'instrumentPreset',
     'transpose', 'humanize', 'energy', 'groove', 'brightness', 'space',
 ];
@@ -70,13 +71,13 @@ describe('every clip field is classified', () => {
     it('covers the whole type — the field list is not stale', () => {
         // Guards the list above: if Clip gains a field and nobody updates
         // ALL_CLIP_FIELDS, the classification test would pass vacuously.
-        const clip = makeClip({
-            activeTakeId: 't', trimStart: 1, trimEnd: 2, fadeIn: 0.1, fadeOut: 0.2,
-            instrumentPreset: 'p', transpose: 1, humanize: 2,
-            energy: 3, groove: 4, brightness: 5, space: 6,
-            audioTakeIds: ['t'],
-        });
-        for (const key of Object.keys(clip)) {
+        //
+        // It once did. This walked a hand-written literal that listed the
+        // optional fields somebody had remembered, so `stretchToBpm` and
+        // `sourceBpm` arrived on the type, were classified nowhere, and the
+        // whole suite stayed green. makeFullClip is typed `Required<Clip>`, so
+        // the omission is now a compile error in fixtures.ts instead.
+        for (const key of Object.keys(makeFullClip())) {
             expect(ALL_CLIP_FIELDS, `Clip.${key} is missing from ALL_CLIP_FIELDS`)
                 .toContain(key as keyof Clip);
         }
@@ -112,8 +113,7 @@ describe('every project field is classified', () => {
     });
 
     it('covers the whole type — the field list is not stale', () => {
-        const project = makeProject({ latencyOffset: 10, swing: 40 });
-        for (const key of Object.keys(project)) {
+        for (const key of Object.keys(makeFullProject())) {
             expect(ALL_PROJECT_FIELDS, `Project.${key} is missing from ALL_PROJECT_FIELDS`)
                 .toContain(key as keyof Project);
         }

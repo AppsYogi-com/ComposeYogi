@@ -318,6 +318,11 @@ class RecordingManager {
         projectStore.updateClip(clip.id, {
             audioTakeIds: [take.id],
             activeTakeId: take.id,
+            // A take is performed against this transport, so its source tempo is
+            // not a guess — it is the tempo that was playing. Stamping it now
+            // means Stretch to BPM still knows it after the song is retempoed,
+            // which is exactly when the inference would have stopped working.
+            sourceBpm: project.bpm,
             name: `${this.clipLabel} ${clockTime(new Date())}`,
         });
 

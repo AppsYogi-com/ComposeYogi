@@ -295,7 +295,10 @@ class PlayoutManager {
         };
 
         if (kind === 'audio') {
-            const result = await scheduleAudioClip(clip, chain.input, startSeconds);
+            const result = await scheduleAudioClip(clip, chain.input, startSeconds, {
+                bpm: plan.bpm,
+                beatsPerBar: plan.beatsPerBar,
+            });
             scheduled.player = result.player;
             scheduled.macroNodes = result.macroNodes;
         } else {

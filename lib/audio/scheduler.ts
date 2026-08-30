@@ -32,6 +32,7 @@ import {
     transposedPitch,
 } from './clip-macros';
 import { getAudioTake } from './recording-manager';
+import { stretchRate } from './stretch';
 import { createSynthFromPreset, waitForSynthReady, type SynthType } from './synth-presets';
 
 import type { AudioTake, Clip, Project, Track, TrackEffect } from '@/types';
@@ -48,11 +49,20 @@ const logger = createLogger('Scheduler');
  */
 export type SchedulerTransport = ReturnType<typeof Tone.getTransport>;
 
-/** Everything the note/clip schedulers need to know about the song. */
-export interface SchedulerContext {
-    transport: SchedulerTransport;
+/**
+ * The tempo grid. Split out from the full context because an audio clip needs
+ * only this — it has no notes to swing and books no transport events — and a
+ * function that takes a transport it never touches invites the next caller to
+ * pass the wrong one.
+ */
+export interface TempoContext {
     bpm: number;
     beatsPerBar: number;
+}
+
+/** Everything the note schedulers need to know about the song. */
+export interface SchedulerContext extends TempoContext {
+    transport: SchedulerTransport;
     /** Project-wide swing, 0-100. Required, not optional: a default here would
      *  let a caller forget it and silently render straight. */
     swing: number;
@@ -514,8 +524,13 @@ const NOTHING_SCHEDULED: ScheduledAudioClip = { player: null, macroNodes: [] };
  *
  * Only the DSP macros reach a recording: Transpose, Groove and Humanize are
  * note-level ideas, and there are no notes here to move. Making them act on
- * audio means time-stretching and pitch-shifting a buffer, which is its own
- * piece of work (Sprint 8.7.4) rather than a variation on this one.
+ * audio means pitch-shifting a buffer while preserving its length, which needs
+ * a real time-stretch (WASM, Phase 2.5) rather than the resampling below.
+ *
+ * Stretch-to-BPM is the one exception, and it is deliberately the cheap kind:
+ * `playbackRate` resamples, so the clip lands in tempo and moves in pitch. The
+ * rate is decided by lib/audio/stretch.ts and only applied here, so live
+ * playback and the offline export cannot disagree about it.
  *
  * Returns null for the player when there is nothing to play — a missing take,
  * a clip trimmed away to nothing, a decode failure.
@@ -523,7 +538,8 @@ const NOTHING_SCHEDULED: ScheduledAudioClip = { player: null, macroNodes: [] };
 export async function scheduleAudioClip(
     clip: Clip,
     destination: Tone.ToneAudioNode,
-    startSeconds: number
+    startSeconds: number,
+    tempo: TempoContext
 ): Promise<ScheduledAudioClip> {
     if (!clip.activeTakeId) return NOTHING_SCHEDULED;
 
@@ -539,16 +555,25 @@ export async function scheduleAudioClip(
         const buffer = await decodeTakeToBuffer(take);
         const player = new Tone.Player(buffer);
 
-        player.connect(chain.input);
-        player.fadeIn = clip.fadeIn || 0;
-        player.fadeOut = clip.fadeOut || 0;
-
         const playDuration = clipPlayDuration(clip, buffer.duration);
         if (playDuration <= 0) {
             player.dispose();
             disposeMacroNodes(chain.nodes);
             return NOTHING_SCHEDULED;
         }
+
+        const rate = stretchRate(clip, playDuration, tempo.bpm, tempo.beatsPerBar);
+
+        player.connect(chain.input);
+        player.playbackRate = rate;
+
+        // Trims and fades are drawn against the waveform, so they are stored in
+        // source seconds — but Tone's fades run in wall-clock time, and only its
+        // `duration` argument is divided by the rate. Half a second of fade on a
+        // clip playing at double speed would otherwise cover a whole second of
+        // audio, swallowing the start of the loop it was drawn on.
+        player.fadeIn = (clip.fadeIn || 0) / rate;
+        player.fadeOut = (clip.fadeOut || 0) / rate;
 
         player.sync();
         player.start(startSeconds, clip.trimStart || 0, playDuration);

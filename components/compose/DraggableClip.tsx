@@ -9,6 +9,8 @@ import { useRef, useCallback, useEffect, useState, useMemo, memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { getAudioTake, audioEngine } from '@/lib/audio';
+import { clipPlayDuration } from '@/lib/audio/scheduler';
+import { stretchRate } from '@/lib/audio/stretch';
 import { SNAP_BEATS } from '@/lib/music';
 import { AudioClip } from './AudioClip';
 import { TRACK_BG } from '@/lib/design/track-colors';
@@ -72,6 +74,21 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
             durationBars: sourceDurationBars,
         };
     }, [clip.type, clip.activeTakeId]);
+
+    // Timeline seconds are not source seconds on a stretched clip: at rate r,
+    // one bar of arrangement eats r seconds of the recording. Resizing an audio
+    // clip works by moving its trim, so every bars-to-seconds conversion below
+    // has to pass through this or a stretched clip trims by the wrong amount —
+    // quietly, and proportionally to how far it was stretched.
+    const stretchedRate = useMemo(() => {
+        if (!audioSourceInfo) return 1;
+        return stretchRate(
+            clip,
+            clipPlayDuration(clip, audioSourceInfo.durationSec),
+            audioEngine.getBpm(),
+            beatsPerBar
+        );
+    }, [clip, audioSourceInfo, beatsPerBar]);
 
     // Calculate position and size with drag/resize offsets
     const _startBeat = clip.startBar * beatsPerBar;
@@ -200,7 +217,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                 let maxExpandLeft = dragStartRef.current.originalBar; // Can't go before bar 0
                 if (audioSourceInfo) {
                     // Can only expand left by the amount of trimStart available
-                    const currentTrimStartBars = audioEngine.secondsToBar(clip.trimStart || 0);
+                    const currentTrimStartBars = audioEngine.secondsToBar((clip.trimStart || 0) / stretchedRate);
                     maxExpandLeft = Math.min(maxExpandLeft, currentTrimStartBars);
                 }
 
@@ -215,7 +232,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                 let maxExpandRight = Infinity;
                 if (audioSourceInfo) {
                     // Can only expand right by the amount of trimEnd available
-                    const currentTrimEndBars = audioEngine.secondsToBar(clip.trimEnd || 0);
+                    const currentTrimEndBars = audioEngine.secondsToBar((clip.trimEnd || 0) / stretchedRate);
                     maxExpandRight = currentTrimEndBars;
                 }
 
@@ -256,7 +273,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
 
                         if (audioSourceInfo) {
                             // Audio clip: adjust trimStart instead of just lengthBars
-                            const deltaSeconds = audioEngine.barToSeconds(deltaBars);
+                            const deltaSeconds = audioEngine.barToSeconds(deltaBars) * stretchedRate;
                             const currentTrimStart = clip.trimStart || 0;
                             const newTrimStart = Math.max(0, currentTrimStart + deltaSeconds);
 
@@ -276,7 +293,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
                     if (Math.abs(newLength - dragStartRef.current.originalLength) > 0.001) {
                         if (audioSourceInfo) {
                             // Audio clip: adjust trimEnd instead of just lengthBars
-                            const deltaSeconds = audioEngine.barToSeconds(deltaBars);
+                            const deltaSeconds = audioEngine.barToSeconds(deltaBars) * stretchedRate;
                             const currentTrimEnd = clip.trimEnd || 0;
                             // Expanding right means reducing trimEnd, shrinking means increasing it
                             const newTrimEnd = Math.max(0, currentTrimEnd - deltaSeconds);
@@ -309,7 +326,7 @@ function DraggableClipImpl({ clip, track, pixelsPerBeat, beatsPerBar }: Draggabl
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [dragMode, dragOffset, resizeOffset, pixelsPerBar, beatsPerBar, snapDelta, clip.id, clip.trimStart, clip.trimEnd, updateClip, resizeClip, duplicateClip, selectClip, selectedClipIds, moveClipsByDelta, isLeadingDrag, setMultiDragOffset, audioSourceInfo]);
+    }, [dragMode, dragOffset, resizeOffset, pixelsPerBar, beatsPerBar, snapDelta, clip.id, clip.trimStart, clip.trimEnd, updateClip, resizeClip, duplicateClip, selectClip, selectedClipIds, moveClipsByDelta, isLeadingDrag, setMultiDragOffset, audioSourceInfo, stretchedRate]);
 
     // Get cursor style based on hover position
     const getCursorStyle = useCallback((e: React.MouseEvent): string => {

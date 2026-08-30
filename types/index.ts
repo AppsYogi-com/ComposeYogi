@@ -117,6 +117,12 @@ export interface Clip {
     trimEnd?: number;      // seconds
     fadeIn?: number;       // seconds
     fadeOut?: number;      // seconds
+    /** Play the take resampled so its source tempo matches the project's.
+     *  v1 repitches — see lib/audio/stretch.ts. */
+    stretchToBpm?: boolean;
+    /** Tempo the audio was made at. Absent means "infer it from lengthBars",
+     *  which is exact for anything recorded or dropped inside the app. */
+    sourceBpm?: number;
     // MIDI/Drum-specific
     notes?: Note[];
     // Instrument

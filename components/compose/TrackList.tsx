@@ -1448,6 +1448,12 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
             if (data.type === 'sample') {
                 const sampleName = data.data.name;
                 const sampleUrl = data.data.url;
+                // Loops in the catalogue carry the tempo they were made at, and
+                // it is the only tempo anything here can actually know — the
+                // inference in lib/audio/stretch.ts only ever recovers the
+                // project's own. Carrying it through means Stretch to BPM does
+                // the right thing on a dropped loop without being told twice.
+                const sampleBpm = typeof data.data.bpm === 'number' ? data.data.bpm : undefined;
 
                 if (!sampleUrl) {
                     console.error('[TrackLane] Dropped sample has no URL');
@@ -1475,6 +1481,7 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                             audioTakeIds: [take.id],
                             activeTakeId: take.id,
                             lengthBars: lengthBars, // Auto-size to fit sample
+                            sourceBpm: sampleBpm,
                         });
                     })
                     .catch((err) => {
@@ -1514,6 +1521,7 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                 const sampleId = data.data.id;
                 const sampleName = data.data.name;
                 const sampleDuration = data.data.duration;
+                const sampleBpm = typeof data.data.bpm === 'number' ? data.data.bpm : undefined;
 
                 if (!sampleId) {
                     console.error('[TrackLane] Dropped user sample has no ID');
@@ -1539,6 +1547,7 @@ function TrackLane({ track, index, pixelsPerBeat, beatsPerBar, isSelected, onSel
                             audioTakeIds: [take.id],
                             activeTakeId: take.id,
                             lengthBars: lengthBars,
+                            sourceBpm: sampleBpm,
                         });
                     })
                     .catch((err) => {

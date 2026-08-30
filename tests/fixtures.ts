@@ -48,6 +48,48 @@ export function makeClip(overrides: Partial<Clip> = {}): Clip {
     };
 }
 
+/**
+ * A Clip with every field set — the optional ones included.
+ *
+ * `Required<Clip>` is the whole point. Three separate tests prove a
+ * hand-written list of clip fields is complete by walking `Object.keys()` of a
+ * fixture, and each of them would pass vacuously against an object that simply
+ * omits the field nobody remembered. They did: `stretchToBpm` and `sourceBpm`
+ * were added to the type, classified nowhere, and the suite stayed green.
+ *
+ * Adding a field to Clip now fails to compile here instead, which is the only
+ * kind of reminder that cannot be forgotten. The values are chosen to be
+ * distinct rather than realistic — a clip does not normally carry both notes
+ * and an audio take, but coverage is what this exists for.
+ */
+export function makeFullClip(overrides: Partial<Clip> = {}): Required<Clip> {
+    return {
+        id: 'clip-full',
+        trackId: 'track-1',
+        type: 'audio',
+        name: 'Every Field',
+        startBar: 2,
+        lengthBars: 4,
+        audioTakeIds: ['take-1'],
+        activeTakeId: 'take-1',
+        trimStart: 0.25,
+        trimEnd: 0.5,
+        fadeIn: 0.1,
+        fadeOut: 0.2,
+        stretchToBpm: true,
+        sourceBpm: 90,
+        notes: [makeNote()],
+        instrumentPreset: 'electric-piano',
+        transpose: 3,
+        humanize: 20,
+        energy: 60,
+        groove: 30,
+        brightness: 70,
+        space: 40,
+        ...overrides,
+    };
+}
+
 export function makeEffect(overrides: Partial<TrackEffect> = {}): TrackEffect {
     return {
         id: 'fx-1',
@@ -66,6 +108,25 @@ export function makeProject(overrides: Partial<Project> = {}): Project {
         key: 'C',
         scale: 'minor',
         timeSignature: [4, 4],
+        tracks: [makeTrack()],
+        clips: [makeClip()],
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_000_000,
+        ...overrides,
+    };
+}
+
+/** A Project with every field set. Same contract as makeFullClip. */
+export function makeFullProject(overrides: Partial<Project> = {}): Required<Project> {
+    return {
+        id: 'project-full',
+        name: 'Every Field',
+        bpm: 97,
+        key: 'G',
+        scale: 'harmonicMinor',
+        timeSignature: [7, 8],
+        latencyOffset: 8,
+        swing: 55,
         tracks: [makeTrack()],
         clips: [makeClip()],
         createdAt: 1_700_000_000_000,
