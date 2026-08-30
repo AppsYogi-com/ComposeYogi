@@ -288,6 +288,48 @@ body {
     clip-path: polygon(50% 100%, 0 0, 100% 0);
 }
 
+/* Recording, in the arrangement.
+   The playhead red is the reserved one, so recording does not recolour it — it
+   turns it up. Brighter playhead, dimmer grid (that pair is one idea; doing
+   either alone reads as a rendering bug) and a soft pulse on the take being
+   captured. */
+.playhead-unified.is-recording {
+    box-shadow:
+        0 0 8px hsl(var(--playhead)),
+        0 0 20px hsl(var(--playhead) / 0.7);
+}
+
+.recording-region {
+    position: absolute;
+    background-color: hsl(var(--destructive) / 0.16);
+    border-left: 2px solid hsl(var(--destructive));
+    pointer-events: none;
+    z-index: 25;
+    animation: recording-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* design/README.md has promised this since Sprint 8.6. It is honoured for the
+   recording visuals, which are the most insistent motion in the product; the
+   rest of the app's animation still does not ask. */
+@media (prefers-reduced-motion: reduce) {
+    .recording-region {
+        animation: none;
+        opacity: 0.85;
+    }
+}
+
 /* Playhead marker only (for Timeline ruler) */
 .playhead-marker {
     position: absolute;

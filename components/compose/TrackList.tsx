@@ -47,6 +47,7 @@ import type { Viewport } from '@/hooks/useVisibleClips';
 import { DraggableClip } from './DraggableClip';
 import { LoopBraces } from './LoopBraces';
 import { SnapSelect } from './SnapSelect';
+import { CountInOverlay } from './CountInOverlay';
 import { Slider } from '@/components/ui/slider';
 import { trackColorValue } from '@/lib/design/track-colors';
 import type { Track } from '@/types';
@@ -102,9 +103,12 @@ export function TrackList() {
     const rulerCanvasRef = useRef<HTMLCanvasElement>(null);
     const isPlaying = usePlaybackStore((s) => s.isPlaying);
     const isRecording = usePlaybackStore((s) => s.isRecording);
+    const isCountingIn = usePlaybackStore((s) => s.isCountingIn);
+    const recordingSession = usePlaybackStore((s) => s.recordingSession);
     const positionVersion = usePlaybackStore((s) => s.positionVersion);
 
     const playheadRef = useRef<HTMLDivElement>(null);
+    const recordRegionRef = useRef<HTMLDivElement>(null);
     const animationRef = useRef<number>(0);
 
     const beatsPerBar = project?.timeSignature[0] || 4;
@@ -200,9 +204,21 @@ export function TrackList() {
         ctx.stroke();
     }, [project, pixelsPerBeat, projectLengthBeats, resolvedTheme]);
 
-    // Update playhead position (during playback AND recording)
+    // Where the recording region starts, in pixels. Recomputed with the frame
+    // loop rather than inside it: the bar and the zoom both hold still for the
+    // length of a take.
+    const recordTrackIndex = recordingSession
+        ? project?.tracks.findIndex((t) => t.id === recordingSession.trackId) ?? -1
+        : -1;
+    const recordRegionLeft = recordingSession
+        ? recordingSession.startBar * beatsPerBar * pixelsPerBeat
+        : 0;
+
+    // Update playhead position (during playback, recording AND the count-in —
+    // a lead-in count-in moves the transport, so the playhead has to move with
+    // it or the count reads as a frozen app)
     useEffect(() => {
-        const isActive = isPlaying || isRecording;
+        const isActive = isPlaying || isRecording || isCountingIn;
 
         const updatePlayhead = () => {
             if (!playheadRef.current || !project) return;
@@ -220,6 +236,14 @@ export function TrackList() {
             const absoluteX = beatsElapsed * pixelsPerBeat;
 
             playheadRef.current.style.transform = `translate3d(${absoluteX}px, 0, 0)`;
+
+            // The take so far: from the bar recording began at, to wherever the
+            // playhead has got to. Written straight to the node, like the
+            // playhead — a width that changes every frame has no business in
+            // React state.
+            if (recordRegionRef.current) {
+                recordRegionRef.current.style.width = `${Math.max(0, absoluteX - recordRegionLeft)}px`;
+            }
 
             // Auto-scroll when playhead goes near edge (during playback or recording)
             if (playbackRefs.isPlayingRef.current && scrollContainerRef.current) {
@@ -251,7 +275,7 @@ export function TrackList() {
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [isPlaying, isRecording, positionVersion, project, pixelsPerBeat]);
+    }, [isPlaying, isRecording, isCountingIn, positionVersion, project, pixelsPerBeat, recordRegionLeft]);
 
     // Redraw ruler on changes
     useEffect(() => {
@@ -395,7 +419,7 @@ export function TrackList() {
     const trackIds = project.tracks.map((t) => t.id);
 
     return (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="relative flex flex-1 overflow-hidden">
             {/* Track headers column (fixed left) */}
             <div
                 className="flex flex-col border-r border-border bg-surface flex-shrink-0"
@@ -436,6 +460,7 @@ export function TrackList() {
                                     key={track.id}
                                     track={track}
                                     isSelected={selectedTrackId === track.id}
+                                    isRecordingHere={isRecording && recordingSession?.trackId === track.id}
                                     onSelect={() => selectTrack(track.id)}
                                     onMuteToggle={() => handleMuteToggle(track)}
                                     onSoloToggle={() => handleSoloToggle(track)}
@@ -500,6 +525,7 @@ export function TrackList() {
                             pixelsPerBeat={pixelsPerBeat}
                             trackCount={project.tracks.length}
                             projectLengthBeats={projectLengthBeats}
+                            dimmed={isRecording}
                         />
 
                         {/* Track lanes */}
@@ -517,10 +543,26 @@ export function TrackList() {
                         ))}
                     </div>
 
+                    {/* The take being captured, on the track capturing it.
+                        Starts at the bar recording began at and grows with the
+                        playhead; the pulse is CSS, so it costs nothing per frame. */}
+                    {isRecording && recordingSession && recordTrackIndex >= 0 && (
+                        <div
+                            ref={recordRegionRef}
+                            className="recording-region"
+                            style={{
+                                left: recordRegionLeft,
+                                top: RULER_HEIGHT + recordTrackIndex * TRACK_HEIGHT,
+                                height: TRACK_HEIGHT,
+                                width: 0,
+                            }}
+                        />
+                    )}
+
                     {/* Single unified playhead (ruler + tracks) */}
                     <div
                         ref={playheadRef}
-                        className="playhead-unified"
+                        className={`playhead-unified${isRecording ? ' is-recording' : ''}`}
                         style={{
                             transform: 'translate3d(0, 0, 0)',
                             top: 0,
@@ -529,6 +571,8 @@ export function TrackList() {
                     />
                 </div>
             </div>
+
+            <CountInOverlay />
         </div>
     );
 }
@@ -540,6 +584,8 @@ export function TrackList() {
 interface TrackHeaderProps {
     track: Track;
     isSelected: boolean;
+    /** This track is the one currently being recorded onto. */
+    isRecordingHere: boolean;
     onSelect: () => void;
     onMuteToggle: () => void;
     onSoloToggle: () => void;
@@ -592,6 +638,19 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                     <span className="flex-1 truncate text-sm font-medium">
                         {props.track.name}
                     </span>
+                    {/* The arm button turns red and the transport names the armed
+                        track — the header itself said nothing, which is the one
+                        place you look when you are about to sing into it. */}
+                    {props.track.armed && (
+                        <span
+                            className={`shrink-0 rounded-xs border px-1 text-2xs font-bold uppercase tracking-wider ${props.isRecordingHere
+                                ? 'animate-pulse border-destructive bg-destructive text-destructive-foreground'
+                                : 'border-destructive/40 bg-destructive/15 text-destructive'
+                                }`}
+                        >
+                            {props.isRecordingHere ? t('rec') : t('armed')}
+                        </span>
+                    )}
                     <Button
                         aria-label={t('delete')}
                         variant="ghost"
@@ -964,9 +1023,11 @@ interface GridLinesProps {
     pixelsPerBeat: number;
     trackCount: number;
     projectLengthBeats: number;
+    /** Recede while recording, so the playhead and the take are what is left. */
+    dimmed?: boolean;
 }
 
-function GridLines({ bpm, timeSignature, pixelsPerBeat, trackCount, projectLengthBeats }: GridLinesProps) {
+function GridLines({ bpm, timeSignature, pixelsPerBeat, trackCount, projectLengthBeats, dimmed = false }: GridLinesProps) {
     const beatsPerBar = timeSignature[0];
     const totalBeats = Math.max(projectLengthBeats, Math.ceil(300 * (bpm / 60)));
     const lines = [];
@@ -998,7 +1059,10 @@ function GridLines({ bpm, timeSignature, pixelsPerBeat, trackCount, projectLengt
     }
 
     return (
-        <div className="absolute inset-0 pointer-events-none" style={{ height: totalHeight }}>
+        <div
+            className={`absolute inset-0 pointer-events-none transition-opacity duration-slow ${dimmed ? 'opacity-40' : 'opacity-100'}`}
+            style={{ height: totalHeight }}
+        >
             {lines}
         </div>
     );

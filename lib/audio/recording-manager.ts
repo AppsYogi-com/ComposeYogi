@@ -156,15 +156,33 @@ class RecordingManager {
             : audioEngine.secondsToBar(audioEngine.getCurrentTime());
 
         // Handle count-in
+        const countInDuration = countInBars > 0
+            ? audioEngine.barToSeconds(countInBars) * 1000
+            : 0;
+
+        // Tell the arrangement what is about to happen, before it happens: this
+        // is what the count-in overlay and the pulsing region are drawn from,
+        // and both need to exist during the count-in, not after it.
+        usePlaybackStore.getState().setRecordingSession({
+            trackId,
+            startBar,
+            countInEndsAt: countInBars > 0 ? performance.now() + countInDuration : null,
+            countInBeats: countInBars * project.timeSignature[0],
+        });
+
         if (countInBars > 0) {
             usePlaybackStore.getState().setCountingIn(true);
 
-            // Start playback from count-in position
+            // A lead-in only exists if there is music before the punch point.
+            // Recording from the top — the default — puts `startBar - countInBars`
+            // at a negative bar, and a transport parked at a negative time is not
+            // a count-in, it is a wrong answer. There the count-in is pre-roll:
+            // the clock runs, the transport waits. Which is why the overlay
+            // counts on the wall clock and not on transport position.
             const countInStartBar = startBar - countInBars;
-            audioEngine.play(audioEngine.barToSeconds(countInStartBar));
-
-            // Wait for count-in to complete
-            const countInDuration = audioEngine.barToSeconds(countInBars) * 1000;
+            if (countInStartBar >= 0) {
+                audioEngine.play(audioEngine.barToSeconds(countInStartBar));
+            }
 
             await new Promise<void>((resolve) => {
                 this.countInTimeoutId = setTimeout(() => {
@@ -178,11 +196,10 @@ class RecordingManager {
         usePlaybackStore.getState().startRecording();
 
         // Start playback FIRST if not already playing (this ensures transport is running)
+        // `startBar`, not 0: it already accounts for the loop, and hitting record
+        // with the playhead at bar 8 recorded from the top of the song.
         if (!playbackRefs.isPlayingRef.current) {
-            const initialPosition = playbackState.loopEnabled
-                ? audioEngine.barToSeconds(playbackState.loopStartBar)
-                : 0;
-            audioEngine.play(initialPosition);
+            audioEngine.play(audioEngine.barToSeconds(startBar));
         }
 
         // Small delay to ensure transport has started
@@ -198,6 +215,17 @@ class RecordingManager {
             startTime,
             isActive: true,
         };
+
+        // The bar above is the one the transport actually reports, which is not
+        // always the one we asked for. The region has to be drawn where the take
+        // lands, not where it was requested, so the session is replaced rather
+        // than left holding the estimate. The count-in is over by now, too.
+        usePlaybackStore.getState().setRecordingSession({
+            trackId,
+            startBar,
+            countInEndsAt: null,
+            countInBeats: 0,
+        });
 
         logger.info('Recording started', { trackId, startBar, startTime });
 

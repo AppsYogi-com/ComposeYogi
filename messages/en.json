@@ -99,6 +99,9 @@
     "darkMode": "Dark mode",
     "recordedClipName": "Recording"
   },
+  "recording": {
+    "countIn": "Recording in"
+  },
   "browser": {
     "title": "Browser",
     "collapse": "Collapse Browser",
@@ -335,7 +338,9 @@
     "solo": "Solo",
     "volume": "Volume",
     "arm": "Arm for recording",
-    "disarm": "Disarm"
+    "disarm": "Disarm",
+    "armed": "Armed",
+    "rec": "Rec"
   },
   "clips": {
     "duplicateBadge": "+ Copy"

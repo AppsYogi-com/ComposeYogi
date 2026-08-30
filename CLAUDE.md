@@ -73,6 +73,10 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   `temporal` (limit 100, JSON-stringify equality). All mutations immutable, stamp `updatedAt`.
 - `playback.ts` — transport state **plus** exported `playbackRefs` (plain `{current}` refs
   that bypass React for 60fps playhead animation). Never put per-frame values in React state.
+  `recordingSession` is how recording reaches the arrangement: `isRecording` alone said only
+  *that* a recording was happening, never which track or from which bar, so the timeline
+  could not have drawn one had it wanted to. Cleared by both `stopRecording()` and `stop()` —
+  a transport stopped from anywhere must not leave a recording region on screen.
 - `ui.ts` — panels, selection, zoom, drag state, custom keybindings.
 
 ### Audio (`lib/audio/`)
@@ -96,6 +100,18 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   nodes and must NEVER reschedule.
 - `recorder.ts` + `recording-manager.ts` — mic → trim to loop bounds → fades → WAV bytes
   → `AudioTake` (in-memory map + IndexedDB). Latency offset from `latency-calibration.ts`.
+  The count-in has **two shapes and the sign of `startBar - countInBars` picks which**: with
+  music before the punch point it is a *lead-in* and the transport plays those bars; at the
+  top of the song that subtraction is negative, and a transport parked at a negative time is
+  not a count-in but a wrong answer — so it is *pre-roll*, where the clock runs and the
+  transport waits. Recording from the top with the default two bars is the second case, so
+  it was the shipped default that was broken. `recording-manager` is also the only writer of
+  `recordingSession` (below), and it writes it **twice**: an estimate as the count-in begins,
+  then the bar the transport actually reports once recording starts.
+- `count-in.ts` — the countdown arithmetic, on the **wall clock** rather than transport
+  position, because pre-roll has no transport position to read. Imports nothing, which is
+  the point: it is the only part of the recording visuals a unit test can reach. `ceil`, not
+  `round` — that is what makes the last beat read "1" for its whole duration.
 - `offline-renderer.ts` — WAV/MP3 export inside `Tone.Offline()`. Renders from the same
   render plan as `playout.ts`; no scheduling logic of its own.
 - `stretch.ts` — Stretch-to-BPM, v1 by `playbackRate` (so it repitches; true time-stretch
@@ -345,7 +361,7 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **No SEO content scaling** (maintainer rule): every public page must be something a
   musician would want to land on. Discoverability comes from real shared music.
 
-## Known gaps & active issues (updated 2026-08-30 after Sprint 8.7.5 — verify before relying on)
+## Known gaps & active issues (updated 2026-08-30 after Sprint 8.7.7 — verify before relying on)
 
 - **Three hand-maintained lists of `Project` fields**, each of which fails silently when a
   new field is forgotten, and each of which has now cost a bug: the reschedule hash
@@ -379,6 +395,23 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **Unverified performance claims**: frame rate, Lighthouse, the offline walkthrough and
   the cross-browser matrix have NOT been measured on real hardware since the 8.5 work
   (rAF doesn't run in a headless pane). Don't quote numbers for these.
+- **The Browser pane denies `getUserMedia`**, so nothing downstream of the microphone can be
+  verified there — 8.7.7's every run reached "Recorder not initialized" after all the state
+  and all the visuals but before a sample. It also **suspends rAF while the pane is hidden**,
+  which makes any animation look frozen: verify animated state by stepping the *inputs* (a
+  store write whose dep change ticks the effect synchronously) rather than watching it run,
+  and take a screenshot to force a frame. Two 8.7.7 measurements were void before this was
+  understood — one because the pane was hidden, one because a page reload had left the audio
+  engine uninitialized so `audioEngine.play()` silently no-opped. **Check `isReady()` and
+  that the recording manager has no stale session before trusting a transport measurement.**
+- **The count-in is silent by default.** PRD §9 says the metronome defaults ON; the store
+  says `metronomeEnabled: false`. The 8.7.7 overlay carries beat pips because of it. Forcing
+  the click on during count-in is a deliberate audio-behaviour change, not a visuals fix.
+- **`prefers-reduced-motion` is honoured by the recording pulse and nothing else**, though
+  `design/README.md` has promised it product-wide since 8.6.
+- **`lib/canvas/GridRenderer.ts` is dead code** — exported by the barrel, imported by
+  nothing. The arrangement grid is DOM (`.grid-line` in globals.css); only the ruler is
+  canvas, drawn inline in `TrackList.tsx`.
 - **Macro audio is unit-tested, not heard**: the clip macros and global swing are proven
   at the schedule level (`tests/clip-macros.test.ts`) but nobody has listened to them, and
   per-clip `Tone.Reverb.generate()` cost on reschedule for Space-heavy projects is

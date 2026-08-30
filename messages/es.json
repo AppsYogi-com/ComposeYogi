@@ -99,6 +99,9 @@
     "darkMode": "Modo oscuro",
     "recordedClipName": "Grabación"
   },
+  "recording": {
+    "countIn": "Grabando en"
+  },
   "browser": {
     "title": "Explorador",
     "collapse": "Contraer explorador",
@@ -335,7 +338,9 @@
     "solo": "Solo",
     "volume": "Volumen",
     "arm": "Activar para grabar",
-    "disarm": "Desactivar"
+    "disarm": "Desactivar",
+    "armed": "Armada",
+    "rec": "Grab"
   },
   "clips": {
     "duplicateBadge": "+ Copia"
