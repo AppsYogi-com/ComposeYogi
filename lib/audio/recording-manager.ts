@@ -85,6 +85,8 @@ class RecordingManager {
     private onComplete: RecordingCompleteCallback | null = null;
     private clipLabel = 'Recording';
     private countInTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    /** Settles the count-in's promise — false when it was abandoned. */
+    private countInResolve: ((completed: boolean) => void) | null = null;
 
     // ========================================
     // Initialization
@@ -197,12 +199,19 @@ class RecordingManager {
                 audioEngine.play(audioEngine.barToSeconds(countInStartBar));
             }
 
-            await new Promise<void>((resolve) => {
+            const completed = await new Promise<boolean>((resolve) => {
+                this.countInResolve = resolve;
                 this.countInTimeoutId = setTimeout(() => {
+                    this.countInTimeoutId = null;
+                    this.countInResolve = null;
                     usePlaybackStore.getState().setCountingIn(false);
-                    resolve();
+                    resolve(true);
                 }, countInDuration);
             });
+
+            // Stopped while it was counting. Nothing has been captured, so
+            // there is nothing to finish — just leave.
+            if (!completed) return;
         }
 
         // Update store state FIRST (so UI shows recording state)
@@ -250,21 +259,48 @@ class RecordingManager {
     }
 
     /**
+     * Abandon a count-in that is still running.
+     *
+     * Settles the promise `startRecording` is parked on, so it returns instead
+     * of going on to open the recorder — the count-in used to be uncancellable
+     * for exactly that reason: every stop path guarded on `this.session`, which
+     * does not exist until *after* the count-in, so the timeout always fired and
+     * a take always began.
+     */
+    private abortCountIn(): boolean {
+        if (this.countInTimeoutId === null) return false;
+
+        clearTimeout(this.countInTimeoutId);
+        this.countInTimeoutId = null;
+        audioEngine.stopCountIn();
+        usePlaybackStore.getState().setCountingIn(false);
+
+        const resolve = this.countInResolve;
+        this.countInResolve = null;
+        resolve?.(false);
+        return true;
+    }
+
+    /** A count-in is running, or a take is. Either way there is something to stop. */
+    isPending(): boolean {
+        return this.countInTimeoutId !== null || this.session?.isActive === true;
+    }
+
+    /**
      * Stop the current recording
      */
     async stopRecording(): Promise<RecordedSegment | null> {
-        if (!this.session?.isActive) {
+        // Still counting in: no session, no audio, nothing to keep.
+        if (this.abortCountIn() && !this.session?.isActive) {
+            audioEngine.stop();
+            this.onComplete = null;
+            usePlaybackStore.getState().stopRecording();
+            usePlaybackStore.getState().stop();
+            logger.info('Count-in cancelled before recording began');
             return null;
         }
-
-        // Clear count-in timeout if still running. The clicks are already in
-        // the audio graph at absolute times, so they need cancelling too — a
-        // count-in that keeps ticking after you abandoned it is a haunting.
-        if (this.countInTimeoutId) {
-            clearTimeout(this.countInTimeoutId);
-            this.countInTimeoutId = null;
-            audioEngine.stopCountIn();
-            usePlaybackStore.getState().setCountingIn(false);
+        if (!this.session?.isActive) {
+            return null;
         }
 
         // DON'T mark session as inactive yet - handleRecordingComplete needs it
@@ -290,18 +326,11 @@ class RecordingManager {
      * Cancel the current recording (discard data)
      */
     async cancelRecording(): Promise<void> {
-        if (!this.session?.isActive) {
+        if (!this.isPending()) {
             return;
         }
 
-        // Clear count-in timeout
-        if (this.countInTimeoutId) {
-            clearTimeout(this.countInTimeoutId);
-            this.countInTimeoutId = null;
-            audioEngine.stopCountIn();
-            usePlaybackStore.getState().setCountingIn(false);
-        }
-
+        this.abortCountIn();
         this.session = null;
         this.onComplete = null;
 

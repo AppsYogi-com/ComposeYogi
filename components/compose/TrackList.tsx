@@ -90,7 +90,6 @@ export function TrackList() {
     // their vertical scroll has to be kept in step by hand — otherwise past a
     // screenful of tracks the names drift out of line with their lanes.
     const trackHeadersRef = useRef<HTMLDivElement>(null);
-    const syncingScrollRef = useRef(false);
 
     // Visible horizontal window, used to virtualize clips. Width comes from a
     // ResizeObserver so panel toggles and window resizes are picked up, not
@@ -320,29 +319,29 @@ export function TrackList() {
         setScrollX(target.scrollLeft);
         setScrollY(target.scrollTop);
 
-        // Keep the header column aligned with the lanes.
-        if (syncingScrollRef.current) return;
+        // The header column does not scroll — it is *moved*, by exactly the
+        // amount the lanes moved. It used to be a second scroll container with
+        // its own scrollTop mirrored 1:1, which only stays aligned while both
+        // can travel the same distance, and they cannot: the lanes carry the
+        // ruler and a 100px tail, the headers carry an "Add Track" button, and
+        // the lanes lose a few more pixels to their horizontal scrollbar on the
+        // platforms that reserve space for one. Measured with both bottom panels
+        // open, the lanes could scroll 234px and the headers 179px, so past
+        // 179px the names simply stopped following the lanes. Translating the
+        // column cannot drift, whatever either side's height turns out to be.
         const headers = trackHeadersRef.current;
-        if (headers && headers.scrollTop !== target.scrollTop) {
-            syncingScrollRef.current = true;
-            headers.scrollTop = target.scrollTop;
-            syncingScrollRef.current = false;
+        if (headers) {
+            headers.style.transform = `translate3d(0, ${-target.scrollTop}px, 0)`;
         }
     }, [setScrollX, setScrollY]);
 
-    // …and the other way, so scrolling with the pointer over the track names
-    // moves the lanes too.
-    const handleTrackHeadersScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-        if (syncingScrollRef.current) return;
-        const target = e.target as HTMLDivElement;
+    // Scrolling with the pointer over the track names has to move the lanes,
+    // since the names themselves no longer scroll.
+    const handleTrackHeadersWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
         const lanes = scrollContainerRef.current;
-        if (lanes && lanes.scrollTop !== target.scrollTop) {
-            syncingScrollRef.current = true;
-            lanes.scrollTop = target.scrollTop;
-            syncingScrollRef.current = false;
-            setScrollY(target.scrollTop);
-        }
-    }, [setScrollY]);
+        if (!lanes || e.ctrlKey || e.metaKey) return;
+        lanes.scrollTop += e.deltaY;
+    }, []);
 
     // Handle mouse wheel zoom (Ctrl/Cmd + scroll)
     const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
@@ -451,9 +450,12 @@ export function TrackList() {
                 >
                     <SortableContext items={trackIds} strategy={verticalListSortingStrategy}>
                         <div
+                            className="relative flex-1 overflow-hidden"
+                            onWheel={handleTrackHeadersWheel}
+                        >
+                        <div
                             ref={trackHeadersRef}
-                            onScroll={handleTrackHeadersScroll}
-                            className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
+                            className="absolute inset-x-0 top-0 will-change-transform"
                         >
                             {project.tracks.map((track) => (
                                 <SortableTrackHeader
@@ -477,6 +479,7 @@ export function TrackList() {
                                 <Plus className="h-4 w-4" />
                                 {t('add')}
                             </button>
+                        </div>
                         </div>
                     </SortableContext>
                 </DndContext>

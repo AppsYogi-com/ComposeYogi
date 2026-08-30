@@ -421,12 +421,22 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   understood — one because the pane was hidden, one because a page reload had left the audio
   engine uninitialized so `audioEngine.play()` silently no-opped. **Check `isReady()` and
   that the recording manager has no stale session before trusting a transport measurement.**
-- **Recording is hard to reach, and three of its controls do not exist** (Sprint 8.7.8):
+- **Recording is hard to reach, and two of its controls do not exist** (Sprint 8.7.8):
   `+ Add Track` only makes MIDI tracks and the arm button only renders for `type === 'audio'`,
-  so the sole route to a recordable track is Inspector → Type → Audio; `setCountInBars` has
-  no callers, so every count-in is the hardcoded 2 bars; and the record button's tooltip
-  advertises `R` when no such shortcut is registered. Verified by walking the path in a
+  so the sole route to a recordable track is Inspector → Type → Audio; and `setCountInBars`
+  has no callers, so every count-in is the hardcoded 2 bars. (The record button's tooltip
+  also advertises `R` with no such shortcut registered.) Verified by walking the path in a
   browser, not by reading the code.
+- **A recording in flight is two phases, and both stop paths must cover both.** `isRecording`
+  is false for the whole count-in, so anything that means "is a take in progress" has to ask
+  `recordingManager.isPending()`, not the store flag. Guarding on `this.session` is the
+  specific mistake that made the count-in uncancellable — it does not exist until after the
+  count-in, so every stop was a no-op and the take began anyway.
+- **The track headers are translated, not scrolled.** One scroll container (the lanes) owns
+  the vertical position and `handleScroll` writes the header column's transform. Two
+  containers mirroring `scrollTop` drift by construction, because their travel differs by the
+  ruler, the trailing pad, the Add Track button and the horizontal scrollbar's reserved
+  height. Do not reintroduce a second `overflow-y-auto` there.
 - **The metronome still defaults OFF** (`metronomeEnabled: false`) even though PRD §9 lists
   it ON among the recording defaults. Deliberate: §9's defaults are the *Recording UX*
   section's, the count-in now clicks unconditionally, and a click running through the take
