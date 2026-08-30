@@ -50,9 +50,15 @@ class AudioEngine {
         // Start audio context on user interaction
         await Tone.start();
 
-        // Configure default settings
-        Tone.getTransport().bpm.value = 120;
-        Tone.getTransport().timeSignature = [4, 4];
+        // Deliberately does NOT set bpm or timeSignature. It used to stamp
+        // 120 / 4-4 here, which silently overwrote the open project's tempo on
+        // the first user gesture — and since the compose page only re-applied
+        // the project's tempo when `isAudioReady` flipped, everything depended
+        // on that one re-run landing after this. secondsToBar() reads the
+        // transport, and the arrangement sizes every audio clip with it, so
+        // whenever the ordering slipped a dropped sample was measured against
+        // 120 regardless of the song. The project owns the tempo; the engine
+        // just plays at it.
 
         // Create metronome synth
         this.metronome = new Tone.Synth({
