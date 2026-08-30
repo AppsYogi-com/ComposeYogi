@@ -18,7 +18,7 @@ outranks assumptions derived from code.
 | Doc | What it is |
 |---|---|
 | `docs/composeyogi_prd.md` | The PRD: vision, users, flows, quality bars, phase roadmap (Phase 2 = multi-take, automation, collaboration-lite; Phase 3 = AI, mobile companion, marketplace), **plus** the compose-page spec in §8. Merged 2026-08-30 from `composeyogi.md` + `design.md`, which overlapped on the whole of that section. Contains **designed-but-unbuilt** features — punch recording, the count-in overlay — so unwired schema for something named there is a commitment, not dead code. It says nothing about how the UI *looks*; that is `design/`, and §8.9 says so. |
-| `docs/TaskList.md` | **The planning document** (currently v1.9). Sprint-based, checkboxes, named deliverables, versioned footer. All work is planned here first. Sprints 8.5 and 8.6 shipped (v1.2.0, v1.3.0); active: Sprint 8.7.5 → 8.7.6 → Phase 1.5. |
+| `docs/TaskList.md` | **The planning document** (currently v1.10). Sprint-based, checkboxes, named deliverables, versioned footer. All work is planned here first. Sprints 8.5 and 8.6 shipped (v1.2.0, v1.3.0); active: Sprint 8.7.5 → 8.7.7 → Phase 1.5. |
 | `docs/adr/` | Architecture Decision Records (ADR-001 backend = first entry, Sprint 9.0). |
 | `design/` (public, shipped Sprint 8.6) | The committed design system — principles, usage rules, live HTML artboards. **All UI must comply**; `npm run check` enforces it. |
 | `ROADMAP.md` (public) | Community-facing summary. Keep in sync with TaskList after each release. |
