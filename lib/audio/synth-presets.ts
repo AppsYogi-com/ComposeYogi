@@ -1,9 +1,32 @@
 // ============================================
 // ComposeYogi — Synth Presets
-// Tone.js synthesizer configurations
 // ============================================
+//
+// The instrument library: 64 presets, and the construction of a Tone voice from
+// a spec.
+//
+// The 52 melodic presets are built from `preset-specs.ts` rather than from
+// hand-written factories. They used to be factories — one `createX()` per
+// preset, each constructing a Tone node and returning it — which made the
+// library's *sound* unreadable to the rest of the app: "start from the Electric
+// Piano" is not implementable when the Electric Piano is a closure. Writing
+// specs alongside the factories would have been a second source of truth for 52
+// sounds, drifting the first time anyone edited one, so the factories are gone.
+//
+// The 12 drum kits stay bespoke: Samplers, MembraneSynths and a NoiseSynth are a
+// different construction with a different parameter space, and a custom drum kit
+// is a different feature (a kit is a mapping of pieces, not a voice).
+//
+// This file knows nothing about custom instruments — see `custom-instruments.ts`.
+// User content is resolved one layer up, in the scheduler, so the built-in
+// library never imports IndexedDB-backed state.
 
 import * as Tone from 'tone';
+
+import { voiceOptions } from './instrument-spec';
+import { PRESET_SPECS } from './preset-specs';
+
+import type { InstrumentSpec, InstrumentVoice } from '@/types';
 
 // ============================================
 // Types
@@ -11,6 +34,23 @@ import * as Tone from 'tone';
 
 // Union type for all synths we might create
 export type SynthType = Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | Tone.NoiseSynth | Tone.Sampler;
+
+/**
+ * A constructed instrument, ready to schedule.
+ *
+ * `synth` and `output` are separate because a custom instrument's Brightness is
+ * a filter node *after* the voice: the scheduler triggers notes on `synth` (and
+ * branches on its class for polyphony and pitch), but must connect `output`, or
+ * the filter is built, wired to nothing, and silently bypassed. For every
+ * built-in the two are the same object.
+ */
+export interface ResolvedInstrument {
+    synth: SynthType;
+    /** Where the instrument's audio leaves. Connect this, never `synth`. */
+    output: Tone.ToneAudioNode;
+    /** Extra nodes the caller must dispose alongside the synth. */
+    nodes: Tone.ToneAudioNode[];
+}
 
 export interface SynthPreset {
     id: string;
@@ -20,335 +60,57 @@ export interface SynthPreset {
 }
 
 // ============================================
-// Synth Factory Functions
+// Voices
 // ============================================
 
-// Keys & Pianos - Use PolySynth with basic Synth (works reliably)
-const createElectricPiano = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.005,
-            decay: 0.8,
-            sustain: 0.2,
-            release: 1.2,
-        },
-    });
-};
+/**
+ * The four Tone classes a spec's `voice` can name.
+ *
+ * Every melodic preset in the library is a PolySynth wrapping one of these, so
+ * this map plus `voiceOptions()` is the whole of how a sound gets built. Get an
+ * entry wrong and thirteen instruments change character at once while every
+ * options test still passes — which is why the golden fixture records the voice
+ * name alongside the options, and the test checks both.
+ */
+const VOICE_CONSTRUCTORS = {
+    synth: Tone.Synth,
+    monosynth: Tone.MonoSynth,
+    fmsynth: Tone.FMSynth,
+    amsynth: Tone.AMSynth,
+} as const satisfies Record<InstrumentVoice, unknown>;
 
-const createBrightPiano = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.005,
-            decay: 0.5,
-            sustain: 0.3,
-            release: 1.0,
-        },
-    });
-};
+/**
+ * Build a voice from a spec — the only place a melodic instrument is
+ * constructed, whether it is one of the 52 built-ins or something a user made.
+ *
+ * Falls back to a plain synth on a null spec rather than throwing. That branch
+ * is unreachable (`tests/instrument-spec.test.ts` proves every customizable
+ * preset has one) but a missing sound is a recoverable disappointment and a
+ * throw here would take the whole schedule down with it.
+ */
+export function createVoice(spec: InstrumentSpec | null | undefined): Tone.PolySynth {
+    if (!spec) return new Tone.PolySynth(Tone.Synth);
 
-// Bass - Use PolySynth wrapping MonoSynth for polyphony with filter envelope
-const createSubBass = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.005,
-            decay: 0.5,
-            sustain: 0.8,
-            release: 0.3,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.1,
-            sustain: 1,
-            release: 0.3,
-            baseFrequency: 80,
-            octaves: 1,
-        },
-    });
-};
+    const voice = VOICE_CONSTRUCTORS[spec.voice] ?? Tone.Synth;
+    // Tone's PolySynth generic cannot express "one of these four", and the
+    // options shape genuinely differs per voice. The pairing is what the golden
+    // test checks, so the cast is asserting something that is verified.
+    const synth = new Tone.PolySynth(
+        voice as typeof Tone.Synth,
+        voiceOptions(spec) as ConstructorParameters<typeof Tone.Synth>[0]
+    );
 
-const createSynthBass = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: {
-            attack: 0.01,
-            decay: 0.3,
-            sustain: 0.4,
-            release: 0.2,
-        },
-        filterEnvelope: {
-            attack: 0.01,
-            decay: 0.2,
-            sustain: 0.3,
-            release: 0.2,
-            baseFrequency: 200,
-            octaves: 2.5,
-        },
-    });
-};
+    if (spec.level !== 0) synth.volume.value = spec.level;
+    return synth;
+}
 
-// Leads
-const createSawLead = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: {
-            attack: 0.01,
-            decay: 0.2,
-            sustain: 0.6,
-            release: 0.3,
-        },
-    });
-};
+/** A built-in preset's `createSynth`, resolved from its spec at call time. */
+const fromSpec = (presetId: string) => (): SynthType =>
+    createVoice((PRESET_SPECS as Record<string, InstrumentSpec | null>)[presetId]);
 
-const createSquareLead = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'square' },
-        envelope: {
-            attack: 0.02,
-            decay: 0.15,
-            sustain: 0.5,
-            release: 0.4,
-        },
-    });
-};
-
-// Pads
-const createWarmPad = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.8,
-            decay: 0.5,
-            sustain: 0.9,
-            release: 2.0,
-        },
-    });
-};
-
-const createStringPad = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', spread: 20, count: 3 },
-        envelope: {
-            attack: 1.0,
-            decay: 0.3,
-            sustain: 0.8,
-            release: 2.5,
-        },
-    });
-};
-
-// Keys - Organ (sustained drawbar harmonics)
-const createOrgan = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'custom', partials: [1, 0.8, 0.6, 0.4, 0.3, 0.2] },
-        envelope: {
-            attack: 0.01,
-            decay: 0.01,
-            sustain: 1.0,
-            release: 0.15,
-        },
-    });
-};
-
-// Keys - Clavinet (percussive, funky bite)
-const createClavinet = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'pulse' },
-        envelope: {
-            attack: 0.002,
-            decay: 0.3,
-            sustain: 0.1,
-            release: 0.15,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.15,
-            sustain: 0.1,
-            release: 0.1,
-            baseFrequency: 800,
-            octaves: 2,
-        },
-    });
-};
-
-// Bass - FM Bass (metallic, growly)
-const createFMBass = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 1,
-        modulationIndex: 8,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'square' },
-        envelope: {
-            attack: 0.01,
-            decay: 0.4,
-            sustain: 0.3,
-            release: 0.2,
-        },
-        modulationEnvelope: {
-            attack: 0.01,
-            decay: 0.2,
-            sustain: 0.1,
-            release: 0.2,
-        },
-    });
-};
-
-// Bass - Pluck Bass (short pizzicato)
-const createPluckBass = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.005,
-            decay: 0.25,
-            sustain: 0.05,
-            release: 0.1,
-        },
-        filterEnvelope: {
-            attack: 0.002,
-            decay: 0.15,
-            sustain: 0.05,
-            release: 0.1,
-            baseFrequency: 300,
-            octaves: 3,
-        },
-    });
-};
-
-// Leads - FM Lead (bell-like, metallic)
-const createFMLead = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 3,
-        modulationIndex: 10,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.01,
-            decay: 0.3,
-            sustain: 0.5,
-            release: 0.5,
-        },
-        modulationEnvelope: {
-            attack: 0.02,
-            decay: 0.4,
-            sustain: 0.2,
-            release: 0.3,
-        },
-    });
-};
-
-// Leads - Pulse Lead (PWM feel)
-const createPulseLead = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'pulse', width: 0.3 },
-        envelope: {
-            attack: 0.02,
-            decay: 0.15,
-            sustain: 0.7,
-            release: 0.3,
-        },
-    });
-};
-
-// Pads - Choir Pad (detuned voices, vocal-like)
-const createChoirPad = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.AMSynth, {
-        harmonicity: 2,
-        oscillator: { type: 'fatsine', spread: 30, count: 3 },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 1.2,
-            decay: 0.5,
-            sustain: 0.85,
-            release: 3.0,
-        },
-        modulationEnvelope: {
-            attack: 0.8,
-            decay: 0.3,
-            sustain: 0.7,
-            release: 2.0,
-        },
-    });
-};
-
-// Pads - Glass Pad (crystalline shimmer)
-const createGlassPad = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 5,
-        modulationIndex: 4,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'triangle' },
-        envelope: {
-            attack: 0.6,
-            decay: 0.8,
-            sustain: 0.7,
-            release: 2.5,
-        },
-        modulationEnvelope: {
-            attack: 0.5,
-            decay: 0.6,
-            sustain: 0.3,
-            release: 2.0,
-        },
-    });
-};
-
-// Synth - Pluck (short, harp/guitar-like)
-const createPluckSynth = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.4,
-            sustain: 0.0,
-            release: 0.2,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.25,
-            sustain: 0.0,
-            release: 0.15,
-            baseFrequency: 600,
-            octaves: 4,
-        },
-    });
-};
-
-// Synth - Bell (FM bell harmonics)
-const createBellSynth = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 5.07,
-        modulationIndex: 14,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 2.0,
-            sustain: 0.0,
-            release: 1.5,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 1.5,
-            sustain: 0.0,
-            release: 1.0,
-        },
-    });
-};
-
-// Basic Synth
-const createBasicSynth = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.02,
-            decay: 0.1,
-            sustain: 0.5,
-            release: 0.4,
-        },
-    });
-};
+// ============================================
+// Synth Factory Functions
+// ============================================
 
 // Drum Sampler - Maps GM drum pitches to actual samples
 // GM Drum mapping: 36=kick, 38=snare, 42=closed hat, 46=open hat, 37=rim, 39=clap
@@ -486,447 +248,21 @@ export async function waitForSynthReady(synth: SynthType): Promise<void> {
 // Mallet / Pitched Percussion
 // ============================================
 
-// Chimes (Metal Pipe) — metallic, long ringing
-const createChimes = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 7,
-        modulationIndex: 12,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 3.0,
-            sustain: 0.0,
-            release: 2.0,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 2.0,
-            sustain: 0.0,
-            release: 1.5,
-        },
-    });
-};
-
-// Marimba — warm wooden mallet, moderate decay
-const createMarimba = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 4,
-        modulationIndex: 2,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.8,
-            sustain: 0.0,
-            release: 0.5,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 0.4,
-            sustain: 0.0,
-            release: 0.3,
-        },
-    });
-};
-
-// Xylophone — bright, short, woody
-const createXylophone = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 5.07,
-        modulationIndex: 6,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.4,
-            sustain: 0.0,
-            release: 0.2,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 0.2,
-            sustain: 0.0,
-            release: 0.15,
-        },
-    });
-};
-
-// Vibraphone — sustained metallic, gentle vibrato feel
-const createVibraphone = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 3.01,
-        modulationIndex: 4,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 2.5,
-            sustain: 0.3,
-            release: 2.0,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 1.5,
-            sustain: 0.2,
-            release: 1.0,
-        },
-    });
-};
-
-// Kalimba — thumb piano, delicate pluck
-const createKalimba = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 8,
-        modulationIndex: 2,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'triangle' },
-        envelope: {
-            attack: 0.001,
-            decay: 1.2,
-            sustain: 0.0,
-            release: 0.8,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 0.6,
-            sustain: 0.0,
-            release: 0.4,
-        },
-    });
-};
-
-// Celeste — gentle, music-box-like bell
-const createCeleste = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 4,
-        modulationIndex: 6,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 1.8,
-            sustain: 0.0,
-            release: 1.2,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 1.0,
-            sustain: 0.0,
-            release: 0.8,
-        },
-    });
-};
-
-// Glockenspiel — very bright, metallic, high-pitched bell
-const createGlockenspiel = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 5.07,
-        modulationIndex: 18,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 1.5,
-            sustain: 0.0,
-            release: 1.0,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 0.8,
-            sustain: 0.0,
-            release: 0.6,
-        },
-    });
-};
-
 // ============================================
 // Plucked Strings
 // ============================================
-
-// Guitar — nylon-like pluck, warm
-const createGuitar = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'fatsawtooth', spread: 10, count: 2 },
-        envelope: {
-            attack: 0.002,
-            decay: 0.6,
-            sustain: 0.05,
-            release: 0.3,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.3,
-            sustain: 0.05,
-            release: 0.2,
-            baseFrequency: 400,
-            octaves: 3,
-        },
-    });
-};
-
-// Harp — gentle plucked string, longer decay
-const createHarp = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.001,
-            decay: 1.5,
-            sustain: 0.0,
-            release: 1.0,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.8,
-            sustain: 0.0,
-            release: 0.5,
-            baseFrequency: 500,
-            octaves: 3,
-        },
-    });
-};
-
-// Pizzicato — short orchestral pluck
-const createPizzicato = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.2,
-            sustain: 0.0,
-            release: 0.1,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.12,
-            sustain: 0.0,
-            release: 0.08,
-            baseFrequency: 500,
-            octaves: 3.5,
-        },
-    });
-};
-
-// Ukulele — bright, small-bodied pluck
-const createUkulele = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.4,
-            sustain: 0.02,
-            release: 0.2,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.2,
-            sustain: 0.02,
-            release: 0.15,
-            baseFrequency: 800,
-            octaves: 2.5,
-        },
-    });
-};
-
-// Banjo — twangy, bright pluck
-const createBanjo = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'pulse', width: 0.15 },
-        envelope: {
-            attack: 0.001,
-            decay: 0.3,
-            sustain: 0.01,
-            release: 0.15,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.15,
-            sustain: 0.01,
-            release: 0.1,
-            baseFrequency: 1000,
-            octaves: 3,
-        },
-    });
-};
 
 // ============================================
 // Bowed Strings
 // ============================================
 
-// Violin — bright bowed string
-const createViolin = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', spread: 15, count: 3 },
-        envelope: {
-            attack: 0.15,
-            decay: 0.2,
-            sustain: 0.85,
-            release: 0.4,
-        },
-    });
-};
-
-// Cello — warm, rich bowed string
-const createCello = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', spread: 20, count: 3 },
-        envelope: {
-            attack: 0.2,
-            decay: 0.3,
-            sustain: 0.8,
-            release: 0.6,
-        },
-    });
-};
-
-// Double Bass — deep bowed string
-const createDoubleBass = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', spread: 12, count: 2 },
-        envelope: {
-            attack: 0.25,
-            decay: 0.3,
-            sustain: 0.75,
-            release: 0.5,
-        },
-    });
-};
-
-// Tenor Violin (Viola) — mellow, between violin and cello
-const createTenorViolin = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', spread: 18, count: 3 },
-        envelope: {
-            attack: 0.18,
-            decay: 0.25,
-            sustain: 0.82,
-            release: 0.5,
-        },
-    });
-};
-
-// Fiddle — lively, brighter bowed string
-const createFiddle = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', spread: 10, count: 2 },
-        envelope: {
-            attack: 0.08,
-            decay: 0.15,
-            sustain: 0.8,
-            release: 0.3,
-        },
-    });
-};
-
 // ============================================
 // Woodwinds
 // ============================================
 
-// Flute — pure, breathy tone
-const createFlute = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.08,
-            decay: 0.1,
-            sustain: 0.85,
-            release: 0.3,
-        },
-    });
-};
-
-// Piccolo — bright, higher-pitched flute
-const createPiccolo = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.05,
-            decay: 0.08,
-            sustain: 0.9,
-            release: 0.25,
-        },
-    });
-};
-
-// Saxophone — rich, reedy tone with harmonics
-const createSaxophone = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'pulse', width: 0.35 },
-        envelope: {
-            attack: 0.05,
-            decay: 0.2,
-            sustain: 0.7,
-            release: 0.3,
-        },
-        filterEnvelope: {
-            attack: 0.03,
-            decay: 0.15,
-            sustain: 0.5,
-            release: 0.25,
-            baseFrequency: 400,
-            octaves: 2.5,
-        },
-    });
-};
-
-// Bassoon — dark, low woodwind
-const createBassoon = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: {
-            attack: 0.06,
-            decay: 0.3,
-            sustain: 0.65,
-            release: 0.4,
-        },
-        filterEnvelope: {
-            attack: 0.04,
-            decay: 0.2,
-            sustain: 0.4,
-            release: 0.3,
-            baseFrequency: 150,
-            octaves: 2,
-        },
-    });
-};
-
-// Oboe — nasal, reedy, complex harmonics
-const createOboe = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'pulse', width: 0.25 },
-        envelope: {
-            attack: 0.04,
-            decay: 0.15,
-            sustain: 0.75,
-            release: 0.3,
-        },
-        filterEnvelope: {
-            attack: 0.03,
-            decay: 0.1,
-            sustain: 0.6,
-            release: 0.2,
-            baseFrequency: 600,
-            octaves: 2,
-        },
-    });
-};
-
 // ============================================
 // Brass
 // ============================================
-
-// Trumpet — bright, brassy
-const createTrumpet = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'square' },
-        envelope: {
-            attack: 0.04,
-            decay: 0.15,
-            sustain: 0.7,
-            release: 0.25,
-        },
-    });
-};
 
 // Synth Drum Kit — punchier, more tonal variety than Classic Drum
 const createSynthDrumKit = (): Tone.MembraneSynth => {
@@ -939,82 +275,6 @@ const createSynthDrumKit = (): Tone.MembraneSynth => {
             decay: 0.25,
             sustain: 0,
             release: 0.08,
-        },
-    });
-};
-
-// Didgeridoo — deep droning buzz
-const createDidgeridoo = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: {
-            attack: 0.1,
-            decay: 0.3,
-            sustain: 0.9,
-            release: 0.5,
-        },
-        filterEnvelope: {
-            attack: 0.08,
-            decay: 0.2,
-            sustain: 0.4,
-            release: 0.4,
-            baseFrequency: 80,
-            octaves: 1.5,
-        },
-    });
-};
-
-// Vocal Synth — formant-like "ahh" articulation
-const createVocalSynth = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.AMSynth, {
-        harmonicity: 3,
-        oscillator: { type: 'fatsine', spread: 40, count: 3 },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.15,
-            decay: 0.4,
-            sustain: 0.7,
-            release: 0.8,
-        },
-        modulationEnvelope: {
-            attack: 0.1,
-            decay: 0.3,
-            sustain: 0.5,
-            release: 0.6,
-        },
-    });
-};
-
-// Orchestra Hit — big stab chord
-const createOrchestraHit = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', spread: 30, count: 5 },
-        envelope: {
-            attack: 0.005,
-            decay: 0.6,
-            sustain: 0.0,
-            release: 0.4,
-        },
-    });
-};
-
-// Guzheng — Chinese plucked zither with bright twang
-const createGuzheng = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.001,
-            decay: 1.8,
-            sustain: 0.0,
-            release: 1.2,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.5,
-            sustain: 0.0,
-            release: 0.4,
-            baseFrequency: 600,
-            octaves: 4,
         },
     });
 };
@@ -1064,116 +324,13 @@ const createWoodenBlock = (): Tone.MembraneSynth => {
     });
 };
 
-// Harpsichord — bright, plucked-string keyboard with metallic twang
-const createHarpsichord = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.MonoSynth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: {
-            attack: 0.001,
-            decay: 1.2,
-            sustain: 0.0,
-            release: 0.6,
-        },
-        filterEnvelope: {
-            attack: 0.001,
-            decay: 0.3,
-            sustain: 0.0,
-            release: 0.3,
-            baseFrequency: 800,
-            octaves: 4,
-        },
-    });
-};
-
-// Steel Pan — bright, shimmery bell-like tones with metallic harmonics
-const createSteelPan = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 4,
-        modulationIndex: 3,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'triangle' },
-        envelope: {
-            attack: 0.001,
-            decay: 1.5,
-            sustain: 0.0,
-            release: 0.8,
-        },
-        modulationEnvelope: {
-            attack: 0.001,
-            decay: 0.8,
-            sustain: 0.0,
-            release: 0.5,
-        },
-    });
-};
-
 // ============================================
 // Basic Waveform Synths — pure oscillator PolySynths
 // ============================================
 
-// Square Wave — classic 8-bit / retro tone, hollow and buzzy
-const createSquareWave = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'square' },
-        envelope: {
-            attack: 0.01,
-            decay: 0.3,
-            sustain: 0.6,
-            release: 0.4,
-        },
-    });
-};
-
-// Triangle Wave — soft, mellow, almost flute-like pure tone
-const createTriangleWave = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.01,
-            decay: 0.3,
-            sustain: 0.7,
-            release: 0.4,
-        },
-    });
-};
-
-// Sawtooth Wave — bright, buzzy, harmonically rich waveform
-const createSawtoothWave = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: {
-            attack: 0.01,
-            decay: 0.3,
-            sustain: 0.6,
-            release: 0.4,
-        },
-    });
-};
-
 // ============================================
 // Euphonium — warm, mellow low-brass PolySynth
 // ============================================
-
-const createEuphonium = (): Tone.PolySynth => {
-    return new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 1.5,
-        modulationIndex: 2,
-        oscillator: { type: 'sine' },
-        modulation: { type: 'sine' },
-        envelope: {
-            attack: 0.08,
-            decay: 0.2,
-            sustain: 0.7,
-            release: 0.4,
-        },
-        modulationEnvelope: {
-            attack: 0.1,
-            decay: 0.3,
-            sustain: 0.5,
-            release: 0.3,
-        },
-    });
-};
 
 // ============================================
 // Taiko — deep resonant Japanese drum (no samples)
@@ -1223,31 +380,31 @@ export const SYNTH_PRESETS = {
         id: 'electric-piano',
         name: 'Electric Piano',
         category: 'keys',
-        createSynth: createElectricPiano,
+        createSynth: fromSpec('electric-piano'),
     },
     'bright-piano': {
         id: 'bright-piano',
         name: 'Bright Piano',
         category: 'keys',
-        createSynth: createBrightPiano,
+        createSynth: fromSpec('bright-piano'),
     },
     'harpsichord': {
         id: 'harpsichord',
         name: 'Harpsichord',
         category: 'keys',
-        createSynth: createHarpsichord,
+        createSynth: fromSpec('harpsichord'),
     },
     'organ': {
         id: 'organ',
         name: 'Organ',
         category: 'keys',
-        createSynth: createOrgan,
+        createSynth: fromSpec('organ'),
     },
     'clavinet': {
         id: 'clavinet',
         name: 'Clavinet',
         category: 'keys',
-        createSynth: createClavinet,
+        createSynth: fromSpec('clavinet'),
     },
 
     // Bass
@@ -1255,25 +412,25 @@ export const SYNTH_PRESETS = {
         id: 'sub-bass',
         name: 'Sub Bass',
         category: 'bass',
-        createSynth: createSubBass,
+        createSynth: fromSpec('sub-bass'),
     },
     'synth-bass': {
         id: 'synth-bass',
         name: 'Synth Bass',
         category: 'bass',
-        createSynth: createSynthBass,
+        createSynth: fromSpec('synth-bass'),
     },
     'fm-bass': {
         id: 'fm-bass',
         name: 'FM Bass',
         category: 'bass',
-        createSynth: createFMBass,
+        createSynth: fromSpec('fm-bass'),
     },
     'pluck-bass': {
         id: 'pluck-bass',
         name: 'Pluck Bass',
         category: 'bass',
-        createSynth: createPluckBass,
+        createSynth: fromSpec('pluck-bass'),
     },
 
     // Leads
@@ -1281,25 +438,25 @@ export const SYNTH_PRESETS = {
         id: 'saw-lead',
         name: 'Saw Lead',
         category: 'lead',
-        createSynth: createSawLead,
+        createSynth: fromSpec('saw-lead'),
     },
     'square-lead': {
         id: 'square-lead',
         name: 'Square Lead',
         category: 'lead',
-        createSynth: createSquareLead,
+        createSynth: fromSpec('square-lead'),
     },
     'fm-lead': {
         id: 'fm-lead',
         name: 'FM Lead',
         category: 'lead',
-        createSynth: createFMLead,
+        createSynth: fromSpec('fm-lead'),
     },
     'pulse-lead': {
         id: 'pulse-lead',
         name: 'Pulse Lead',
         category: 'lead',
-        createSynth: createPulseLead,
+        createSynth: fromSpec('pulse-lead'),
     },
 
     // Pads
@@ -1307,25 +464,25 @@ export const SYNTH_PRESETS = {
         id: 'warm-pad',
         name: 'Warm Pad',
         category: 'pad',
-        createSynth: createWarmPad,
+        createSynth: fromSpec('warm-pad'),
     },
     'string-pad': {
         id: 'string-pad',
         name: 'String Pad',
         category: 'pad',
-        createSynth: createStringPad,
+        createSynth: fromSpec('string-pad'),
     },
     'choir-pad': {
         id: 'choir-pad',
         name: 'Choir Pad',
         category: 'pad',
-        createSynth: createChoirPad,
+        createSynth: fromSpec('choir-pad'),
     },
     'glass-pad': {
         id: 'glass-pad',
         name: 'Glass Pad',
         category: 'pad',
-        createSynth: createGlassPad,
+        createSynth: fromSpec('glass-pad'),
     },
 
     // Synths
@@ -1333,19 +490,19 @@ export const SYNTH_PRESETS = {
         id: 'basic-synth',
         name: 'Basic Synth',
         category: 'synth',
-        createSynth: createBasicSynth,
+        createSynth: fromSpec('basic-synth'),
     },
     'pluck-synth': {
         id: 'pluck-synth',
         name: 'Pluck',
         category: 'synth',
-        createSynth: createPluckSynth,
+        createSynth: fromSpec('pluck-synth'),
     },
     'bell-synth': {
         id: 'bell-synth',
         name: 'Bell',
         category: 'idiophones',
-        createSynth: createBellSynth,
+        createSynth: fromSpec('bell-synth'),
     },
 
     // Idiophones / Pitched Percussion
@@ -1353,49 +510,49 @@ export const SYNTH_PRESETS = {
         id: 'chimes',
         name: 'Chimes',
         category: 'idiophones',
-        createSynth: createChimes,
+        createSynth: fromSpec('chimes'),
     },
     'marimba': {
         id: 'marimba',
         name: 'Marimba',
         category: 'idiophones',
-        createSynth: createMarimba,
+        createSynth: fromSpec('marimba'),
     },
     'xylophone': {
         id: 'xylophone',
         name: 'Xylophone',
         category: 'idiophones',
-        createSynth: createXylophone,
+        createSynth: fromSpec('xylophone'),
     },
     'vibraphone': {
         id: 'vibraphone',
         name: 'Vibraphone',
         category: 'idiophones',
-        createSynth: createVibraphone,
+        createSynth: fromSpec('vibraphone'),
     },
     'kalimba': {
         id: 'kalimba',
         name: 'Kalimba',
         category: 'idiophones',
-        createSynth: createKalimba,
+        createSynth: fromSpec('kalimba'),
     },
     'celeste': {
         id: 'celeste',
         name: 'Celeste',
         category: 'idiophones',
-        createSynth: createCeleste,
+        createSynth: fromSpec('celeste'),
     },
     'glockenspiel': {
         id: 'glockenspiel',
         name: 'Glockenspiel',
         category: 'idiophones',
-        createSynth: createGlockenspiel,
+        createSynth: fromSpec('glockenspiel'),
     },
     'steel-pan': {
         id: 'steel-pan',
         name: 'Steel Pan',
         category: 'idiophones',
-        createSynth: createSteelPan,
+        createSynth: fromSpec('steel-pan'),
     },
 
     // Plucked Strings
@@ -1403,31 +560,31 @@ export const SYNTH_PRESETS = {
         id: 'guitar',
         name: 'Guitar',
         category: 'plucked-strings',
-        createSynth: createGuitar,
+        createSynth: fromSpec('guitar'),
     },
     'harp': {
         id: 'harp',
         name: 'Harp',
         category: 'plucked-strings',
-        createSynth: createHarp,
+        createSynth: fromSpec('harp'),
     },
     'pizzicato': {
         id: 'pizzicato',
         name: 'Pizzicato',
         category: 'plucked-strings',
-        createSynth: createPizzicato,
+        createSynth: fromSpec('pizzicato'),
     },
     'ukulele': {
         id: 'ukulele',
         name: 'Ukulele',
         category: 'plucked-strings',
-        createSynth: createUkulele,
+        createSynth: fromSpec('ukulele'),
     },
     'banjo': {
         id: 'banjo',
         name: 'Banjo',
         category: 'plucked-strings',
-        createSynth: createBanjo,
+        createSynth: fromSpec('banjo'),
     },
 
     // Bowed Strings
@@ -1435,31 +592,31 @@ export const SYNTH_PRESETS = {
         id: 'violin',
         name: 'Violin',
         category: 'bowed-strings',
-        createSynth: createViolin,
+        createSynth: fromSpec('violin'),
     },
     'cello': {
         id: 'cello',
         name: 'Cello',
         category: 'bowed-strings',
-        createSynth: createCello,
+        createSynth: fromSpec('cello'),
     },
     'double-bass': {
         id: 'double-bass',
         name: 'Double Bass',
         category: 'bowed-strings',
-        createSynth: createDoubleBass,
+        createSynth: fromSpec('double-bass'),
     },
     'tenor-violin': {
         id: 'tenor-violin',
         name: 'Tenor Violin',
         category: 'bowed-strings',
-        createSynth: createTenorViolin,
+        createSynth: fromSpec('tenor-violin'),
     },
     'fiddle': {
         id: 'fiddle',
         name: 'Fiddle',
         category: 'bowed-strings',
-        createSynth: createFiddle,
+        createSynth: fromSpec('fiddle'),
     },
 
     // Wind (merged Woodwind + Brass)
@@ -1467,43 +624,43 @@ export const SYNTH_PRESETS = {
         id: 'flute',
         name: 'Flute',
         category: 'wind',
-        createSynth: createFlute,
+        createSynth: fromSpec('flute'),
     },
     'piccolo': {
         id: 'piccolo',
         name: 'Piccolo',
         category: 'wind',
-        createSynth: createPiccolo,
+        createSynth: fromSpec('piccolo'),
     },
     'saxophone': {
         id: 'saxophone',
         name: 'Saxophone',
         category: 'wind',
-        createSynth: createSaxophone,
+        createSynth: fromSpec('saxophone'),
     },
     'bassoon': {
         id: 'bassoon',
         name: 'Bassoon',
         category: 'wind',
-        createSynth: createBassoon,
+        createSynth: fromSpec('bassoon'),
     },
     'oboe': {
         id: 'oboe',
         name: 'Oboe',
         category: 'wind',
-        createSynth: createOboe,
+        createSynth: fromSpec('oboe'),
     },
     'trumpet': {
         id: 'trumpet',
         name: 'Trumpet',
         category: 'wind',
-        createSynth: createTrumpet,
+        createSynth: fromSpec('trumpet'),
     },
     'euphonium': {
         id: 'euphonium',
         name: 'Euphonium',
         category: 'wind',
-        createSynth: createEuphonium,
+        createSynth: fromSpec('euphonium'),
     },
 
     // Additional instruments
@@ -1511,25 +668,25 @@ export const SYNTH_PRESETS = {
         id: 'didgeridoo',
         name: 'Didgeridoo',
         category: 'wind',
-        createSynth: createDidgeridoo,
+        createSynth: fromSpec('didgeridoo'),
     },
     'vocal-synth': {
         id: 'vocal-synth',
         name: 'Vocal Synth',
         category: 'synth',
-        createSynth: createVocalSynth,
+        createSynth: fromSpec('vocal-synth'),
     },
     'orchestra-hit': {
         id: 'orchestra-hit',
         name: 'Orchestra Hit',
         category: 'bowed-strings',
-        createSynth: createOrchestraHit,
+        createSynth: fromSpec('orchestra-hit'),
     },
     'guzheng': {
         id: 'guzheng',
         name: 'Guzheng',
         category: 'plucked-strings',
-        createSynth: createGuzheng,
+        createSynth: fromSpec('guzheng'),
     },
 
     // Drums (special case)
@@ -1611,19 +768,19 @@ export const SYNTH_PRESETS = {
         id: 'square-wave',
         name: 'Square Wave',
         category: 'synth',
-        createSynth: createSquareWave,
+        createSynth: fromSpec('square-wave'),
     },
     'triangle-wave': {
         id: 'triangle-wave',
         name: 'Triangle Wave',
         category: 'synth',
-        createSynth: createTriangleWave,
+        createSynth: fromSpec('triangle-wave'),
     },
     'sawtooth-wave': {
         id: 'sawtooth-wave',
         name: 'Sawtooth Wave',
         category: 'synth',
-        createSynth: createSawtoothWave,
+        createSynth: fromSpec('sawtooth-wave'),
     },
 } satisfies Record<string, SynthPreset>;
 
@@ -1645,16 +802,25 @@ export function getSynthPreset(presetId: string): SynthPreset | undefined {
 }
 
 /**
- * Create a synth for a given preset ID
- * Falls back to basic synth if preset not found
+ * Create a synth for a built-in preset id, falling back to the basic synth.
+ *
+ * Knows nothing about custom instruments, deliberately: user content is
+ * resolved one layer up, in the scheduler, which is already the single place
+ * that decides clip preset → track preset → track colour. Teaching this
+ * function about the user registry would mean the built-in library importing
+ * IndexedDB-backed state, and a genuine import cycle with it.
  */
 export function createSynthFromPreset(presetId: string | undefined): SynthType {
     const preset = presetId ? getSynthPreset(presetId) : undefined;
     if (preset) {
         return preset.createSynth();
     }
-    // Default fallback
-    return createBasicSynth();
+    return fromSpec('basic-synth')();
+}
+
+/** A preset's display name, or the raw id if it is not one we know. */
+export function getSynthPresetName(presetId: string): string {
+    return getSynthPreset(presetId)?.name ?? presetId;
 }
 
 /**
