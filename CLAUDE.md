@@ -18,7 +18,8 @@ outranks assumptions derived from code.
 | Doc | What it is |
 |---|---|
 | `docs/composeyogi_prd.md` | The PRD: vision, users, flows, quality bars, phase roadmap (Phase 2 = multi-take, automation, collaboration-lite; Phase 3 = AI, mobile companion, marketplace), **plus** the compose-page spec in §8. Merged 2026-08-30 from `composeyogi.md` + `design.md`, which overlapped on the whole of that section. Contains **designed-but-unbuilt** features — punch recording, the count-in overlay — so unwired schema for something named there is a commitment, not dead code. It says nothing about how the UI *looks*; that is `design/`, and §8.9 says so. |
-| `docs/TaskList.md` | **The planning document** (currently v1.10). Sprint-based, checkboxes, named deliverables, versioned footer. All work is planned here first. Sprints 8.5 and 8.6 shipped (v1.2.0, v1.3.0); active: Sprint 8.7.5 → 8.7.7 → Phase 1.5. |
+| `docs/TaskList.md` | **The planning document** (currently v1.15). Sprint-based, checkboxes, named deliverables, versioned footer. All work is planned here first. **Checkboxes only** — it grew to 463 lines for one sprint before the prose was split out, and the split is only worth anything if it stays split. Sprints 8.5, 8.6 and 8.7.1–8.7.7d shipped; remaining for v1.4: 8.7.5b, 8.7.6, 8.7.8. |
+| `docs/notes/` | Per-sprint companions to the task list — findings, measurements, bug post-mortems, scoping rationale, and what was tried and rejected. `sprint-8.7.md` is the first. **Anything longer than a one-line parenthetical goes here, not in TaskList.md.** Nothing here is a task; if it needs doing, it is a checkbox in the task list. |
 | `docs/adr/` | Architecture Decision Records (ADR-001 backend = first entry, Sprint 9.0). |
 | `design/` (public, shipped Sprint 8.6) | The committed design system — principles, usage rules, live HTML artboards. **All UI must comply**; `npm run check` enforces it. |
 | `ROADMAP.md` (public) | Community-facing summary. Keep in sync with TaskList after each release. |
@@ -32,8 +33,12 @@ outranks assumptions derived from code.
    from GitHub issues #5–#18) rather than renumbering everything.
 3. Reference GitHub issue numbers in task lines and commit messages (`(#NN)`).
 4. When completing work: tick the checkbox, bump the TaskList version footer, update
-   CHANGELOG.md, and mirror user-visible changes into public ROADMAP.md.
-5. **Quality checkpoints** run after each sprint; a feature is done only per the
+   CHANGELOG.md, and mirror user-visible changes into public ROADMAP.md. Reasoning,
+   measurements and post-mortems go in `docs/notes/sprint-N.md` — the task list stays a
+   task list.
+5. Keep subsections in numeric order. 8.7.8 was filed between 8.7.5b and 8.7.7c and the
+   maintainer could not find it.
+6. **Quality checkpoints** run after each sprint; a feature is done only per the
    Definition of Done below.
 
 ### Definition of Done (from TaskList.md — hold every feature to this)
@@ -421,12 +426,19 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   understood — one because the pane was hidden, one because a page reload had left the audio
   engine uninitialized so `audioEngine.play()` silently no-opped. **Check `isReady()` and
   that the recording manager has no stale session before trusting a transport measurement.**
-- **Recording is hard to reach, and two of its controls do not exist** (Sprint 8.7.8):
-  `+ Add Track` only makes MIDI tracks and the arm button only renders for `type === 'audio'`,
-  so the sole route to a recordable track is Inspector → Type → Audio; and `setCountInBars`
-  has no callers, so every count-in is the hardcoded 2 bars. (The record button's tooltip
-  also advertises `R` with no such shortcut registered.) Verified by walking the path in a
-  browser, not by reading the code.
+- **Recording is still hard to reach**: `+ Add Track` only makes MIDI tracks and the arm
+  button only renders for `type === 'audio'`, so the sole route to a recordable track is
+  Inspector → Type → Audio. Nothing on the arming path says so. Found by walking the path in
+  a browser, not by reading the code; recorded in `docs/notes/sprint-8.7.md` § 8.7.7e and
+  deliberately not taken. The other two of that group are fixed (8.7.7e): the count-in has a
+  selector, and `R` records.
+- **A keyboard hint is not a binding.** `R`, `L` and `M` were printed in the transport's
+  tooltips from v1.0 and bound to nothing, and the shortcuts sheet offered `?` when only `/`
+  worked — the hint was written as a `<kbd>` beside the button while the binding lives in
+  `lib/shortcuts`, so no one place held both halves. `tests/shortcuts.test.ts` reads the
+  hints back out of the TSX and fails the build on any key the registry does not bind.
+  A shifted combo needs its own entry: react-hotkeys-hook matches the key by `e.code` and
+  then rejects the event for the shift it did not ask for, so `slash` can never match `?`.
 - **A recording in flight is two phases, and both stop paths must cover both.** `isRecording`
   is false for the whole count-in, so anything that means "is a take in progress" has to ask
   `recordingManager.isPending()`, not the store flag. Guarding on `this.session` is the
@@ -446,15 +458,21 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   at the schedule level (`tests/clip-macros.test.ts`) but nobody has listened to them, and
   per-clip `Tone.Reverb.generate()` cost on reschedule for Space-heavy projects is
   unmeasured.
-- **Transport bar is full.** It overflows its own width by ~60px at 1280px and just fits at
-  1536 (the `2xl` the design targets); it already overflowed slightly before Sprint 8.7.
-  Anything new there has to buy its space — the vibe selector hides its caption below `2xl`,
-  and the snap picker went into the arrangement's ruler spacer instead.
-- Open issues: **#21** Custom Instruments — **built 2026-08-30** in Sprint 8.7.5. The
-  requester never answered the four scoping questions (their consistent pattern across
+- **Transport bar is full**, but it no longer overflows: measured 0px at 1536 (the `2xl` the
+  design targets), armed or not. It used to overflow by 70px whenever a track was armed,
+  because the right-hand group carried a mic glyph and the armed track's name — 106px that
+  existed only while armed, so arming moved every button to its right and pushed Audio
+  Settings, the theme toggle and the language switcher off the screen exactly while someone
+  was recording. Removed in 8.7.7e: it broke *state changes appearance, state never changes
+  layout*, and it said a third time what the red record button and the header's ARMED badge
+  already say. Anything new there still has to buy its space — the vibe selector hides its
+  caption below `2xl`, the snap picker went into the arrangement's ruler spacer, and the
+  count-in selector is its own readout rather than a labelled select.
+- **#21 Custom Instruments is closed** (built in 8.7.5, replied to and closed 2026-08-30).
+  The requester never answered the four scoping questions (their consistent pattern across
   #16–#19), so the scope was set from prior art — GarageBand Smart Controls — and the
-  reasoning is recorded in the TaskList so it can be defended or revised. Reply on the issue
-  before closing it. **#23–#30** good-first-issues.
+  reasoning is in `docs/notes/sprint-8.7.md` § 8.7.5 so it can be defended or revised if
+  they come back. Open issues: **#23–#30** good-first-issues.
 - **Not verified by ear.** Every claim about 8.7.5's audio is a measurement (rendered RMS,
   high-frequency ratio, deep-compared Tone options), not a listening test. Nobody has heard
   a custom instrument, and the same caveat still stands for the 8.7.3 clip macros.

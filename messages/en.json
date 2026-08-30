@@ -100,7 +100,10 @@
     "recordedClipName": "Recording"
   },
   "recording": {
-    "countIn": "Recording in"
+    "countIn": "Recording in",
+    "countInSetting": "Count-in",
+    "countInHint": "Bars of click before the take starts",
+    "countInValue": "Count-in: {bars, plural, =0 {off} one {# bar} other {# bars}}"
   },
   "browser": {
     "title": "Browser",
@@ -495,7 +498,10 @@
     "actions": {
       "playback": {
         "playPause": "Play / Pause",
-        "stop": "Stop and return to start"
+        "stop": "Stop and return to start",
+        "record": "Record on the armed track",
+        "toggleLoop": "Toggle loop",
+        "toggleMetronome": "Toggle metronome"
       },
       "editing": {
         "undo": "Undo",

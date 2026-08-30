@@ -100,7 +100,10 @@
     "recordedClipName": "Grabación"
   },
   "recording": {
-    "countIn": "Grabando en"
+    "countIn": "Grabando en",
+    "countInSetting": "Cuenta atrás",
+    "countInHint": "Compases de claqueta antes de empezar a grabar",
+    "countInValue": "Cuenta atrás: {bars, plural, =0 {apagada} one {# compás} other {# compases}}"
   },
   "browser": {
     "title": "Explorador",
@@ -495,7 +498,10 @@
     "actions": {
       "playback": {
         "playPause": "Reproducir / Pausar",
-        "stop": "Detener y volver al inicio"
+        "stop": "Detener y volver al inicio",
+        "record": "Grabar en la pista armada",
+        "toggleLoop": "Activar o desactivar el bucle",
+        "toggleMetronome": "Activar o desactivar el metrónomo"
       },
       "editing": {
         "undo": "Deshacer",

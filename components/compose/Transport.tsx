@@ -13,7 +13,6 @@ import {
     VolumeX,
     Settings,
     ChevronDown,
-    Mic,
     Cloud,
     CloudOff,
     Loader2,
@@ -27,6 +26,7 @@ import {
     ZoomOut,
 } from 'lucide-react';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
+import { CountInSelect } from './CountInSelect';
 import { VibeSelect } from './VibeSelect';
 import { ExportModal } from './ExportModal';
 import { ImportModal } from './ImportModal';
@@ -241,6 +241,14 @@ export function Transport({
         }
     }, [isAudioReady, isRecording, isCountingIn, armedTrack, countInBars, isRecorderReady, onRequestAudio, t]);
 
+    // R, L and M. All three were printed in the tooltips below and bound to
+    // nothing: the hint was written beside the button instead of registered in
+    // `lib/shortcuts`, so nothing could notice the difference. They live here
+    // rather than on the compose page because the handlers do.
+    useShortcut('playback.record', () => { void handleRecord(); }, [handleRecord]);
+    useShortcut('playback.toggleLoop', () => toggleLoop(), [toggleLoop]);
+    useShortcut('playback.toggleMetronome', () => toggleMetronome(), [toggleMetronome]);
+
     if (!project) return null;
 
     return (
@@ -399,6 +407,10 @@ export function Transport({
                                 </p>
                             </TooltipContent>
                         </Tooltip>
+
+                        {/* How many bars of click come first. Beside the button
+                            it delays, and readable without opening it. */}
+                        <CountInSelect />
                     </div>
 
                     <Separator orientation="vertical" className="h-5 mx-1" />
@@ -731,14 +743,12 @@ export function Transport({
 
             {/* Right: Settings */}
             <div className="flex items-center gap-2 px-3 2xl:px-4">
-                {/* Recording indicator */}
-                {armedTrack && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive">
-                        <Mic className="h-3 w-3" />
-                        <span className="truncate max-w-[80px]">{armedTrack.name}</span>
-                    </div>
-                )}
-
+                {/* No armed-track indicator here. It appeared and disappeared with
+                    arming, so it moved every button to its right — state changing
+                    layout rather than appearance — and it cost 106px in a bar that
+                    only just fits. What it said is already said twice: the record
+                    button turns red and names the track, and the track header says
+                    ARMED. */}
                 <Separator orientation="vertical" className="h-6" />
 
                 <Tooltip>

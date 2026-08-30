@@ -52,6 +52,31 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
         defaultKey: 'enter',
         rebindable: true,
     },
+    // R, L and M were printed in the transport's tooltips from v1.0 and bound to
+    // nothing — the hint was written next to the button instead of registered
+    // here, so there was no one place that could notice. `tests/shortcuts.test.ts`
+    // now reads the hints back and fails the build on any key this list lacks.
+    {
+        id: 'playback.record',
+        label: 'Record on the armed track',
+        category: 'playback',
+        defaultKey: 'r',
+        rebindable: true,
+    },
+    {
+        id: 'playback.toggleLoop',
+        label: 'Toggle loop',
+        category: 'playback',
+        defaultKey: 'l',
+        rebindable: true,
+    },
+    {
+        id: 'playback.toggleMetronome',
+        label: 'Toggle metronome',
+        category: 'playback',
+        defaultKey: 'm',
+        rebindable: true,
+    },
 
     // Editing
     {
@@ -128,9 +153,13 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     },
     {
         id: 'view.showShortcuts',
+        // Both combos, because the tooltip and the sheet's own footer have always
+        // offered `?` and it never worked: react-hotkeys-hook matches the key by
+        // `e.code` (so shift is irrelevant to *which* key) but then rejects the
+        // event because the hotkey did not ask for shift.
         label: 'Show keyboard shortcuts',
         category: 'view',
-        defaultKey: 'slash',
+        defaultKey: 'slash, shift+slash',
         rebindable: true,
     },
 
