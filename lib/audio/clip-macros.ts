@@ -2,9 +2,9 @@
 // ComposeYogi — Clip Macros
 // ============================================
 //
-// "One slider = many DSP changes" (docs/design.md). Six per-clip controls that
-// each move several lower-level parameters at once, so a beginner can shape a
-// part without knowing what a filter cutoff is.
+// "One slider = many DSP changes" (docs/composeyogi_prd.md §8.6). Six per-clip
+// controls that each move several lower-level parameters at once, so a beginner
+// can shape a part without knowing what a filter cutoff is.
 //
 // Everything here is a pure number-to-number mapping. That is deliberate: these
 // are musical decisions, and musical decisions that live in pure functions can
