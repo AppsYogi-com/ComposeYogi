@@ -186,7 +186,8 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   `saveProject` and `loadProject`; a round-trip test over `keyof Project` enforces it.
 
 ### Rendering
-- Canvas for ruler/grid (`lib/canvas/`, DPR-aware); DOM for clips.
+- Canvas for the arrangement ruler (drawn inline in `TrackList.tsx`, DPR-aware); DOM for
+  everything else — the grid is `.grid-line` divs from `GridLines`, and clips are divs.
 - Peaks computed in `public/workers/audio-peaks-worker.js` with Transferable zero-copy.
 
 ### Design system (`lib/design/` + `design/`)
@@ -409,9 +410,6 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   the click on during count-in is a deliberate audio-behaviour change, not a visuals fix.
 - **`prefers-reduced-motion` is honoured by the recording pulse and nothing else**, though
   `design/README.md` has promised it product-wide since 8.6.
-- **`lib/canvas/GridRenderer.ts` is dead code** — exported by the barrel, imported by
-  nothing. The arrangement grid is DOM (`.grid-line` in globals.css); only the ruler is
-  canvas, drawn inline in `TrackList.tsx`.
 - **Macro audio is unit-tested, not heard**: the clip macros and global swing are proven
   at the schedule level (`tests/clip-macros.test.ts`) but nobody has listened to them, and
   per-clip `Tone.Reverb.generate()` cost on reschedule for Space-heavy projects is
