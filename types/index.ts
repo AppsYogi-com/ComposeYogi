@@ -175,6 +175,91 @@ export interface UserSample {
 }
 
 // ============================================
+// Custom Instrument Types
+// ============================================
+
+/** The Tone voice a PolySynth wraps. Every built-in melodic preset is one of these. */
+export type InstrumentVoice = 'synth' | 'monosynth' | 'fmsynth' | 'amsynth';
+
+/**
+ * An oscillator, as data. `type` carries the whole variation Tone allows —
+ * `partials` for an additive `custom` wave, `width` for a pulse, `spread` and
+ * `count` for the detuned `fat` family — because a spec that dropped them
+ * could not reproduce the preset it claims to start from.
+ */
+export interface OscillatorSpec {
+    type: string;
+    partials?: number[];
+    width?: number;
+    spread?: number;
+    count?: number;
+}
+
+/** Attack, decay, sustain, release. Times in seconds; sustain is a 0-1 level. */
+export interface EnvelopeSpec {
+    attack: number;
+    decay: number;
+    sustain: number;
+    release: number;
+}
+
+/** A MonoSynth's filter sweep — an envelope plus where it sweeps from and how far. */
+export interface FilterEnvelopeSpec extends EnvelopeSpec {
+    baseFrequency: number;
+    octaves: number;
+}
+
+/**
+ * A whole instrument as plain JSON: what a custom instrument stores, what the
+ * editor edits, and what an export file contains.
+ *
+ * The three macro fields are the ones the editor exposes on top of the voice.
+ * `brightness` is deliberately a post-voice filter rather than a per-voice one:
+ * only MonoSynth has a filter of its own, and a control that vanished on three
+ * voices out of four would be worse than one that behaves the same everywhere.
+ * At 100 no filter is built at all, so an unedited custom instrument is the
+ * source preset exactly — not approximately.
+ */
+export interface InstrumentSpec {
+    voice: InstrumentVoice;
+    oscillator: OscillatorSpec;
+    envelope: EnvelopeSpec;
+    /** 0-100 lowpass cutoff. 100 is wide open and builds no filter node. */
+    brightness: number;
+    /** 0-100 filter resonance (Q). Inert at full brightness. */
+    resonance: number;
+    /** Output trim in dB. */
+    level: number;
+    /** MonoSynth's own filter sweep, carried through from the source preset. */
+    filterEnvelope?: FilterEnvelopeSpec;
+    /** FM/AM character, carried through from the source preset. */
+    modulation?: OscillatorSpec;
+    modulationEnvelope?: EnvelopeSpec;
+    harmonicity?: number;
+    modulationIndex?: number;
+}
+
+/** A user-made instrument: a spec, a name, and where it came from. */
+export interface CustomInstrument {
+    /** `custom:<uuid>` — the prefix is what makes a bare instrumentPreset
+     *  string self-describing wherever one is passed around. */
+    id: string;
+    name: string;
+    /** The built-in it was started from. Shown in the browser, and what Revert
+     *  restores. */
+    basePresetId: string;
+    spec: InstrumentSpec;
+    /**
+     * Bumped on every save. The reschedule hash reads it because the id cannot
+     * change when the sound does — without this, editing an instrument already
+     * assigned to a track leaves playback on the previous voice, silently.
+     */
+    revision: number;
+    createdAt: number;
+    updatedAt: number;
+}
+
+// ============================================
 // MIDI Types
 // ============================================
 
