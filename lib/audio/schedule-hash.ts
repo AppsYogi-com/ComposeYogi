@@ -81,6 +81,11 @@ export const SOUND_AFFECTING_CLIP_FIELDS = [
     'trimEnd',
     'fadeIn',
     'fadeOut',
+    // Both, even though sourceBpm is only read when stretchToBpm is on: hashing
+    // it conditionally would mean deciding, in two places, when a field counts.
+    // A needless reschedule when nobody is stretching is the cheap mistake.
+    'stretchToBpm',
+    'sourceBpm',
     'notes',
     'instrumentPreset',
     'transpose',

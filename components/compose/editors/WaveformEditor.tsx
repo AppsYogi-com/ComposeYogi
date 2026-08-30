@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useId, useMemo, useRef, useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useTranslations, useFormatter } from 'next-intl';
 import {
@@ -12,12 +12,27 @@ import {
     RotateCcw,
     Volume2,
     X,
-    Repeat
+    Repeat,
+    StretchHorizontal,
+    TriangleAlert
 } from 'lucide-react';
 import { useProjectStore } from '@/lib/store';
+import { usePlaybackStore } from '@/lib/store/playback';
 import { monoFont, tokenColor } from '@/lib/design';
 import { getAudioTake, audioEngine } from '@/lib/audio';
+import {
+    MAX_SOURCE_BPM,
+    MIN_SOURCE_BPM,
+    REPITCH_WARN_SEMITONES,
+    clampSourceBpm,
+    lengthBarsAt,
+    resolveSourceBpm,
+    semitoneShift,
+    stretchRate,
+} from '@/lib/audio/stretch';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import {
     Tooltip,
@@ -40,6 +55,9 @@ interface TrimHandles {
     endOffset: number;   // seconds from original end
 }
 
+/** Smallest clip the arrangement will draw — matches every other writer of lengthBars. */
+const MIN_LENGTH_BARS = 0.25;
+
 // ============================================
 // Waveform Editor Component
 // ============================================
@@ -61,10 +79,18 @@ const format = useFormatter();
     const { resolvedTheme } = useTheme();
     const [zoom, setZoom] = useState(1);
     const [scrollX, setScrollX] = useState(0);
-    const [player, setPlayer] = useState<Tone.Player | null>(null);
-    const [gainNode, setGainNode] = useState<Tone.Gain | null>(null);
+    // Refs, not state: nothing renders from these, and the cleanup below has to
+    // be able to see them. As state they were captured by a closure created when
+    // both were still null, so every take that was ever opened leaked a Player,
+    // a Gain and a decoded buffer for the life of the tab.
+    const playerRef = useRef<Tone.Player | null>(null);
+    const gainRef = useRef<Tone.Gain | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [playheadPosition, setPlayheadPosition] = useState(0);
+    // Where a click asked playback to begin, in source seconds. Null means "the
+    // start of the trimmed region", which is what the play button meant before
+    // there was anywhere else to start from.
+    const [playFrom, setPlayFrom] = useState<number | null>(null);
 
     // Trim/fade state
     const [trimHandles, setTrimHandles] = useState<TrimHandles>({
@@ -104,6 +130,46 @@ const format = useFormatter();
     const secondsPerBeat = 60 / bpm;
     const _clipDuration = clip.lengthBars * beatsPerBar * secondsPerBeat;
 
+    // ========================================
+    // Stretch to BPM
+    // ========================================
+    //
+    // Read from the same lib/audio/stretch.ts the scheduler reads, never
+    // recomputed here: the number this panel prints and the number the clip
+    // plays at have to be the same number, or the editor becomes a second
+    // opinion about what the audio is doing.
+    const sourceSeconds = audioBuffer
+        ? Math.max(0, audioBuffer.duration - trimHandles.startOffset - trimHandles.endOffset)
+        : 0;
+    const stretch = useMemo(() => {
+        const source = resolveSourceBpm(clip, sourceSeconds, beatsPerBar);
+        return {
+            sourceBpm: source,
+            // True when the tempo shown is the app's guess rather than the
+            // user's answer — worth distinguishing, because the guess is only
+            // ever the project's own tempo and an imported loop knows better.
+            inferred: clip.sourceBpm === undefined,
+            // What the audio actually plays at — 1 when the toggle is off.
+            rate: stretchRate(clip, sourceSeconds, bpm, beatsPerBar),
+            // What stretching would cost, asked whether or not it is on. The
+            // readout is always on screen, so with the toggle off this is the
+            // price quoted in advance rather than a report of nothing.
+            semitonesIfStretched: semitoneShift(
+                stretchRate({ ...clip, stretchToBpm: true }, sourceSeconds, bpm, beatsPerBar)
+            ),
+        };
+    }, [clip, sourceSeconds, bpm, beatsPerBar]);
+
+    // What the number field shows while it is being typed in. Committed on
+    // blur or Enter, like the transport's BPM, so a half-typed "1" of "174"
+    // does not resize the clip on its way past.
+    const [sourceBpmDraft, setSourceBpmDraft] = useState<number>(120);
+    useEffect(() => {
+        if (stretch.sourceBpm !== null) setSourceBpmDraft(Math.round(stretch.sourceBpm));
+    }, [stretch.sourceBpm]);
+
+    const stretchFieldId = useId();
+
     // Load audio buffer
     useEffect(() => {
         async function loadAudio() {
@@ -133,10 +199,8 @@ const format = useFormatter();
 
                 // Create player with gain node for fades
                 const toneBuffer = new Tone.ToneAudioBuffer(buffer);
-                const newGain = new Tone.Gain(1).toDestination();
-                const newPlayer = new Tone.Player(toneBuffer).connect(newGain);
-                setPlayer(newPlayer);
-                setGainNode(newGain);
+                gainRef.current = new Tone.Gain(1).toDestination();
+                playerRef.current = new Tone.Player(toneBuffer).connect(gainRef.current);
 
             } catch (err) {
                 console.error('[WaveformEditor] Failed to load audio:', err);
@@ -149,13 +213,15 @@ const format = useFormatter();
         loadAudio();
 
         return () => {
-            if (player) {
-                player.stop();
-                player.dispose();
+            if (playbackRef.current) {
+                cancelAnimationFrame(playbackRef.current);
+                playbackRef.current = null;
             }
-            if (gainNode) {
-                gainNode.dispose();
-            }
+            playerRef.current?.stop();
+            playerRef.current?.dispose();
+            playerRef.current = null;
+            gainRef.current?.dispose();
+            gainRef.current = null;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clip.activeTakeId]);
@@ -407,20 +473,25 @@ const format = useFormatter();
                     end: Math.max(selection.start, selection.end),
                 });
             } else {
-                // Clear selection if it's just a click (no drag)
+                // A click with no drag. It used to mean nothing at all — the
+                // selection was cleared and the gesture was spent — so it is
+                // free to mean the one thing a waveform click means everywhere
+                // else: start the preview here.
                 setSelection(null);
+                setPlayFrom(selectionStartRef.current);
+                setPlayheadPosition(selectionStartRef.current);
             }
         }
     }, [isDraggingTrim, isSelecting, selection, audioBuffer, clip.id, updateClip]);
 
     // Stop playback
     const stopPlayback = useCallback(() => {
-        if (player) {
-            player.stop();
-        }
-        if (gainNode) {
-            gainNode.gain.cancelScheduledValues(Tone.now());
-            gainNode.gain.setValueAtTime(1, Tone.now());
+        playerRef.current?.stop();
+
+        const gain = gainRef.current;
+        if (gain) {
+            gain.gain.cancelScheduledValues(Tone.now());
+            gain.gain.setValueAtTime(1, Tone.now());
         }
         if (playbackRef.current) {
             cancelAnimationFrame(playbackRef.current);
@@ -428,85 +499,128 @@ const format = useFormatter();
         }
         setIsPlaying(false);
         setPlayheadPosition(0);
-    }, [player, gainNode]);
+    }, []);
 
-    // Preview playback - plays selection if exists, otherwise trimmed region
+    // Preview playback — the selection if there is one, otherwise the trimmed
+    // region, from wherever the last click asked it to start.
+    //
+    // What this deliberately does NOT reproduce is the track: no effects, no
+    // fader, no macros. This is a monitor on the raw take, the way the trim
+    // handles and the waveform behind it are. It does honour the three things
+    // that belong to the *clip* — trim, fades and the stretch rate — because
+    // those are the things this panel is for editing, and a preview that
+    // disagreed with the arrangement about them would be worse than none.
     const togglePlayback = useCallback(() => {
+        const player = playerRef.current;
+        const gainNode = gainRef.current;
         if (!player || !audioBuffer || !gainNode) return;
 
         if (isPlaying) {
             stopPlayback();
+            return;
+        }
+
+        // Two audio streams saying different things about the same clip is
+        // never what anyone wanted; the transport yields to the close-up.
+        if (usePlaybackStore.getState().isPlaying) {
+            usePlaybackStore.getState().stop();
+        }
+
+        // Determine what to play: selection takes priority, then trimmed region
+        let startTime: number;
+        let duration: number;
+        let applyFades = false;
+
+        if (selection) {
+            // Play selection (no fades for selection preview)
+            startTime = Math.min(selection.start, selection.end);
+            const endTime = Math.max(selection.start, selection.end);
+            duration = endTime - startTime;
         } else {
-            // Determine what to play: selection takes priority, then trimmed region
-            let startTime: number;
-            let duration: number;
-            let applyFades = false;
+            // Play the trimmed region with its fades, from the click position
+            // if there is one — clamped, because a trim dragged past an old
+            // click would otherwise start playback outside the audio.
+            const regionStart = trimHandles.startOffset;
+            const regionEnd = audioBuffer.duration - trimHandles.endOffset;
+            startTime = Math.min(Math.max(playFrom ?? regionStart, regionStart), regionEnd);
+            duration = regionEnd - startTime;
+            applyFades = true;
+        }
 
-            if (selection) {
-                // Play selection (no fades for selection preview)
-                startTime = Math.min(selection.start, selection.end);
-                const endTime = Math.max(selection.start, selection.end);
-                duration = endTime - startTime;
-            } else {
-                // Play trimmed region with fades
-                startTime = trimHandles.startOffset;
-                duration = audioBuffer.duration - trimHandles.startOffset - trimHandles.endOffset;
-                applyFades = true;
-            }
+        // A clip trimmed away to nothing, or a zero-width selection: Tone
+        // rejects a non-positive duration rather than playing silence.
+        if (!(duration > 0)) return;
 
-            const playOnce = () => {
-                const now = Tone.now();
+        // The same rate the scheduler will use. Source seconds pass at `rate`
+        // times wall-clock speed, so every wall-clock number below — the fades,
+        // the elapsed time, how long to wait — is a source number divided by it.
+        const rate = stretch.rate;
+        const wallDuration = duration / rate;
+        player.playbackRate = rate;
 
-                // Reset and schedule gain automation for fades
-                gainNode.gain.cancelScheduledValues(now);
+        const playOnce = () => {
+            const now = Tone.now();
 
-                if (applyFades && (fadeIn > 0 || fadeOut > 0)) {
-                    // Fade in
-                    if (fadeIn > 0) {
-                        gainNode.gain.setValueAtTime(0, now);
-                        gainNode.gain.linearRampToValueAtTime(1, now + fadeIn);
-                    } else {
-                        gainNode.gain.setValueAtTime(1, now);
-                    }
+            // Reset and schedule gain automation for fades
+            gainNode.gain.cancelScheduledValues(now);
 
-                    // Fade out
-                    if (fadeOut > 0) {
-                        const fadeOutStart = now + duration - fadeOut;
-                        gainNode.gain.setValueAtTime(1, fadeOutStart);
-                        gainNode.gain.linearRampToValueAtTime(0, now + duration);
-                    }
+            if (applyFades && (fadeIn > 0 || fadeOut > 0)) {
+                const wallFadeIn = Math.min(fadeIn / rate, wallDuration);
+                const wallFadeOut = Math.min(fadeOut / rate, wallDuration);
+
+                if (wallFadeIn > 0) {
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(1, now + wallFadeIn);
                 } else {
                     gainNode.gain.setValueAtTime(1, now);
                 }
 
-                player.start(now, startTime, duration);
-                setIsPlaying(true);
+                if (wallFadeOut > 0) {
+                    const fadeOutStart = now + wallDuration - wallFadeOut;
+                    gainNode.gain.setValueAtTime(1, fadeOutStart);
+                    gainNode.gain.linearRampToValueAtTime(0, now + wallDuration);
+                }
+            } else {
+                gainNode.gain.setValueAtTime(1, now);
+            }
 
-                // Animate playhead
-                const startNow = Tone.now();
-                const animate = () => {
-                    const elapsed = Tone.now() - startNow;
-                    if (elapsed < duration) {
-                        setPlayheadPosition(startTime + elapsed);
-                        playbackRef.current = requestAnimationFrame(animate);
-                    } else if (isLooping && selection) {
-                        // Loop: restart
-                        setPlayheadPosition(startTime);
-                        playOnce();
-                    } else {
-                        setPlayheadPosition(0);
-                        setIsPlaying(false);
-                        // Reset gain after playback
-                        gainNode.gain.cancelScheduledValues(Tone.now());
-                        gainNode.gain.setValueAtTime(1, Tone.now());
-                    }
-                };
-                playbackRef.current = requestAnimationFrame(animate);
+            player.start(now, startTime, duration);
+            setIsPlaying(true);
+
+            // Animate playhead
+            const startNow = Tone.now();
+            const animate = () => {
+                const elapsed = Tone.now() - startNow;
+                if (elapsed < wallDuration) {
+                    setPlayheadPosition(startTime + elapsed * rate);
+                    playbackRef.current = requestAnimationFrame(animate);
+                } else if (isLooping && selection) {
+                    // Loop: restart
+                    setPlayheadPosition(startTime);
+                    playOnce();
+                } else {
+                    setPlayheadPosition(0);
+                    setIsPlaying(false);
+                    // Reset gain after playback
+                    gainNode.gain.cancelScheduledValues(Tone.now());
+                    gainNode.gain.setValueAtTime(1, Tone.now());
+                }
             };
+            playbackRef.current = requestAnimationFrame(animate);
+        };
 
-            playOnce();
-        }
-    }, [player, audioBuffer, gainNode, isPlaying, trimHandles, selection, isLooping, fadeIn, fadeOut, stopPlayback]);
+        playOnce();
+    }, [
+        audioBuffer, isPlaying, trimHandles, selection, isLooping,
+        fadeIn, fadeOut, playFrom, stretch.rate, stopPlayback,
+    ]);
+
+    // The transport wins the other way too: hitting play in the arrangement
+    // silences a preview rather than layering the two.
+    const transportPlaying = usePlaybackStore((s) => s.isPlaying);
+    useEffect(() => {
+        if (transportPlaying && isPlaying) stopPlayback();
+    }, [transportPlaying, isPlaying, stopPlayback]);
 
     // Trim to selection - snap trim handles to selection bounds
     const trimToSelection = useCallback(() => {
@@ -534,17 +648,59 @@ const format = useFormatter();
         setSelection(null);
     }, [selection, audioBuffer, clip.id, updateClip]);
 
+    const toggleStretch = useCallback(() => {
+        if (!audioBuffer || sourceSeconds <= 0) return;
+
+        if (clip.stretchToBpm) {
+            // Off: the audio plays at its own speed again, so how many bars it
+            // covers is once more a fact about the project's tempo.
+            updateClip(clip.id, {
+                stretchToBpm: false,
+                lengthBars: Math.max(MIN_LENGTH_BARS, lengthBarsAt(sourceSeconds, bpm, beatsPerBar)),
+            });
+            return;
+        }
+
+        const source = resolveSourceBpm(clip, sourceSeconds, beatsPerBar);
+        if (source === null) return;
+
+        updateClip(clip.id, {
+            stretchToBpm: true,
+            // Stamped rather than left to be inferred again. The inference reads
+            // lengthBars, and the line below rewrites lengthBars — so from the
+            // next render on it would answer a different question and the clip
+            // would drift a little every time the song changed tempo.
+            sourceBpm: source,
+            lengthBars: Math.max(MIN_LENGTH_BARS, lengthBarsAt(sourceSeconds, source, beatsPerBar)),
+        });
+    }, [audioBuffer, sourceSeconds, clip, bpm, beatsPerBar, updateClip]);
+
+    const commitSourceBpm = useCallback((value: number) => {
+        const source = clampSourceBpm(value);
+        setSourceBpmDraft(Math.round(source));
+
+        updateClip(clip.id, {
+            sourceBpm: source,
+            // Only while stretching: with it off the clip's length is still its
+            // own duration, and correcting a tempo the user can see is wrong
+            // should not move a clip that nothing is stretching.
+            ...(clip.stretchToBpm && sourceSeconds > 0
+                ? { lengthBars: Math.max(MIN_LENGTH_BARS, lengthBarsAt(sourceSeconds, source, beatsPerBar)) }
+                : {}),
+        });
+    }, [clip.id, clip.stretchToBpm, sourceSeconds, beatsPerBar, updateClip]);
+
     // Clear selection
     const clearSelection = useCallback(() => {
         setSelection(null);
         setIsLooping(false);
     }, []);
 
-    // Reset trim/fade
+    // Reset trim/fade/stretch
     const resetAll = useCallback(() => {
         if (!audioBuffer) return;
 
-        // Calculate lengthBars for full audio duration (no trim)
+        // Calculate lengthBars for full audio duration (no trim, no stretch)
         const newLengthBars = audioEngine.secondsToBar(audioBuffer.duration);
 
         setTrimHandles({ startOffset: 0, endOffset: 0 });
@@ -552,11 +708,17 @@ const format = useFormatter();
         setFadeOut(0);
         setSelection(null);
         setIsLooping(false);
+        setPlayFrom(null);
         updateClip(clip.id, {
             trimStart: 0,
             trimEnd: 0,
             fadeIn: 0,
             fadeOut: 0,
+            // Stretching goes back with everything else — leaving it on would
+            // leave the clip resampled against a length this call just changed.
+            // The source tempo stays: it is a fact about the recording, not an
+            // edit, and having to type it again would be a punishment.
+            stretchToBpm: false,
             lengthBars: Math.max(0.25, newLengthBars), // Restore full width
         });
     }, [clip.id, updateClip, audioBuffer]);
@@ -593,13 +755,24 @@ const format = useFormatter();
 
     return (
         <div className="flex h-full flex-col">
-            {/* Toolbar */}
-            <div className="flex items-center gap-3 border-b border-border bg-surface px-3 py-1.5">
+            {/* Toolbar.
+                Wraps rather than clips. Five jobs share this row — transport,
+                the take's vitals, clip shaping, stretch and zoom — and with the
+                Inspector open the editor pane is ~780px, which they overflowed
+                by half a group even before Stretch arrived. Wrapping at group
+                boundaries costs a row on a narrow window and nothing on a wide
+                one; hiding controls behind a breakpoint would cost whichever
+                one somebody needed. The nowrap below is what keeps the break
+                between groups instead of inside "Sample Rate: 48000Hz". */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border bg-surface px-3 py-1.5">
                 {/* Playback */}
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
-                            aria-label={t('stop')}
+                            // Follows the state, like the tooltip below it. A
+                            // fixed "Stop" here announced the wrong verb for
+                            // whichever half of its life the button spent idle.
+                            aria-label={isPlaying ? t('stop') : selection ? t('playSelection') : t('preview')}
                             variant={isPlaying ? 'default' : 'ghost'}
                             size="icon-sm"
                             onClick={togglePlayback}
@@ -680,16 +853,114 @@ const format = useFormatter();
                 )}
 
                 {/* Info */}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 whitespace-nowrap text-xs text-muted-foreground">
                     <span>{t('duration', { seconds: format.number(effectiveDuration, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</span>
                     <span>{t('sampleRate', { hz: audioBuffer.sampleRate })}</span>
+                </div>
+
+                <div className="h-4 w-px bg-border" />
+
+                {/* Stretch to BPM.
+                    The source tempo and the repitch cost are ALWAYS on screen,
+                    not revealed by the toggle. Revealing them moved everything
+                    after them — the toolbar wraps, so ~135px appearing could
+                    push the fade sliders onto another row and shift the canvas
+                    under them. A toggle that reflows the panel it lives in
+                    reads as a glitch.
+                    It is also the better control. The source tempo is a fact
+                    about the recording, true whether or not anything is acting
+                    on it, and every DAW keeps its warp tempo field beside the
+                    warp switch for that reason. Quoting the pitch cost before
+                    the click beats discovering it after. */}
+                <div className="flex items-center gap-2">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={clip.stretchToBpm ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={toggleStretch}
+                                disabled={stretch.sourceBpm === null}
+                                className="h-7 gap-1.5 text-xs"
+                            >
+                                <StretchHorizontal className="h-3.5 w-3.5" />
+                                {t('stretch')}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                            {clip.stretchToBpm ? t('stretchOffHint') : t('stretchOnHint', { bpm })}
+                            {/* The one case worth naming: with no tempo stored, the
+                                fallback recovers the project's own, so the rate comes
+                                out 1.0 and the toggle appears to do nothing. Saying so
+                                here beats letting someone conclude it is broken. */}
+                            {stretch.inferred && ` ${t('sourceBpmGuess')}`}
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <div className="flex items-center gap-1.5 rounded-md border border-border/50 bg-background px-2 py-1">
+                        <label
+                            htmlFor={stretchFieldId}
+                            className="whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground"
+                        >
+                            {t('sourceBpm')}
+                        </label>
+                        <Input
+                            id={stretchFieldId}
+                            type="number"
+                            // Editable with the toggle off, deliberately: correcting a
+                            // loop the app has read as 87 when it is 174 is exactly what
+                            // you do *before* stretching it. commitSourceBpm only touches
+                            // lengthBars while stretching is on, so this stays inert.
+                            disabled={stretch.sourceBpm === null}
+                            value={sourceBpmDraft}
+                            onChange={(e) => setSourceBpmDraft(Number(e.target.value))}
+                            onBlur={() => commitSourceBpm(sourceBpmDraft)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    commitSourceBpm(sourceBpmDraft);
+                                    e.currentTarget.blur();
+                                }
+                            }}
+                            className="h-6 w-12 border-0 bg-transparent px-1 text-center font-mono text-sm tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0"
+                            min={MIN_SOURCE_BPM}
+                            max={MAX_SOURCE_BPM}
+                        />
+                    </div>
+
+                    {/* The cost of the v1 approach, stated. Resampling moves pitch
+                        with tempo, and 90 to 120 is nearly five semitones — nobody
+                        should meet that by ear. Fixed width and right-aligned so
+                        "+13.0 st" and its warning icon do not shove the row either;
+                        dimmed while the toggle is off, where it is a quote rather
+                        than a description. */}
+                    <span
+                        className={cn(
+                            'inline-flex w-[4.75rem] items-center justify-end gap-1 whitespace-nowrap font-mono text-xs tabular-nums',
+                            !clip.stretchToBpm
+                                ? 'text-muted-foreground opacity-50'
+                                : Math.abs(stretch.semitonesIfStretched) >= REPITCH_WARN_SEMITONES
+                                    ? 'text-warning'
+                                    : 'text-muted-foreground'
+                        )}
+                    >
+                        {clip.stretchToBpm
+                            && Math.abs(stretch.semitonesIfStretched) >= REPITCH_WARN_SEMITONES && (
+                            <TriangleAlert className="h-3 w-3 shrink-0" />
+                        )}
+                        {t('repitch', {
+                            semitones: format.number(stretch.semitonesIfStretched, {
+                                minimumFractionDigits: 1,
+                                maximumFractionDigits: 1,
+                                signDisplay: 'exceptZero',
+                            }),
+                        })}
+                    </span>
                 </div>
 
                 <div className="flex-1" />
 
                 {/* Fade controls */}
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{t('fadeIn')}</span>
+                    <span className="whitespace-nowrap text-xs text-muted-foreground">{t('fadeIn')}</span>
                     <Slider
                         aria-label={t('fadeIn')}
                         value={[fadeIn]}
@@ -704,7 +975,7 @@ const format = useFormatter();
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{t('fadeOut')}</span>
+                    <span className="whitespace-nowrap text-xs text-muted-foreground">{t('fadeOut')}</span>
                     <Slider
                         aria-label={t('fadeOut')}
                         value={[fadeOut]}

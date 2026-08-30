@@ -266,7 +266,13 @@
       "trimStart": "Inicio del recorte: {seconds} s",
       "trimEnd": "Fin del recorte: {seconds} s",
       "selectedRange": "Seleccionado: {from} s - {to} s",
-      "selectionHint": "Arrastra los tiradores para recortar • Haz clic y arrastra para seleccionar"
+      "selectionHint": "Arrastra los tiradores para recortar • Haz clic para fijar el inicio • Arrastra para seleccionar",
+      "stretch": "Estirar",
+      "stretchOnHint": "Remuestrea este clip para que su tempo coincida con el del proyecto ({bpm} BPM). El tono cambia con él.",
+      "stretchOffHint": "Reproduce este clip de nuevo a su propia velocidad y tono",
+      "sourceBpm": "De",
+      "repitch": "{semitones} st",
+      "sourceBpmGuess": "El tempo de origen es una estimación: corrígelo si el loop se desfasa."
     }
   },
   "tracks": {

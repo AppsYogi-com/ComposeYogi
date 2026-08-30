@@ -78,7 +78,12 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 
 ### Audio (`lib/audio/`)
 - `engine.ts` — singleton wrapping Tone.Transport: play/pause/stop/seek, BPM, time
-  signature, loop, metronome, bar↔second conversion.
+  signature, loop, metronome, bar↔second conversion. `initialize()` deliberately sets **no**
+  tempo: it used to stamp 120/4-4 on the first user gesture, and since `secondsToBar()`
+  reads the transport and the arrangement sizes every audio clip with it, that silently
+  measured dropped samples and finished takes against 120 instead of the song. The project
+  owns the tempo; the compose page applies it both at load and again after the context
+  starts. Don't reintroduce a default here.
 - `scheduler.ts` — **the single source of truth for how a clip becomes sound.** Owns
   timing, instrument resolution, effect construction, solo/mute gating, and
   `buildRenderPlan()` (which clips play, when, at what gain). BOTH the live and
@@ -94,6 +99,16 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   → `AudioTake` (in-memory map + IndexedDB). Latency offset from `latency-calibration.ts`.
 - `offline-renderer.ts` — WAV/MP3 export inside `Tone.Offline()`. Renders from the same
   render plan as `playout.ts`; no scheduling logic of its own.
+- `stretch.ts` — Stretch-to-BPM, v1 by `playbackRate` (so it repitches; true time-stretch
+  is Phase 2.5). Pure arithmetic, no Tone. The rate needs a **source tempo**, and
+  `lengthBars` cannot supply one: every audio clip is created with `lengthBars` derived
+  from its duration at the project tempo of that moment, so a rate derived from it is
+  always 1.0 — a no-op for exactly the case the feature exists for. So `sourceBpm` is
+  stamped where it is actually known (the sample catalogue's loop metadata on drop; the
+  project's own tempo on a recording) and only inferred as a last resort. Applied in ONE
+  place, `scheduleAudioClip`, which takes a **required** `TempoContext` so the compiler
+  forces both the live and offline callers. Fades are stored in source seconds and Tone
+  runs them in wall-clock, so they are divided by the rate there.
 - `synth-presets.ts` — 64 preset factories (`SYNTH_PRESETS`). Resolution order at schedule
   time: `clip.instrumentPreset` → `track.instrumentPreset` → fallback by track color.
 - MP3 via lamejs loaded by `<script>` tag (`public/workers/lame.min.js`) — deliberate
@@ -294,7 +309,7 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
 - **No SEO content scaling** (maintainer rule): every public page must be something a
   musician would want to land on. Discoverability comes from real shared music.
 
-## Known gaps & active issues (updated 2026-08-29 after Sprint 8.7.3 — verify before relying on)
+## Known gaps & active issues (updated 2026-08-30 after Sprint 8.7.4 — verify before relying on)
 
 - **Three hand-maintained lists of `Project` fields**, each of which fails silently when a
   new field is forgotten, and each of which has now cost a bug: the reschedule hash
@@ -304,6 +319,14 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   dropped `swing` and `latencyOffset`). All three now have exhaustiveness tests over
   `keyof Project` in `tests/`. **Adding a field to `Project` means visiting all three** —
   the tests will say so, but only if you run them.
+- **Those exhaustiveness tests had the same disease they were built to cure.** Each proved
+  its list complete by walking `Object.keys()` of a fixture, so the fixture became a fourth
+  hand-maintained list: 8.7.4 added two fields to `Clip`, classified them in neither the
+  sound-affecting nor the silent list, and all 275 tests stayed green. They now walk
+  `makeFullClip()` / `makeFullProject()` in `tests/fixtures.ts`, typed `Required<Clip>` and
+  `Required<Project>` — **add a field to either type and the fixture stops compiling**,
+  which is the only reminder that cannot be skipped. Keep it that way; a plain literal
+  there silently switches all three tests off.
 - **Unverified performance claims**: frame rate, Lighthouse, the offline walkthrough and
   the cross-browser matrix have NOT been measured on real hardware since the 8.5 work
   (rAF doesn't run in a headless pane). Don't quote numbers for these.

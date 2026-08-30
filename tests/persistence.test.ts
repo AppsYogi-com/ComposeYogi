@@ -24,7 +24,7 @@ import {
 import { LATEST_VERSION, MIGRATIONS, runMigrations } from '@/lib/persistence/migrations';
 import { projectSaveSignature } from '@/lib/persistence/autosave';
 
-import { makeClip, makeNote, makeProject, makeTrack } from './fixtures';
+import { makeClip, makeFullProject, makeNote, makeProject, makeTrack } from './fixtures';
 
 import type { Project } from '@/types';
 
@@ -77,14 +77,10 @@ describe('project round trip', () => {
         //
         // ProjectRecord is hand-built field by field on both sides, which is the
         // structure that makes this possible; this test is what makes it safe.
-        const project = makeProject({
-            bpm: 97,
-            key: 'G',
-            scale: 'harmonicMinor',
-            timeSignature: [7, 8],
-            latencyOffset: 8,
-            swing: 55,
-        });
+        // makeFullProject is Required<Project>, so a field added to the type
+        // and forgotten by ProjectRecord fails here rather than being quietly
+        // left out of the walk below.
+        const project = makeFullProject();
 
         await saveProject(project);
         const loaded = await loadProject(project.id);
@@ -282,8 +278,7 @@ describe('projectSaveSignature', () => {
         // updatedAt is the one deliberate exclusion, so it is the only key
         // allowed to be missing here.
         const named = new Set<string>([...FIELDS.map((f) => f.field), 'updatedAt']);
-        const project = makeProject({ swing: 1, latencyOffset: 1 });
-        const missing = Object.keys(project).filter((key) => !named.has(key));
+        const missing = Object.keys(makeFullProject()).filter((key) => !named.has(key));
 
         expect(missing, 'add it to FIELDS so autosave is proven to notice it').toEqual([]);
     });

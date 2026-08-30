@@ -266,7 +266,13 @@
       "trimStart": "Trim Start: {seconds}s",
       "trimEnd": "Trim End: {seconds}s",
       "selectedRange": "Selected: {from}s - {to}s",
-      "selectionHint": "Drag handles to trim • Click & drag to select"
+      "selectionHint": "Drag handles to trim • Click to set the start • Drag to select",
+      "stretch": "Stretch",
+      "stretchOnHint": "Resample this clip so its tempo matches the project ({bpm} BPM). Pitch moves with it.",
+      "stretchOffHint": "Play this clip at its own speed and pitch again",
+      "sourceBpm": "From",
+      "repitch": "{semitones} st",
+      "sourceBpmGuess": "Source tempo is a guess — correct it if the loop drifts."
     }
   },
   "tracks": {
