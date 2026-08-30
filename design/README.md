@@ -325,6 +325,86 @@ Two rules follow from the table:
 
 ---
 
+## One glyph, one meaning
+
+Icons are `lucide-react`, and nothing else. Sixty-five of them are in use, which is enough
+that picking one by eye no longer works: the custom-instrument feature shipped marked with
+`Sparkles`, which is the FX tab's glyph, sitting in the same rail two rows above it. The
+same shape meant "effects" in one place and "a sound you made" in the other, and nobody
+noticed until it was on screen.
+
+So: **before using an icon, check whether it already means something.** The table below is
+the set that carries meaning. Everything absent from it — chevrons, `X`, `Check`,
+`Loader2`, `Trash2`, `Search`, `Plus`, `GripVertical` — is generic chrome and may be reused
+freely, because nobody reads a chevron as a noun.
+
+| Glyph | Means | Where it is spoken for |
+|---|---|---|
+| `LayoutTemplate` | Templates | Browser tab |
+| `Piano` | A built-in instrument | Browser tab + every built-in row; Piano Roll editor tab |
+| `Music` | Samples | Browser tab; Inspector TRACK section |
+| `Sparkles` | Effects | Browser FX tab + FX rows; Inspector EFFECTS section |
+| `AudioLines` | **A custom instrument** | My Instruments group, custom rows, Customize action, editor dialog |
+| `AudioWaveform` | The waveform *view* | Editor tab; visualizer mode |
+| `Grid3X3` | The drum grid | Editor tab |
+| `Sliders` | Project settings | Inspector PROJECT section |
+| `Waves` | Feel / clip macros | Inspector FEEL section |
+| `Clock` | A clip | Inspector CLIP section |
+| `Mic` | Record / arm | Transport, track headers, calibration |
+| `Headphones` | Solo / monitoring | Track headers, calibration |
+| `Volume2` / `VolumeX` | Audible / muted | Track headers, transport |
+| `Repeat` | Loop | Transport, waveform editor |
+| `Play` `Pause` `Square` `SkipBack` `Circle` | Transport actions | Transport, and any local preview |
+| `Keyboard` | Shortcuts | Transport, shortcuts sheet |
+| `Activity` | Latency calibration | Calibration dialog, visualizer |
+| `FolderOpen` | Projects | Project selector, browser |
+| `Download` / `Upload` | Export / import | Export and import dialogs, browser |
+
+`AudioLines` and `AudioWaveform` are deliberately close relatives — discrete bars versus a
+continuous wave — and they sit in different panels. If a third audio-ish glyph is ever
+needed, that pair is already at the limit of what reads apart at 14px.
+
+### Sizes
+
+| Context | Size |
+|---|---|
+| Inside a list row, a tab, or a small button | `h-4 w-4` (or `h-3.5` where the row is dense) |
+| A dialog header, beside its title | `h-5 w-5` |
+| Inline in body text | match the text's line box, never larger |
+
+A dialog header icon that is `h-4` reads as a lighter title than the dialogs around it.
+All of them are `h-5`.
+
+### Naming the action, not the appearance
+
+An icon is chosen for what the control *does*, not for what looks nice next to it. The
+instrument editor shipped with a `Play` glyph in its header — a dialog that plays nothing,
+while the real Play sat two inches below it on Preview. If the glyph names an action the
+control does not perform, it is the wrong glyph however well it sits.
+
+And an icon is never the only signal: see principle 3. Every icon here has a label, a
+tooltip, or an `aria-label` beside it.
+
+### When lucide has nothing
+
+It happens — no library icon means "an instrument you shaped", and the shortlist for
+`AudioLines` was thirteen glyphs each of which got half the meaning. A custom SVG is
+allowed, on these terms:
+
+- It lives in `components/icons/`, exported as a React component like any lucide icon
+- It matches lucide's contract exactly, or it will look subtly wrong beside sixty-five that
+  do: `24×24` viewBox, `fill="none"`, `stroke="currentColor"`, `strokeWidth={2}`,
+  `strokeLinecap="round"`, `strokeLinejoin="round"`
+- `currentColor` is not optional. A hex literal fails `tests/design-system.test.ts`, which
+  is what keeps the icon themed in both light and dark without knowing about either
+- It is added to the table above in the same commit
+
+Prefer a library icon that is 80% right over a bespoke one that is 100% right and slightly
+off-grid. Reach for a custom glyph when the concept is genuinely specific to this product
+and every candidate misleads — not when the shortlist is merely uninspiring.
+
+---
+
 ## Both themes are real
 
 ComposeYogi opens dark and most people will stay there, but the light theme

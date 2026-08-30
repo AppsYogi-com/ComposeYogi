@@ -183,6 +183,82 @@ describe('generated files match lib/design/tokens.ts', () => {
 // Lookups stay exhaustive
 // ============================================
 
+// ============================================
+// Icons
+// ============================================
+
+describe('icons follow the design system', () => {
+    it('sizes every dialog header icon at h-5 w-5', () => {
+        // A header icon at h-4 reads as a lighter title than the dialogs
+        // around it. The instrument editor shipped that way and it took a
+        // side-by-side to notice, which is exactly the kind of drift a rule in
+        // a README does not catch. See "One glyph, one meaning" in
+        // design/README.md.
+        const offenders: string[] = [];
+
+        for (const file of sourceFiles()) {
+            const source = readFileSync(file, 'utf8');
+            if (!source.includes('<DialogTitle')) continue;
+
+            // The whole element, not a fixed window of lines: a header with a
+            // comment above its icon pushed it out of a 5-line window, and the
+            // first version of this test passed happily while measuring
+            // nothing at all.
+            const lines = source.split('\n');
+            lines.forEach((line, index) => {
+                if (!/<DialogTitle/.test(line)) return;
+
+                const close = lines.findIndex((l, i) => i >= index && /<\/DialogTitle>/.test(l));
+                if (close === -1) return;
+                const block = lines.slice(index, close + 1).join('\n');
+
+                // Comments are where the reasoning lives; they are not markup.
+                const markup = block.replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+                const icon = markup.match(/<[A-Z]\w*\s+className="([^"]*\bh-\d[^"]*)"/);
+                if (!icon) return;
+
+                if (!/\bh-5\b/.test(icon[1]) || !/\bw-5\b/.test(icon[1])) {
+                    offenders.push(`${relative(ROOT, file)}:${index + 1}  ${icon[1]}`);
+                }
+            });
+        }
+
+        expect(offenders, 'Dialog header icons are h-5 w-5.').toEqual([]);
+    });
+
+    it('keeps any hand-drawn icon on lucide\'s contract', () => {
+        // Vacuous until the first custom icon exists, and deliberately so: the
+        // rule needs to be in place *before* somebody adds one, because a glyph
+        // that is off-grid or paints its own colour looks wrong beside the
+        // sixty-five library icons and stops responding to the theme.
+        const iconsDir = join(ROOT, 'components', 'icons');
+        let files: string[] = [];
+        try {
+            files = readdirSync(iconsDir).filter((f) => /\.tsx$/.test(f));
+        } catch {
+            return; // no custom icons yet
+        }
+
+        const offenders: string[] = [];
+        for (const file of files) {
+            const source = readFileSync(join(iconsDir, file), 'utf8');
+            const required: [RegExp, string][] = [
+                [/viewBox="0 0 24 24"/, 'viewBox="0 0 24 24"'],
+                [/stroke="currentColor"/, 'stroke="currentColor"'],
+                [/fill="none"/, 'fill="none"'],
+                [/strokeWidth=\{?"?2"?\}?/, 'strokeWidth 2'],
+                [/strokeLinecap="round"/, 'strokeLinecap="round"'],
+                [/strokeLinejoin="round"/, 'strokeLinejoin="round"'],
+            ];
+            for (const [pattern, label] of required) {
+                if (!pattern.test(source)) offenders.push(`components/icons/${file}  missing ${label}`);
+            }
+        }
+
+        expect(offenders, 'Custom icons match lucide: 24x24, currentColor, no fill, stroke 2, round caps.').toEqual([]);
+    });
+});
+
 describe('class maps cover the whole scale', () => {
     it('has a background and text class for every track role', () => {
         expect(Object.keys(TRACK_BG).sort()).toEqual([...TRACK_ROLES].sort());
