@@ -18,7 +18,7 @@ outranks assumptions derived from code.
 | Doc | What it is |
 |---|---|
 | `docs/composeyogi_prd.md` | The PRD: vision, users, flows, quality bars, phase roadmap (Phase 2 = multi-take, automation, collaboration-lite; Phase 3 = AI, mobile companion, marketplace), **plus** the compose-page spec in §8. Merged 2026-08-30 from `composeyogi.md` + `design.md`, which overlapped on the whole of that section. Contains **designed-but-unbuilt** features — punch recording, the count-in overlay — so unwired schema for something named there is a commitment, not dead code. It says nothing about how the UI *looks*; that is `design/`, and §8.9 says so. |
-| `docs/TaskList.md` | **The planning document** (currently v1.15). Sprint-based, checkboxes, named deliverables, versioned footer. All work is planned here first. **Checkboxes only** — it grew to 463 lines for one sprint before the prose was split out, and the split is only worth anything if it stays split. Sprints 8.5, 8.6 and 8.7.1–8.7.7d shipped; remaining for v1.4: 8.7.5b, 8.7.6, 8.7.8. |
+| `docs/TaskList.md` | **The planning document** (currently v1.17). Sprint-based, checkboxes, named deliverables, versioned footer. All work is planned here first. **Checkboxes only** — it grew to 463 lines for one sprint before the prose was split out, and the split is only worth anything if it stays split. Sprints 8.5, 8.6, 8.7.1–8.7.5b and 8.7.7a–e shipped; remaining for v1.4: **8.7.6** (Play It Live). |
 | `docs/notes/` | Per-sprint companions to the task list — findings, measurements, bug post-mortems, scoping rationale, and what was tried and rejected. `sprint-8.7.md` is the first. **Anything longer than a one-line parenthetical goes here, not in TaskList.md.** Nothing here is a task; if it needs doing, it is a checkbox in the task list. |
 | `docs/adr/` | Architecture Decision Records (ADR-001 backend = first entry, Sprint 9.0). |
 | `design/` (public, shipped Sprint 8.6) | The committed design system — principles, usage rules, live HTML artboards. **All UI must comply**; `npm run check` enforces it. |
@@ -143,17 +143,30 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   is where everything testable lives. Full Brightness builds **no filter node**, which is
   what makes an unedited custom instrument its source preset exactly rather than
   approximately — don't "simplify" that to an always-on filter at 20kHz.
-- `preset-specs.ts` — every built-in as data; the single source for what the 52 melodic
-  presets sound like. Not hand-written: extracted mechanically from the option literals the
-  old factories passed, with those literals committed as
-  `tests/golden/preset-voice-options.json` **before** the factories were deleted.
-  `tests/instrument-spec.test.ts` asserts `voiceOptions(spec)` still reproduces all 52
-  exactly, so a change here that retunes a shipped sound fails the build. The 12 drum kits
-  are `null` — `Record<SynthPresetId, InstrumentSpec | null>` forces a new preset to say
-  which it is, where `Partial<>` would let it be silently uncustomizable.
-- `synth-presets.ts` — `SYNTH_PRESETS` (64 entries; the 52 melodic ones built from
-  `preset-specs.ts` via `createVoice`, the 12 drum/sampler ones still bespoke factories) and
-  `ResolvedInstrument`. Knows nothing about custom instruments by design — user content is
+  Two kinds live here: melodic `InstrumentSpec` and percussion `DrumSpec` (8.7.5b),
+  discriminated by **`voice`** — `membrane`/`noise` against the four melodic voices. A
+  separate `kind` field was rejected because `voice` had to differ anyway and a second field
+  that can only ever agree with the first is a second thing to get wrong. `DrumSpec` has **no
+  brightness by design**: the drum path builds a bare voice under every setting, so exactness
+  there is by construction rather than by the argument the melodic side has to make.
+- `preset-specs.ts` — every built-in as data; the single source for what **58** of the 64
+  presets sound like (52 melodic + the 6 synthesised drums). Not hand-written: extracted
+  mechanically from the option literals the old factories passed, with those literals
+  committed as `tests/golden/preset-voice-options.json` **before** the factories were
+  deleted — twice, and the second extraction was diffed against
+  `git show HEAD:lib/audio/synth-presets.ts` to prove it. `tests/instrument-spec.test.ts`
+  asserts the options are still reproduced exactly, so a change here that retunes a shipped
+  sound fails the build. The **6 sampler kits** are `null` —
+  `Record<SynthPresetId, AnyInstrumentSpec | null>` forces a new preset to say which it is,
+  where `Partial<>` would let it be silently uncustomizable. `CUSTOMIZABLE_MELODIC_IDS` and
+  `CUSTOMIZABLE_DRUM_IDS` are split here, not by a `.filter()` in a test — a test walking a
+  list that stopped matching passes vacuously, so one test pins the two at 52 and 6.
+- `synth-presets.ts` — `SYNTH_PRESETS` (64 entries; 58 built from `preset-specs.ts` —
+  melodic through `createVoice`, drums through `createDrumVoice`, both behind the single
+  `createSpecVoice` dispatch — and only the 6 samplers still bespoke factories) and
+  `ResolvedInstrument`. A drum voice is **not** wrapped in a PolySynth: it would add voice
+  allocation nothing needs and change the class the scheduler branches on, which is how a
+  NoiseSynth would start being handed a pitch it does not have. Knows nothing about custom instruments by design — user content is
   resolved one layer up, in the scheduler, so the built-in library never imports
   IndexedDB-backed state. Resolution order at schedule time: `clip.instrumentPreset` →
   `track.instrumentPreset` → fallback by track color.
@@ -307,8 +320,8 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   (lib/browser/index.ts) derives id/name/category from it; only browser metadata
   (description, trackType, trackColor) lives there, typed `Record<SynthPresetId, …>` so a
   missing entry **fails the build**. `PRESET_SPECS` (lib/audio/preset-specs.ts) is canonical
-  for *sound* and is typed the same way. Adding a melodic instrument now means a spec, an
-  entry, and metadata — three places, all three compiler-enforced.
+  for *sound* and is typed the same way. Adding an instrument now means a spec (melodic or
+  drum), an entry, and metadata — three places, all three compiler-enforced.
 - A custom instrument's id is `custom:<uuid>`, and `Track`/`Clip.instrumentPreset` is a
   plain `string`, so assigning one needs **no project schema change** — which is convenient
   and is exactly why the revision counter above exists.
@@ -473,9 +486,14 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   #16–#19), so the scope was set from prior art — GarageBand Smart Controls — and the
   reasoning is in `docs/notes/sprint-8.7.md` § 8.7.5 so it can be defended or revised if
   they come back. Open issues: **#23–#30** good-first-issues.
-- **Not verified by ear.** Every claim about 8.7.5's audio is a measurement (rendered RMS,
-  high-frequency ratio, deep-compared Tone options), not a listening test. Nobody has heard
-  a custom instrument, and the same caveat still stands for the 8.7.3 clip macros.
+- **Not verified by ear.** Every claim about 8.7.5's and 8.7.5b's audio is a measurement
+  (rendered RMS, a high-frequency proxy, deep-compared live Tone nodes), not a listening
+  test. Nobody has heard a custom instrument or a custom drum — the claim that Snap *sounds*
+  like snap is a claim about a number — and the same caveat still stands for the 8.7.3 clip
+  macros. What the browser did prove for 8.7.5b: an unedited custom drum renders
+  **bit-identical** to its built-in (maxAbsDiff 0.000e+0), all six build the same live Tone
+  node from the spec as from the shipped literal, and Level −24 dB measures −24.00 dB.
+  Numbers and method in `docs/notes/sprint-8.7.md` § 8.7.5b.
 - **Sprint 8.5 shipped as v1.2.0**; **Sprint 8.6 (design system) shipped as v1.3.0**, both
   on 2026-08-29. Sprint 8.7.1–8.7.3 are built on `feat/feel-and-musicality` and unreleased;
   CHANGELOG/ROADMAP are updated at the v1.4 release, not per sprint section.

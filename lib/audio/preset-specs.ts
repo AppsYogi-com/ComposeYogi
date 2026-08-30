@@ -15,22 +15,32 @@
 // a change here that alters a shipped sound fails the build rather than quietly
 // retuning somebody's saved project.
 //
-// **The 12 nulls are a decision, not a gap.** Drum kits are Samplers,
-// MembraneSynths and a NoiseSynth — a different construction with a different
-// parameter space, and a "custom drum kit" is a different feature (a kit is a
-// mapping of pieces, not a voice). They are typed `null` rather than omitted
-// because `Record<SynthPresetId, …>` then forces a new preset to state which it
-// is; `Partial<>` here would let the next instrument be silently uncustomizable.
+// **The 6 remaining nulls are a decision, not a gap.** The twelve drum presets
+// were never one case, and 8.7.5b split them: the six synthesised kits — five
+// MembraneSynths and a NoiseSynth — are `DrumSpec`s here like everything else,
+// because a membrane is a voice with four parameters and that is exactly what a
+// spec is for. The six that stay null are `Tone.Sampler`s. There is no
+// oscillator, envelope or filter to adjust on a recording of a snare, and a kit
+// is a *mapping of pieces* rather than a voice — "customize this" would first
+// have to ask which piece, which is a kit editor and a different feature.
+//
+// They are typed `null` rather than omitted because `Record<SynthPresetId, …>`
+// then forces a new preset to state which it is; `Partial<>` here would let the
+// next instrument be silently uncustomizable.
 
-import type { InstrumentSpec } from '@/types';
+import { isDrumSpec } from './instrument-spec';
+
+import type { AnyInstrumentSpec } from '@/types';
 
 import type { SynthPresetId } from './synth-presets';
 
 /**
- * The starting point for every built-in. `null` means the preset is not built
- * from a voice spec and cannot be customized in v1 — see the note above.
+ * The starting point for every built-in — melodic (`InstrumentSpec`) or
+ * percussion (`DrumSpec`), discriminated by `voice`. `null` means the preset is
+ * not built from a spec at all and cannot be customized: the six sampler kits,
+ * for the reason above.
  */
-export const PRESET_SPECS: Record<SynthPresetId, InstrumentSpec | null> = {
+export const PRESET_SPECS: Record<SynthPresetId, AnyInstrumentSpec | null> = {
     'electric-piano': {
         voice: 'synth',
         oscillator: {
@@ -1082,18 +1092,100 @@ export const PRESET_SPECS: Record<SynthPresetId, InstrumentSpec | null> = {
         resonance: 0,
         level: 0,
     },
-    'synth-drum-kit': null,
-    'drum-synth': null,
+    'synth-drum-kit': {
+        voice: 'membrane',
+        oscillator: {
+            type: 'triangle',
+        },
+        pitchDecay: 0.08,
+        octaves: 6,
+        envelope: {
+            attack: 0.001,
+            decay: 0.25,
+            sustain: 0,
+            release: 0.08,
+        },
+        level: 0,
+    },
+    'drum-synth': {
+        voice: 'membrane',
+        oscillator: {
+            type: 'sine',
+        },
+        pitchDecay: 0.05,
+        octaves: 4,
+        envelope: {
+            attack: 0.001,
+            decay: 0.4,
+            sustain: 0,
+            release: 0.1,
+        },
+        level: 0,
+    },
     'drum-sampler': null,
     'punchy-kit': null,
     '808-kit': null,
     'acoustic-kit': null,
     'lofi-kit': null,
     'electronic-kit': null,
-    'bongos': null,
-    'wooden-block': null,
-    'taiko': null,
-    'maracas': null,
+    'bongos': {
+        voice: 'membrane',
+        oscillator: {
+            type: 'sine',
+        },
+        pitchDecay: 0.03,
+        octaves: 3,
+        envelope: {
+            attack: 0.001,
+            decay: 0.15,
+            sustain: 0,
+            release: 0.05,
+        },
+        level: 0,
+    },
+    'wooden-block': {
+        voice: 'membrane',
+        oscillator: {
+            type: 'square',
+        },
+        pitchDecay: 0.008,
+        octaves: 2,
+        envelope: {
+            attack: 0.001,
+            decay: 0.06,
+            sustain: 0,
+            release: 0.02,
+        },
+        level: 0,
+    },
+    'taiko': {
+        voice: 'membrane',
+        oscillator: {
+            type: 'sine',
+        },
+        pitchDecay: 0.08,
+        octaves: 4,
+        envelope: {
+            attack: 0.001,
+            decay: 0.6,
+            sustain: 0,
+            release: 0.4,
+        },
+        level: 0,
+    },
+    'maracas': {
+        voice: 'noise',
+        noise: {
+            type: 'white',
+        },
+        envelope: {
+            attack: 0.001,
+            decay: 0.05,
+            sustain: 0,
+            release: 0.02,
+        },
+        level: 0,
+    },
     'square-wave': {
         voice: 'synth',
         oscillator: {
@@ -1144,9 +1236,25 @@ export const PRESET_SPECS: Record<SynthPresetId, InstrumentSpec | null> = {
 export const CUSTOMIZABLE_PRESET_IDS = (Object.keys(PRESET_SPECS) as SynthPresetId[])
     .filter((id) => PRESET_SPECS[id] !== null);
 
-/** Whether a built-in can be customized. False for the drum kits and samplers. */
+/**
+ * The same list, split by kind.
+ *
+ * Split here rather than at each call site because the two are not
+ * interchangeable anywhere: the editor renders different controls for them, and
+ * a test that walks one asserting the other's fields passes vacuously on an
+ * empty array — which is exactly what a `.filter()` written in a test file
+ * would eventually become.
+ */
+export const CUSTOMIZABLE_DRUM_IDS = CUSTOMIZABLE_PRESET_IDS
+    .filter((id) => isDrumSpec(PRESET_SPECS[id] as AnyInstrumentSpec));
+
+export const CUSTOMIZABLE_MELODIC_IDS = CUSTOMIZABLE_PRESET_IDS
+    .filter((id) => !isDrumSpec(PRESET_SPECS[id] as AnyInstrumentSpec));
+
+/** Whether a built-in can be customized. False for the six sampler kits, and
+ *  for anything that is not a preset id at all. */
 export function isCustomizablePreset(presetId: string): boolean {
-    return (PRESET_SPECS as Record<string, InstrumentSpec | null>)[presetId] != null;
+    return (PRESET_SPECS as Record<string, AnyInstrumentSpec | null>)[presetId] != null;
 }
 
 /**
@@ -1156,7 +1264,7 @@ export function isCustomizablePreset(presetId: string): boolean {
  * module state — handing out the live object would let one edit session retune
  * the built-in library for the rest of the page's life.
  */
-export function specForPreset(presetId: string): InstrumentSpec | null {
-    const spec = (PRESET_SPECS as Record<string, InstrumentSpec | null>)[presetId];
+export function specForPreset(presetId: string): AnyInstrumentSpec | null {
+    const spec = (PRESET_SPECS as Record<string, AnyInstrumentSpec | null>)[presetId];
     return spec ? structuredClone(spec) : null;
 }

@@ -72,6 +72,8 @@ export {
     useCustomInstruments,
 } from './custom-instruments';
 export {
+    CUSTOMIZABLE_DRUM_IDS,
+    CUSTOMIZABLE_MELODIC_IDS,
     CUSTOMIZABLE_PRESET_IDS,
     PRESET_SPECS,
     isCustomizablePreset,
@@ -79,13 +81,20 @@ export {
 } from './preset-specs';
 export {
     CUSTOM_INSTRUMENT_PREFIX,
+    DRUM_OSCILLATOR_SHAPES,
+    DRUM_RANGES,
+    DRUM_VOICES,
     ENVELOPE_RANGES,
     MACRO_RANGES,
     NEUTRAL_MACROS,
+    NOISE_TYPES,
+    TONE_MEMBRANE_DEFAULTS,
     brightnessToFrequency,
     clampSpec,
+    drumVoiceOptions,
     filterSpecFor,
     isCustomInstrumentId,
+    isDrumSpec,
     parseInstrumentSpec,
     resonanceToQ,
     voiceOptions,
@@ -105,6 +114,8 @@ export {
 export {
     SYNTH_PRESETS,
     SYNTH_PRESET_IDS,
+    createDrumVoice,
+    createSpecVoice,
     createVoice,
     getSynthPreset,
     getSynthPresetName,

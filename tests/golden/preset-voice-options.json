@@ -1049,5 +1049,99 @@
                 "release": 0.4
             }
         }
+    },
+    "synth-drum-kit": {
+        "voice": "membrane",
+        "options": {
+            "pitchDecay": 0.08,
+            "octaves": 6,
+            "oscillator": {
+                "type": "triangle"
+            },
+            "envelope": {
+                "attack": 0.001,
+                "decay": 0.25,
+                "sustain": 0,
+                "release": 0.08
+            }
+        }
+    },
+    "drum-synth": {
+        "voice": "membrane",
+        "options": {
+            "pitchDecay": 0.05,
+            "octaves": 4,
+            "oscillator": {
+                "type": "sine"
+            },
+            "envelope": {
+                "attack": 0.001,
+                "decay": 0.4,
+                "sustain": 0,
+                "release": 0.1
+            }
+        }
+    },
+    "bongos": {
+        "voice": "membrane",
+        "options": {
+            "pitchDecay": 0.03,
+            "octaves": 3,
+            "oscillator": {
+                "type": "sine"
+            },
+            "envelope": {
+                "attack": 0.001,
+                "decay": 0.15,
+                "sustain": 0,
+                "release": 0.05
+            }
+        }
+    },
+    "wooden-block": {
+        "voice": "membrane",
+        "options": {
+            "pitchDecay": 0.008,
+            "octaves": 2,
+            "oscillator": {
+                "type": "square"
+            },
+            "envelope": {
+                "attack": 0.001,
+                "decay": 0.06,
+                "sustain": 0,
+                "release": 0.02
+            }
+        }
+    },
+    "taiko": {
+        "voice": "membrane",
+        "options": {
+            "pitchDecay": 0.08,
+            "octaves": 4,
+            "oscillator": {
+                "type": "sine"
+            },
+            "envelope": {
+                "attack": 0.001,
+                "decay": 0.6,
+                "sustain": 0,
+                "release": 0.4
+            }
+        }
+    },
+    "maracas": {
+        "voice": "noise",
+        "options": {
+            "noise": {
+                "type": "white"
+            },
+            "envelope": {
+                "attack": 0.001,
+                "decay": 0.05,
+                "sustain": 0,
+                "release": 0.02
+            }
+        }
     }
 }

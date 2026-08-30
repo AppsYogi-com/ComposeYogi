@@ -13,9 +13,11 @@
 // specs alongside the factories would have been a second source of truth for 52
 // sounds, drifting the first time anyone edited one, so the factories are gone.
 //
-// The 12 drum kits stay bespoke: Samplers, MembraneSynths and a NoiseSynth are a
-// different construction with a different parameter space, and a custom drum kit
-// is a different feature (a kit is a mapping of pieces, not a voice).
+// The six *synthesised* drum presets are built the same way, from `DrumSpec`s —
+// a MembraneSynth is a voice with four parameters, which is what a spec is for.
+// The six `Tone.Sampler` kits stay bespoke: they load WAV files, so there is no
+// oscillator or envelope to name, and a kit is a mapping of pieces rather than a
+// voice.
 //
 // This file knows nothing about custom instruments — see `custom-instruments.ts`.
 // User content is resolved one layer up, in the scheduler, so the built-in
@@ -23,10 +25,10 @@
 
 import * as Tone from 'tone';
 
-import { voiceOptions } from './instrument-spec';
+import { drumVoiceOptions, isDrumSpec, voiceOptions } from './instrument-spec';
 import { PRESET_SPECS } from './preset-specs';
 
-import type { InstrumentSpec, InstrumentVoice } from '@/types';
+import type { AnyInstrumentSpec, DrumSpec, InstrumentSpec, InstrumentVoice } from '@/types';
 
 // ============================================
 // Types
@@ -104,12 +106,48 @@ export function createVoice(spec: InstrumentSpec | null | undefined): Tone.PolyS
     return synth;
 }
 
+/**
+ * Build a percussion voice from a spec — the drum half of `createVoice`, and
+ * the only place one of the six synthesised kits is constructed.
+ *
+ * Neither class is wrapped in a PolySynth, unlike every melodic voice. A
+ * MembraneSynth retriggers cleanly on its own and a kit lane plays one hit at a
+ * time, so the wrapper would add voice allocation to something that has never
+ * needed it — and it would change the class the scheduler branches on, which is
+ * how a NoiseSynth would start being handed a pitch it does not have.
+ *
+ * Constructed by a branch rather than from a map: the two option shapes have
+ * nothing in common, so a map would be a map plus two casts.
+ */
+export function createDrumVoice(spec: DrumSpec): Tone.MembraneSynth | Tone.NoiseSynth {
+    const options = drumVoiceOptions(spec);
+
+    const synth = spec.voice === 'noise'
+        ? new Tone.NoiseSynth(options as ConstructorParameters<typeof Tone.NoiseSynth>[0])
+        : new Tone.MembraneSynth(options as ConstructorParameters<typeof Tone.MembraneSynth>[0]);
+
+    if (spec.level !== 0) synth.volume.value = spec.level;
+    return synth;
+}
+
+/**
+ * A voice from either kind of spec.
+ *
+ * The single dispatch point, so the built-in library and the custom-instrument
+ * registry cannot disagree about what a spec means — the same reason the
+ * scheduler is the single place a clip becomes sound.
+ */
+export function createSpecVoice(spec: AnyInstrumentSpec | null | undefined): SynthType {
+    if (!spec) return createVoice(spec);
+    return isDrumSpec(spec) ? createDrumVoice(spec) : createVoice(spec);
+}
+
 /** A built-in preset's `createSynth`, resolved from its spec at call time. */
 const fromSpec = (presetId: string) => (): SynthType =>
-    createVoice((PRESET_SPECS as Record<string, InstrumentSpec | null>)[presetId]);
+    createSpecVoice((PRESET_SPECS as Record<string, AnyInstrumentSpec | null>)[presetId]);
 
 // ============================================
-// Synth Factory Functions
+// Sampler Factories — the six kits that are not specs
 // ============================================
 
 // Drum Sampler - Maps GM drum pitches to actual samples
@@ -244,127 +282,12 @@ export async function waitForSynthReady(synth: SynthType): Promise<void> {
     // Other synth types are ready immediately
 }
 
-// ============================================
-// Mallet / Pitched Percussion
-// ============================================
-
-// ============================================
-// Plucked Strings
-// ============================================
-
-// ============================================
-// Bowed Strings
-// ============================================
-
-// ============================================
-// Woodwinds
-// ============================================
-
-// ============================================
-// Brass
-// ============================================
-
-// Synth Drum Kit — punchier, more tonal variety than Classic Drum
-const createSynthDrumKit = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.08,
-        octaves: 6,
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.25,
-            sustain: 0,
-            release: 0.08,
-        },
-    });
-};
-
-// Legacy drum synth for fallback (simpler, no samples needed)
-const createDrumSynth = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.05,
-        octaves: 4,
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.4,
-            sustain: 0,
-            release: 0.1,
-        },
-    });
-};
-
-// Bongos — high-pitched pair of hand drums, short tonal decay
-const createBongos = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.03,
-        octaves: 3,
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.15,
-            sustain: 0,
-            release: 0.05,
-        },
-    });
-};
-
-// Wooden Block — sharp, clicky percussive crack
-const createWoodenBlock = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.008,
-        octaves: 2,
-        oscillator: { type: 'square' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.06,
-            sustain: 0,
-            release: 0.02,
-        },
-    });
-};
-
-// ============================================
-// Basic Waveform Synths — pure oscillator PolySynths
-// ============================================
-
-// ============================================
-// Euphonium — warm, mellow low-brass PolySynth
-// ============================================
-
-// ============================================
-// Taiko — deep resonant Japanese drum (no samples)
-// ============================================
-
-const createTaiko = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.08,
-        octaves: 4,
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.6,
-            sustain: 0,
-            release: 0.4,
-        },
-    });
-};
-
-// ============================================
-// Maracas — shaker noise burst (no samples)
-// ============================================
-
-const createMaracas = (): Tone.NoiseSynth => {
-    return new Tone.NoiseSynth({
-        noise: { type: 'white' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.05,
-            sustain: 0,
-            release: 0.02,
-        },
-    });
-};
+// Eight empty category banners used to sit here — Mallet, Plucked Strings,
+// Bowed Strings, Woodwinds, Brass, Basic Waveforms, Euphonium, and (until
+// 8.7.5b) Taiko and Maracas. Each one headed a factory that is now a spec in
+// `preset-specs.ts`, and a banner announcing a section with nothing in it says
+// the sounds live here when they do not. The categories themselves are still
+// real; they are in `SYNTH_PRESETS` below, which is where they belong.
 
 // ============================================
 // Preset Registry
@@ -689,18 +612,18 @@ export const SYNTH_PRESETS = {
         createSynth: fromSpec('guzheng'),
     },
 
-    // Drums (special case)
+    // Drums — the six below are specs; the six samplers after them are not
     'synth-drum-kit': {
         id: 'synth-drum-kit',
         name: 'Synth Drum Kit',
         category: 'drums',
-        createSynth: createSynthDrumKit,
+        createSynth: fromSpec('synth-drum-kit'),
     },
     'drum-synth': {
         id: 'drum-synth',
         name: 'Classic Drum',
         category: 'drums',
-        createSynth: createDrumSynth,
+        createSynth: fromSpec('drum-synth'),
     },
     'drum-sampler': {
         id: 'drum-sampler',
@@ -742,25 +665,25 @@ export const SYNTH_PRESETS = {
         id: 'bongos',
         name: 'Bongos',
         category: 'drums',
-        createSynth: createBongos,
+        createSynth: fromSpec('bongos'),
     },
     'wooden-block': {
         id: 'wooden-block',
         name: 'Wooden Block',
         category: 'drums',
-        createSynth: createWoodenBlock,
+        createSynth: fromSpec('wooden-block'),
     },
     'taiko': {
         id: 'taiko',
         name: 'Taiko',
         category: 'drums',
-        createSynth: createTaiko,
+        createSynth: fromSpec('taiko'),
     },
     'maracas': {
         id: 'maracas',
         name: 'Maracas',
         category: 'drums',
-        createSynth: createMaracas,
+        createSynth: fromSpec('maracas'),
     },
 
     // Basic Waveform Synths

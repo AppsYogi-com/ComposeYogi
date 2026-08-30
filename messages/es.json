@@ -179,7 +179,15 @@
       "fatsine": "Senoidal ancha: amplia y cálida",
       "fatsawtooth": "Sierra ancha: amplia y enorme"
     },
+    "noise": "Ruido",
+    "noises": {
+      "white": "Blanco: siseo brillante",
+      "pink": "Rosa: siseo más suave",
+      "brown": "Marrón: retumbo grave"
+    },
     "brightness": "Brillo",
+    "pitch": "Tono",
+    "snap": "Chasquido",
     "attack": "Ataque",
     "release": "Liberación",
     "decay": "Caída",

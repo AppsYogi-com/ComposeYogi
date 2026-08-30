@@ -182,6 +182,16 @@ export interface UserSample {
 export type InstrumentVoice = 'synth' | 'monosynth' | 'fmsynth' | 'amsynth';
 
 /**
+ * The Tone class a percussion voice *is* — not wrapped in a PolySynth, because
+ * neither one is polyphonic and a drum does not want to be.
+ *
+ * This is the discriminant between the two kinds of spec. It could have been a
+ * separate `kind` field, but `voice` already had to differ and a second field
+ * that can only ever agree with the first is a second thing to get wrong.
+ */
+export type DrumVoice = 'membrane' | 'noise';
+
+/**
  * An oscillator, as data. `type` carries the whole variation Tone allows —
  * `partials` for an additive `custom` wave, `width` for a pulse, `spread` and
  * `count` for the detuned `fat` family — because a spec that dropped them
@@ -193,6 +203,11 @@ export interface OscillatorSpec {
     width?: number;
     spread?: number;
     count?: number;
+}
+
+/** A noise source, as data. Tone's three colours; `white` is its own default. */
+export interface NoiseSpec {
+    type: 'white' | 'pink' | 'brown';
 }
 
 /** Attack, decay, sustain, release. Times in seconds; sustain is a 0-1 level. */
@@ -239,6 +254,40 @@ export interface InstrumentSpec {
     modulationIndex?: number;
 }
 
+/**
+ * A percussion voice as plain JSON — the drum half of the same idea.
+ *
+ * Separate from `InstrumentSpec` rather than a pile of optional fields on it,
+ * because almost nothing overlaps: a membrane has a pitch sweep and no filter,
+ * a noise burst has neither a pitch nor an oscillator, and every melodic field
+ * (brightness, resonance, the modulation character) is meaningless on both.
+ * One type carrying all of it would be a type where most combinations are
+ * invalid and nothing says which.
+ *
+ * There is deliberately **no brightness** here. On a melodic voice it is a
+ * post-voice lowpass that has to prove it builds no node at 100; on a drum the
+ * same darkening is what the wave and the pitch sweep already do, so the drum
+ * path builds a bare voice and is identical to its preset by construction
+ * rather than by argument.
+ */
+export interface DrumSpec {
+    voice: DrumVoice;
+    envelope: EnvelopeSpec;
+    /** Output trim in dB. The one macro both kinds share. */
+    level: number;
+    /** Membrane only: the body's waveform. */
+    oscillator?: OscillatorSpec;
+    /** Membrane only: how long the pitch takes to fall — the "snap" of the hit. */
+    pitchDecay?: number;
+    /** Membrane only: how far it falls, in octaves. */
+    octaves?: number;
+    /** Noise only: the colour of the burst. */
+    noise?: NoiseSpec;
+}
+
+/** Either kind of spec. Narrow with `isDrumSpec`. */
+export type AnyInstrumentSpec = InstrumentSpec | DrumSpec;
+
 /** A user-made instrument: a spec, a name, and where it came from. */
 export interface CustomInstrument {
     /** `custom:<uuid>` — the prefix is what makes a bare instrumentPreset
@@ -248,7 +297,7 @@ export interface CustomInstrument {
     /** The built-in it was started from. Shown in the browser, and what Revert
      *  restores. */
     basePresetId: string;
-    spec: InstrumentSpec;
+    spec: AnyInstrumentSpec;
     /**
      * Bumped on every save. The reschedule hash reads it because the id cannot
      * change when the sound does — without this, editing an instrument already

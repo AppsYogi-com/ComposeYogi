@@ -179,7 +179,15 @@
       "fatsine": "Fat Sine — wide and warm",
       "fatsawtooth": "Fat Saw — wide and huge"
     },
+    "noise": "Noise",
+    "noises": {
+      "white": "White — bright hiss",
+      "pink": "Pink — softer hiss",
+      "brown": "Brown — deep rumble"
+    },
     "brightness": "Brightness",
+    "pitch": "Pitch",
+    "snap": "Snap",
     "attack": "Attack",
     "release": "Release",
     "decay": "Decay",
