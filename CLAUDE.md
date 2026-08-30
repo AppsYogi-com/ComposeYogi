@@ -421,6 +421,12 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   understood — one because the pane was hidden, one because a page reload had left the audio
   engine uninitialized so `audioEngine.play()` silently no-opped. **Check `isReady()` and
   that the recording manager has no stale session before trusting a transport measurement.**
+- **Recording is hard to reach, and three of its controls do not exist** (Sprint 8.7.8):
+  `+ Add Track` only makes MIDI tracks and the arm button only renders for `type === 'audio'`,
+  so the sole route to a recordable track is Inspector → Type → Audio; `setCountInBars` has
+  no callers, so every count-in is the hardcoded 2 bars; and the record button's tooltip
+  advertises `R` when no such shortcut is registered. Verified by walking the path in a
+  browser, not by reading the code.
 - **The metronome still defaults OFF** (`metronomeEnabled: false`) even though PRD §9 lists
   it ON among the recording defaults. Deliberate: §9's defaults are the *Recording UX*
   section's, the count-in now clicks unconditionally, and a click running through the take
