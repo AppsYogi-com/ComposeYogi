@@ -82,13 +82,17 @@
     "tempo": "Tempo (pulsos por minuto)",
     "timeSignature": "Compás",
     "timeSignatureHint": "Compás (clic para cambiar)",
-    "scale": "Escala",
+    "vibe": "Ambiente",
+    "vibeHint": "Tonalidad y escala — ahora {scale}. Elige un ambiente, o ajústalas con precisión en el Inspector.",
     "custom": "Personalizado",
+    "beatsPerBar": "Pulsos por compás",
+    "beatUnit": "Figura del pulso",
     "apply": "Aplicar",
     "metronome": "Metrónomo",
     "zoomOut": "Alejar",
     "resetZoom": "Restablecer zoom",
     "zoomIn": "Acercar",
+    "zoom": "Zoom",
     "shortcuts": "Atajos de teclado",
     "settings": "Ajustes de audio",
     "lightMode": "Modo claro",
@@ -97,7 +101,8 @@
   },
   "browser": {
     "title": "Explorador",
-    "close": "Cerrar explorador",
+    "collapse": "Contraer explorador",
+    "expand": "Expandir explorador",
     "collapsedLabel": "EXPLORADOR",
     "tabs": {
       "templates": "Plantillas",
@@ -133,6 +138,8 @@
   "inspector": {
     "title": "Inspector",
     "collapsedLabel": "INSPECTOR",
+    "collapse": "Contraer inspector",
+    "expand": "Expandir inspector",
     "emptyState": "Selecciona una pista o un clip para editar",
     "project": {
       "title": "Proyecto",
@@ -165,6 +172,7 @@
     "effects": {
       "title": "Efectos",
       "emptyState": "Arrastra efectos sobre la pista<br></br>para añadirlos",
+      "remove": "Quitar efecto",
       "mix": "Mezcla (wet)",
       "decay": "Caída",
       "feedback": "Realimentación",
@@ -203,7 +211,8 @@
     }
   },
   "editor": {
-    "close": "Cerrar editor",
+    "collapse": "Contraer editor",
+    "expand": "Expandir editor",
     "collapsedLabel": "EDITOR",
     "editing": "Editando: {name}",
     "emptyState": "Selecciona un clip para editar",
@@ -262,9 +271,11 @@
   },
   "tracks": {
     "add": "Añadir pista",
+    "delete": "Eliminar pista",
     "defaultName": "Pista {index}",
     "mute": "Silenciar",
     "solo": "Solo",
+    "volume": "Volumen",
     "arm": "Activar para grabar",
     "disarm": "Desactivar"
   },
@@ -281,12 +292,14 @@
     "live": "En vivo",
     "bars": "Barras de frecuencia",
     "waveform": "Forma de onda",
-    "hide": "Ocultar visualizador"
+    "collapse": "Contraer visualizador",
+    "expand": "Expandir visualizador"
   },
   "projects": {
     "title": "Proyectos",
     "description": "Selecciona un proyecto para abrirlo o crea uno nuevo",
     "new": "Nuevo proyecto",
+    "options": "Opciones del proyecto",
     "untitled": "Proyecto sin título",
     "empty": "Aún no hay proyectos",
     "emptyHint": "Crea tu primer proyecto arriba",
@@ -521,6 +534,10 @@
   "common": {
     "loading": "Cargando…",
     "close": "Cerrar",
+    "cancel": "Cancelar",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "toggleTheme": "Cambiar tema",
     "dismiss": "Descartar",
     "themeToLight": "Modo claro",
     "themeToDark": "Modo oscuro",

@@ -292,6 +292,39 @@ important.
 
 ---
 
+## The cursor names the gesture
+
+The pointer is the smallest promise the interface makes, and it gets made
+hundreds of times a session. When it is picked per-component it goes wrong the
+same way every design system's does: the piano-roll velocity slider offered a
+hand, the identical sliders in the Inspector two panels away offered an arrow,
+and nothing anywhere said which was correct.
+
+So it is not picked per-component. Each cursor means one thing, the primitives
+in `components/ui` carry it, and a call site that adds its own is either
+overriding the primitive or re-implementing it.
+
+| The gesture | Cursor | Where it comes from |
+|---|---|---|
+| Activate — buttons, select triggers, tabs, panel toggles | `pointer` | `Button`, `SelectTrigger` |
+| Set a value on a track | `pointer` on the rail, `grab` → `grabbing` on the thumb | `Slider` |
+| Move an object — clips, track rows, browser items | `grab` → `grabbing` | the draggable |
+| Resize an edge — clip edges, loop braces | `ew-resize` / `ns-resize` | the handle |
+| Draw or select a range — waveform, velocity lane | `crosshair` / `ns-resize` | the surface |
+| Type | browser default (`text`) | never overridden |
+| Looks interactive, is not — readouts inside a chip | `default` | the readout |
+| Disabled | `not-allowed` | the primitive |
+
+Two rules follow from the table:
+
+- **Do not put `cursor-pointer` on a `Button` or a `Slider`.** They already have
+  it. Repeating it is how the two drift apart later.
+- **A bare `<div>` that responds to a click needs the cursor spelled out**, since
+  it inherits nothing. That is the only case where a call site should be setting
+  one — and it is usually a sign the thing wanted to be a `Button`.
+
+---
+
 ## Both themes are real
 
 ComposeYogi opens dark and most people will stay there, but the light theme

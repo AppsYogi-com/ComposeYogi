@@ -94,6 +94,7 @@ export function EditorPanel() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('collapse')}
                                 variant="ghost"
                                 size="icon"
                                 onClick={toggleEditor}
@@ -104,7 +105,7 @@ export function EditorPanel() {
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
                             <p>
-                                {t('close')}{' '}
+                                {t('collapse')}{' '}
                                 <kbd className="ml-1 text-xs opacity-60">E</kbd>
                             </p>
                         </TooltipContent>
@@ -149,6 +150,7 @@ export function EditorCollapsedBar() {
     return (
         <div className="border-t border-border bg-background">
             <button
+                aria-label={t('expand')}
                 onClick={toggleEditor}
                 className="w-full flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >

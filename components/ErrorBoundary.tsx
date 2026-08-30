@@ -13,6 +13,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 import { createLogger } from '@/lib/logger';
+import { Button } from '@/components/ui/button';
 
 const logger = createLogger('ErrorBoundary');
 
@@ -93,18 +94,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                     </p>
 
                     <div className="mt-5 flex items-center justify-center gap-2">
-                        <button
+                        <Button
                             onClick={this.reload}
-                            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                        >
+                            variant="transport-active"
+                            >
                             {messages.reload}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={this.reset}
-                            className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                        >
+                            variant="outline"
+                            >
                             {messages.retry}
-                        </button>
+                        </Button>
                     </div>
 
                     {process.env.NODE_ENV === 'development' && (

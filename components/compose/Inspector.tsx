@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 import {
     ChevronLeft,
@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
     Select,
     SelectContent,
@@ -60,26 +61,36 @@ export function Inspector() {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
                 <h2 className="text-sm font-semibold">{t('title')}</h2>
-                <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={toggleInspector}
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            aria-label={t('collapse')}
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={toggleInspector}
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                        <p>
+                            {t('collapse')}{' '}
+                            <kbd className="ml-1 text-xs opacity-60">I</kbd>
+                        </p>
+                    </TooltipContent>
+                </Tooltip>
             </div>
 
             <ScrollArea className="flex-1">
                 {/* Project settings section */}
                 <Section id="project" title={t('project.title')} icon={<Sliders className="h-4 w-4" />}>
                     {/* Key */}
-                    <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">{t('project.key')}</Label>
+                    <Field label={t('project.key')}>{({ id }) => (
                         <Select
                             value={project?.key || 'C'}
                             onValueChange={(value) => setKey(value as MusicalKey)}
                         >
-                            <SelectTrigger className="h-8">
+                            <SelectTrigger id={id} className="h-8">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -90,16 +101,15 @@ export function Inspector() {
                                 ))}
                             </SelectContent>
                         </Select>
-                    </div>
+                    )}</Field>
 
                     {/* Scale */}
-                    <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">{t('project.scale')}</Label>
+                    <Field label={t('project.scale')}>{({ id }) => (
                         <Select
                             value={project?.scale || 'major'}
                             onValueChange={(value) => setScale(value as MusicalScale)}
                         >
-                            <SelectTrigger className="h-8">
+                            <SelectTrigger id={id} className="h-8">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -110,11 +120,15 @@ export function Inspector() {
                                 ))}
                             </SelectContent>
                         </Select>
-                    </div>
+                    )}</Field>
 
-                    {/* Time signature (read-only display) */}
+                    {/* Time signature (read-only display). A <span>, not a
+                        <Label>: there is no control here to name, and a label
+                        pointing at nothing is the same defect in reverse. */}
                     <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">{t('project.timeSignature')}</Label>
+                        <span className="text-xs font-medium leading-none text-muted-foreground">
+                            {t('project.timeSignature')}
+                        </span>
                         <div className="flex items-center h-8 px-3 rounded-md border border-input bg-background text-sm font-mono">
                             {project?.timeSignature[0]}/{project?.timeSignature[1]}
                         </div>
@@ -126,9 +140,9 @@ export function Inspector() {
                 {/* Selected track section */}
                 {selectedTrack && (
                     <Section id="track" title={t('track.title')} icon={<Music className="h-4 w-4" />}>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{t('track.name')}</Label>
+                        <Field label={t('track.name')}>{({ id }) => (
                             <Input
+                                id={id}
                                 value={selectedTrack.name}
                                 onChange={(e) => {
                                     useProjectStore.getState().updateTrack(selectedTrack.id, {
@@ -137,10 +151,9 @@ export function Inspector() {
                                 }}
                                 className="h-8"
                             />
-                        </div>
+                        )}</Field>
 
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{t('track.type')}</Label>
+                        <Field label={t('track.type')}>{({ id }) => (
                             <Select
                                 value={selectedTrack.type}
                                 onValueChange={(value) => {
@@ -149,7 +162,7 @@ export function Inspector() {
                                     });
                                 }}
                             >
-                                <SelectTrigger className="h-8">
+                                <SelectTrigger id={id} className="h-8">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -160,10 +173,9 @@ export function Inspector() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        )}</Field>
 
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{t('track.color')}</Label>
+                        <Field label={t('track.color')}>{({ id }) => (
                             <Select
                                 value={selectedTrack.color}
                                 onValueChange={(value) => {
@@ -172,7 +184,7 @@ export function Inspector() {
                                     });
                                 }}
                             >
-                                <SelectTrigger className="h-8">
+                                <SelectTrigger id={id} className="h-8">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -189,13 +201,12 @@ export function Inspector() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
+                        )}</Field>
 
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">
-                                {t('track.pan', { value: Math.round((selectedTrack.pan || 0) * 100) })}
-                            </Label>
+                        <Field label={t('track.pan', { value: Math.round((selectedTrack.pan || 0) * 100) })}>
+                            {({ labelledBy }) => (
                             <Slider
+                                aria-labelledby={labelledBy}
                                 value={[(selectedTrack.pan || 0) * 50 + 50]}
                                 min={0}
                                 max={100}
@@ -207,7 +218,8 @@ export function Inspector() {
                                 }}
                                 className="py-2"
                             />
-                        </div>
+                            )}
+                        </Field>
                     </Section>
                 )}
 
@@ -240,6 +252,7 @@ export function Inspector() {
                                                 </div>
                                             </div>
                                             <Button
+                                                aria-label={t('effects.remove')}
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -252,14 +265,17 @@ export function Inspector() {
                                         {/* Effect Controls */}
                                         <div className="p-3 space-y-3">
                                             {/* Common Wet/Dry Control */}
-                                            <div className="space-y-1.5">
-                                                <div className="flex items-center justify-between">
-                                                    <Label className="text-2xs text-muted-foreground">{t('effects.mix')}</Label>
+                                            <Field
+                                                label={t('effects.mix')}
+                                                labelClassName="text-2xs"
+                                                value={
                                                     <span className="text-2xs font-mono">
                                                         {Math.round((effect.params.wet ?? 0.5) * 100)}%
                                                     </span>
-                                                </div>
+                                                }
+                                            >{({ labelledBy }) => (
                                                 <Slider
+                                                    aria-labelledby={labelledBy}
                                                     value={[(effect.params.wet ?? 0.5) * 100]}
                                                     min={0}
                                                     max={100}
@@ -270,16 +286,17 @@ export function Inspector() {
                                                     }}
                                                     className="py-1"
                                                 />
-                                            </div>
+                                            )}</Field>
 
                                             {/* Specific Controls based on Type */}
                                             {effect.type === 'reverb' && (
-                                                <div className="space-y-1.5">
-                                                    <div className="flex items-center justify-between">
-                                                        <Label className="text-2xs text-muted-foreground">{t('effects.decay')}</Label>
-                                                        <span className="text-2xs font-mono">{effect.params.decay ?? 1.5}s</span>
-                                                    </div>
+                                                <Field
+                                                    label={t('effects.decay')}
+                                                    labelClassName="text-2xs"
+                                                    value={<span className="text-2xs font-mono">{effect.params.decay ?? 1.5}s</span>}
+                                                >{({ labelledBy }) => (
                                                     <Slider
+                                                        aria-labelledby={labelledBy}
                                                         value={[(effect.params.decay ?? 1.5) * 10]}
                                                         min={1}
                                                         max={100}
@@ -290,16 +307,17 @@ export function Inspector() {
                                                         }}
                                                         className="py-1"
                                                     />
-                                                </div>
+                                                )}</Field>
                                             )}
 
                                             {effect.type === 'delay' && (
-                                                <div className="space-y-1.5">
-                                                    <div className="flex items-center justify-between">
-                                                        <Label className="text-2xs text-muted-foreground">{t('effects.feedback')}</Label>
-                                                        <span className="text-2xs font-mono">{Math.round((effect.params.feedback ?? 0.5) * 100)}%</span>
-                                                    </div>
+                                                <Field
+                                                    label={t('effects.feedback')}
+                                                    labelClassName="text-2xs"
+                                                    value={<span className="text-2xs font-mono">{Math.round((effect.params.feedback ?? 0.5) * 100)}%</span>}
+                                                >{({ labelledBy }) => (
                                                     <Slider
+                                                        aria-labelledby={labelledBy}
                                                         value={[(effect.params.feedback ?? 0.5) * 100]}
                                                         min={0}
                                                         max={90}
@@ -310,16 +328,17 @@ export function Inspector() {
                                                         }}
                                                         className="py-1"
                                                     />
-                                                </div>
+                                                )}</Field>
                                             )}
 
                                             {effect.type === 'distortion' && (
-                                                <div className="space-y-1.5">
-                                                    <div className="flex items-center justify-between">
-                                                        <Label className="text-2xs text-muted-foreground">{t('effects.drive')}</Label>
-                                                        <span className="text-2xs font-mono">{Math.round((effect.params.distortion ?? 0.4) * 100)}%</span>
-                                                    </div>
+                                                <Field
+                                                    label={t('effects.drive')}
+                                                    labelClassName="text-2xs"
+                                                    value={<span className="text-2xs font-mono">{Math.round((effect.params.distortion ?? 0.4) * 100)}%</span>}
+                                                >{({ labelledBy }) => (
                                                     <Slider
+                                                        aria-labelledby={labelledBy}
                                                         value={[(effect.params.distortion ?? 0.4) * 100]}
                                                         min={0}
                                                         max={100}
@@ -330,7 +349,7 @@ export function Inspector() {
                                                         }}
                                                         className="py-1"
                                                     />
-                                                </div>
+                                                )}</Field>
                                             )}
                                         </div>
                                     </div>
@@ -343,9 +362,9 @@ export function Inspector() {
                 {/* Selected clip section */}
                 {selectedClip && (
                     <Section id="clip" title={t('clip.title')} icon={<Clock className="h-4 w-4" />}>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{t('clip.name')}</Label>
+                        <Field label={t('clip.name')}>{({ id }) => (
                             <Input
+                                id={id}
                                 value={selectedClip.name}
                                 onChange={(e) => {
                                     useProjectStore.getState().updateClip(selectedClip.id, {
@@ -354,12 +373,12 @@ export function Inspector() {
                                 }}
                                 className="h-8"
                             />
-                        </div>
+                        )}</Field>
 
                         <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs text-muted-foreground">{t('clip.start')}</Label>
+                            <Field label={t('clip.start')}>{({ id }) => (
                                 <Input
+                                    id={id}
                                     type="number"
                                     value={selectedClip.startBar}
                                     onChange={(e) => {
@@ -370,10 +389,10 @@ export function Inspector() {
                                     min={0}
                                     className="h-8 font-mono"
                                 />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-xs text-muted-foreground">{t('clip.length')}</Label>
+                            )}</Field>
+                            <Field label={t('clip.length')}>{({ id }) => (
                                 <Input
+                                    id={id}
                                     type="number"
                                     value={selectedClip.lengthBars}
                                     onChange={(e) => {
@@ -384,7 +403,7 @@ export function Inspector() {
                                     min={1}
                                     className="h-8 font-mono"
                                 />
-                            </div>
+                            )}</Field>
                         </div>
                     </Section>
                 )}
@@ -568,9 +587,9 @@ function SwingSlider() {
     const shown = dragging ?? swing;
 
     return (
-        <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-                <Label className="text-xs text-muted-foreground">{t('swing')}</Label>
+        <Field
+            label={t('swing')}
+            value={
                 <span
                     className={
                         shown === 0
@@ -580,21 +599,24 @@ function SwingSlider() {
                 >
                     {format.number(shown)}
                 </span>
-            </div>
-            <Slider
-                value={[shown]}
-                min={0}
-                max={100}
-                step={1}
-                onValueChange={([v]) => setDragging(v)}
-                onValueCommit={([v]) => setSwing(v)}
-                className="py-1"
-                aria-label={t('swing')}
-            />
-            <p className="text-2xs leading-relaxed text-muted-foreground">
-                {t('swingHint')}
-            </p>
-        </div>
+            }
+        >{({ labelledBy }) => (
+            <>
+                <Slider
+                    aria-labelledby={labelledBy}
+                    value={[shown]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    onValueChange={([v]) => setDragging(v)}
+                    onValueCommit={([v]) => setSwing(v)}
+                    className="py-1"
+                />
+                <p className="text-2xs leading-relaxed text-muted-foreground">
+                    {t('swingHint')}
+                </p>
+            </>
+        )}</Field>
     );
 }
 
@@ -626,9 +648,9 @@ function MacroSlider({ spec, value, onCommit }: MacroSliderProps) {
     const neutral = MACRO_NEUTRAL[spec.key];
 
     return (
-        <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-                <Label className="text-xs text-muted-foreground">{t(spec.key)}</Label>
+        <Field
+            label={t(spec.key)}
+            value={
                 <span
                     className={
                         shown === neutral
@@ -640,20 +662,73 @@ function MacroSlider({ spec, value, onCommit }: MacroSliderProps) {
                         ? t('semitones', { value: shown })
                         : format.number(shown)}
                 </span>
+            }
+        >{({ labelledBy }) => (
+            <>
+                <Slider
+                    aria-labelledby={labelledBy}
+                    value={[shown]}
+                    min={spec.min}
+                    max={spec.max}
+                    step={1}
+                    onValueChange={([v]) => setDragging(v)}
+                    onValueCommit={([v]) => onCommit(v)}
+                    className="py-1"
+                />
+                <p className="text-2xs leading-relaxed text-muted-foreground">
+                    {t(`${spec.key}Hint`)}
+                </p>
+            </>
+        )}</Field>
+    );
+}
+
+interface FieldIds {
+    /** For labelable controls: <Input id>, <SelectTrigger id>. */
+    id: string;
+    /** For everything else, via aria-labelledby. */
+    labelledBy: string;
+}
+
+interface FieldProps {
+    label: React.ReactNode;
+    /** Rendered at the caption's right — a live value readout, usually. */
+    value?: React.ReactNode;
+    labelClassName?: string;
+    className?: string;
+    children: (ids: FieldIds) => React.ReactNode;
+}
+
+/**
+ * A caption and the control it names, wired together.
+ *
+ * The wiring is the whole point. Every field in this panel used to render a
+ * <Label> carrying no `htmlFor` next to a control carrying no `id`, which made
+ * the caption visible text and nothing more. Radix puts `role="combobox"` on a
+ * Select's trigger and `role="slider"` on a Slider's thumb, so a screen reader
+ * announced Key, Scale, the track pickers and every effect slider as unnamed
+ * controls — the panel was legible only if you could see it. Handing the ids
+ * out through a render prop means a caption cannot be rendered without one.
+ *
+ * Two ids, because there are two kinds of control here. `htmlFor`/`id` is the
+ * better pairing — clicking the caption also focuses the control — but it only
+ * binds to labelable elements: input, button, select, textarea. A Radix
+ * slider's thumb is a <span>, so it has to take `aria-labelledby` instead.
+ */
+function Field({ label, value, labelClassName = 'text-xs', className, children }: FieldProps) {
+    const generated = useId();
+    const id = `${generated}-control`;
+    const labelledBy = `${generated}-label`;
+
+    return (
+        <div className={cn('space-y-1.5', className)}>
+            <div className="flex items-center justify-between gap-2">
+                <Label htmlFor={id} id={labelledBy} className={cn(labelClassName, 'text-muted-foreground')}>
+                    {label}
+                </Label>
+                {value}
             </div>
-            <Slider
-                value={[shown]}
-                min={spec.min}
-                max={spec.max}
-                step={1}
-                onValueChange={([v]) => setDragging(v)}
-                onValueCommit={([v]) => onCommit(v)}
-                className="py-1"
-                aria-label={t(spec.key)}
-            />
-            <p className="text-2xs leading-relaxed text-muted-foreground">
-                {t(`${spec.key}Hint`)}
-            </p>
+            {children({ id, labelledBy })}
         </div>
     );
 }
@@ -666,6 +741,7 @@ export function InspectorCollapsedBar() {
     return (
         <div className="border-l border-border bg-background h-full">
             <button
+                aria-label={t('expand')}
                 onClick={toggleInspector}
                 className="h-full w-6 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >

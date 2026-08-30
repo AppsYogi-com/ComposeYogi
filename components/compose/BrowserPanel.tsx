@@ -20,7 +20,18 @@ import {
 } from 'lucide-react';
 import { useUIStore, useProjectStore } from '@/lib/store';
 import { TRACK_BG } from '@/lib/design/track-colors';
-import { Button } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { buttonVariants } from '@/components/ui/button';
 import {
     Tooltip,
     TooltipContent,
@@ -75,6 +86,7 @@ const TABS: { id: BrowserTab; icon: typeof LayoutTemplate }[] = [
 
 export function BrowserPanel() {
     const t = useTranslations('browser');
+    const tCommon = useTranslations('common');
     const [activeTab, setActiveTab] = useState<BrowserTab>('templates');
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['drums', 'user-samples']));
@@ -84,6 +96,7 @@ export function BrowserPanel() {
     const [userSamples, setUserSamples] = useState<UserSample[]>([]);
     const [isImporting, setIsImporting] = useState(false);
     const [previewingId, setPreviewingId] = useState<string | null>(null);
+    const [sampleToDelete, setSampleToDelete] = useState<UserSample | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -255,12 +268,18 @@ export function BrowserPanel() {
         });
     }, [previewingId, t]);
 
-    const handleDeleteUserSample = useCallback(async (e: React.MouseEvent, sample: UserSample) => {
+    // Deleting a sample asks first, through the app's own AlertDialog rather
+    // than window.confirm — a browser confirm is chrome the design system has no
+    // say over, and it looks like a different application.
+    const handleDeleteUserSample = useCallback((e: React.MouseEvent, sample: UserSample) => {
         e.stopPropagation();
+        setSampleToDelete(sample);
+    }, []);
 
-        if (!confirm(t('confirmDeleteSample', { name: sample.name }))) {
-            return;
-        }
+    const confirmDeleteUserSample = useCallback(async () => {
+        const sample = sampleToDelete;
+        if (!sample) return;
+        setSampleToDelete(null);
 
         try {
             await removeUserSample(sample.id);
@@ -270,7 +289,7 @@ export function BrowserPanel() {
             toast.error(t('toast.deleteFailed'));
             log.error('Delete failed', error);
         }
-    }, [loadUserSamples, t]);
+    }, [sampleToDelete, loadUserSamples, t]);
 
     // ========================================
     // Template Click Handler
@@ -613,19 +632,22 @@ export function BrowserPanel() {
                             {isExpanded && (
                                 <div className="ml-4">
                                     {categoryFX.map((fx) => (
-                                        <div
-                                            key={fx.id}
-                                            draggable
-                                            onDragStart={(e) => handleFXDrag(e, fx)}
-                                            className="flex items-center gap-2 rounded px-2 py-1.5 text-sm cursor-grab active:cursor-grabbing hover:bg-surface-elevated group"
-                                            title={fx.description}
-                                        >
-                                            <GripVertical className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
-                                            <Sparkles className="h-4 w-4 text-muted-foreground" />
-                                            <span className="flex-1 text-muted-foreground">
-                                                {fx.name}
-                                            </span>
-                                        </div>
+                                        <Tooltip key={fx.id}>
+                                            <TooltipTrigger asChild>
+                                                <div
+                                                    draggable
+                                                    onDragStart={(e) => handleFXDrag(e, fx)}
+                                                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm cursor-grab active:cursor-grabbing hover:bg-surface-elevated group"
+                                                >
+                                                    <GripVertical className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                                                    <Sparkles className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="flex-1 text-muted-foreground">
+                                                        {fx.name}
+                                                    </span>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right">{fx.description}</TooltipContent>
+                                        </Tooltip>
                                     ))}
                                 </div>
                             )}
@@ -663,6 +685,7 @@ export function BrowserPanel() {
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
+                            aria-label={t('collapse')}
                             variant="ghost"
                             size="icon"
                             onClick={toggleBrowser}
@@ -673,7 +696,7 @@ export function BrowserPanel() {
                     </TooltipTrigger>
                     <TooltipContent side="left">
                         <p>
-                            {t('close')}{' '}
+                            {t('collapse')}{' '}
                             <kbd className="ml-1 text-xs opacity-60">B</kbd>
                         </p>
                     </TooltipContent>
@@ -689,6 +712,7 @@ export function BrowserPanel() {
                         <Tooltip key={tab.id}>
                             <TooltipTrigger asChild>
                                 <button
+                                    aria-label={t(`tabs.${tab.id}`)}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex-1 flex items-center justify-center py-2.5 transition-colors ${isActive
                                         ? 'text-accent border-b-2 border-accent -mb-[1px]'
@@ -710,12 +734,14 @@ export function BrowserPanel() {
             <div className="border-b border-border p-2">
                 <div className="relative">
                     <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="text"
+                    <Input
+                        // A placeholder is not an accessible name, and it is
+                        // gone as soon as anything is typed.
+                        aria-label={t(`search.${activeTab}`)}
                         placeholder={t(`search.${activeTab}`)}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full rounded bg-background py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="h-8 pl-8"
                     />
                 </div>
             </div>
@@ -760,6 +786,29 @@ export function BrowserPanel() {
                     </p>
                 </div>
             )}
+
+            <AlertDialog
+                open={sampleToDelete !== null}
+                onOpenChange={(open) => !open && setSampleToDelete(null)}
+            >
+                <AlertDialogContent className="max-w-sm">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('deleteSample')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('confirmDeleteSample', { name: sampleToDelete?.name ?? '' })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDeleteUserSample}
+                            className={buttonVariants({ variant: 'destructive' })}
+                        >
+                            {t('deleteSample')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </aside>
     );
 }
@@ -772,6 +821,7 @@ export function BrowserCollapsedBar() {
     return (
         <div className="border-r border-border bg-background h-full">
             <button
+                aria-label={t('expand')}
                 onClick={toggleBrowser}
                 className="h-full w-6 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >

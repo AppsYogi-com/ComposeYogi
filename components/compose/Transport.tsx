@@ -293,6 +293,7 @@ export function Transport({
                                     variant="transport"
                                     size="icon-sm"
                                     onClick={onStop}
+                                    aria-label={t('returnToStart')}
                                 >
                                     <SkipBack className="h-4 w-4" />
                                 </Button>
@@ -316,6 +317,7 @@ export function Transport({
                                     variant={isPlaying ? "transport-active" : "transport"}
                                     size="icon-sm"
                                     onClick={onPlayPause}
+                                    aria-label={isPlaying ? t('pause') : t('play')}
                                 >
                                     {isPlaying ? (
                                         <Pause className="h-4 w-4" />
@@ -335,6 +337,7 @@ export function Transport({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
+                                    aria-label={t('stop')}
                                     variant="transport"
                                     size="icon-sm"
                                     onClick={onStop}
@@ -355,6 +358,9 @@ export function Transport({
                                     onClick={handleRecord}
                                     disabled={!isAudioReady || (!isRecording && !armedTrack)}
                                     className={isCountingIn ? 'animate-pulse' : ''}
+                                    // The tooltip can show a recorder error; a name has to
+                                    // stay a name, so it tracks the armed track instead.
+                                    aria-label={armedTrack ? t('recordTrack', { name: armedTrack.name }) : t('armToRecord')}
                                 >
                                     <Circle
                                         className="h-3 w-3"
@@ -381,6 +387,7 @@ export function Transport({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('loop')}
                                 variant={isLooping ? "transport-active" : "transport"}
                                 size="icon-sm"
                                 onClick={toggleLoop}
@@ -402,6 +409,7 @@ export function Transport({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('import')}
                                 variant="transport"
                                 size="icon-sm"
                                 onClick={() => setShowImportModal(true)}
@@ -419,6 +427,7 @@ export function Transport({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('export')}
                                 variant="transport"
                                 size="icon-sm"
                                 disabled={!project}
@@ -474,6 +483,10 @@ export function Transport({
                                 <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('bpm')}</span>
                                 <Input
                                     type="number"
+                                    // Matches the visible "BPM" caption beside it:
+                                    // an accessible name that disagrees with the
+                                    // label on screen is its own problem.
+                                    aria-label={t('bpm')}
                                     value={localBpm}
                                     onChange={(e) => setLocalBpm(Number(e.target.value))}
                                     onBlur={handleBpmBlur}
@@ -542,23 +555,32 @@ export function Transport({
                                 <Separator />
 
                                 {/* Custom input */}
-                                <div>
-                                    <label className="text-xs text-muted-foreground mb-2 block">{t('custom')}</label>
+                                {/* "Custom" captions the pair, so it is the
+                                    group's name — each half still needs its own,
+                                    or both read as unnamed. */}
+                                <div role="group" aria-labelledby="time-signature-custom">
+                                    <span
+                                        id="time-signature-custom"
+                                        className="text-xs text-muted-foreground mb-2 block"
+                                    >
+                                        {t('custom')}
+                                    </span>
                                     <div className="flex items-center gap-2">
                                         <Input
                                             type="number"
+                                            aria-label={t('beatsPerBar')}
                                             value={customNumerator}
                                             onChange={(e) => setCustomNumerator(Math.max(1, Math.min(32, Number(e.target.value) || 1)))}
                                             className="h-8 text-center font-mono flex-1"
                                             min={1}
                                             max={32}
                                         />
-                                        <span className="text-xl text-muted-foreground">/</span>
+                                        <span className="text-xl text-muted-foreground" aria-hidden="true">/</span>
                                         <Select
                                             value={String(customDenominator)}
                                             onValueChange={(v) => setCustomDenominator(Number(v))}
                                         >
-                                            <SelectTrigger className="h-8 font-mono flex-1">
+                                            <SelectTrigger className="h-8 font-mono flex-1" aria-label={t('beatUnit')}>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -590,6 +612,7 @@ export function Transport({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('metronome')}
                                 variant={metronomeEnabled ? "transport-active" : "transport"}
                                 size="icon-sm"
                                 onClick={toggleMetronome}
@@ -617,6 +640,7 @@ export function Transport({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
+                                    aria-label={t('zoomOut')}
                                     variant="transport"
                                     size="icon-sm"
                                     onClick={zoomOut}
@@ -634,12 +658,13 @@ export function Transport({
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button
+                                <Button
+                                    variant="ghost"
                                     onClick={() => setZoom(80)}
-                                    className="w-10 text-center text-xs font-mono tabular-nums text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                    className="h-7 w-12 px-0 text-xs font-mono tabular-nums text-muted-foreground hover:text-foreground"
                                 >
                                     {zoomPercentage}%
-                                </button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
                                 <p>
@@ -652,6 +677,7 @@ export function Transport({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
+                                    aria-label={t('zoomIn')}
                                     variant="transport"
                                     size="icon-sm"
                                     onClick={zoomIn}
@@ -671,12 +697,12 @@ export function Transport({
                             it is the first thing to give way when the header runs out of room. */}
                         <div className="hidden w-20 px-1 2xl:block">
                             <Slider
+                                aria-label={t('zoom')}
                                 value={[zoom]}
                                 onValueChange={([value]) => setZoom(value)}
                                 min={20}
                                 max={200}
                                 step={5}
-                                className="cursor-pointer"
                             />
                         </div>
                     </div>
@@ -698,6 +724,7 @@ export function Transport({
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
+                            aria-label={t('shortcuts')}
                             variant="ghost"
                             size="icon-sm"
                             onClick={() => setShowShortcutsModal(true)}
@@ -716,6 +743,7 @@ export function Transport({
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
+                            aria-label={t('settings')}
                             variant="ghost"
                             size="icon-sm"
                             onClick={onOpenSettings}
@@ -753,6 +781,7 @@ export function Transport({
 
 function ThemeToggleButton() {
     const t = useTranslations('transport');
+    const tCommon = useTranslations('common');
     const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -762,7 +791,7 @@ function ThemeToggleButton() {
 
     if (!mounted) {
         return (
-            <Button variant="ghost" size="icon-sm" disabled>
+            <Button aria-label={tCommon('toggleTheme')} variant="ghost" size="icon-sm" disabled>
                 <Sun className="h-4 w-4" />
             </Button>
         );
@@ -774,6 +803,7 @@ function ThemeToggleButton() {
         <Tooltip>
             <TooltipTrigger asChild>
                 <Button
+                    aria-label={isDark ? t('lightMode') : t('darkMode')}
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setTheme(isDark ? 'light' : 'dark')}

@@ -2,8 +2,18 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { X, Keyboard, RotateCcw } from 'lucide-react';
+import { Keyboard, RotateCcw } from 'lucide-react';
 import { useUIStore, selectCustomKeyBindings } from '@/lib/store';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     SHORTCUT_DEFINITIONS,
     SHORTCUT_CATEGORIES,
@@ -113,16 +123,27 @@ function ShortcutRow({
             <div className="flex items-center gap-2">
                 {/* Reset button (only visible for customized shortcuts) */}
                 {isCustomized && !isRecording && (
-                    <button
-                        onClick={onReset}
-                        className="p-1 rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
-                        title={t('resetToDefault')}
-                    >
-                        <RotateCcw className="w-3 h-3 text-muted-foreground" />
-                    </button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={t('resetToDefault')}
+                                onClick={onReset}
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                            >
+                                <RotateCcw className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('resetToDefault')}</TooltipContent>
+                    </Tooltip>
                 )}
 
-                {/* Key binding display / recording button */}
+                {/* Key binding display / recording button. Deliberately a raw
+                    <button>: it renders key caps, and <Button>'s variants would
+                    fight every one of the recording/customised states below. */}
+                <Tooltip>
+                <TooltipTrigger asChild>
                 <button
                     ref={recordRef}
                     onClick={() => {
@@ -137,7 +158,7 @@ function ShortcutRow({
                                 : 'hover:bg-muted/60 border border-transparent'
                         }
                     `}
-                    title={isRecording ? t('recordingHint') : t('clickToRebind')}
+                    aria-label={isRecording ? t('recordingHint') : t('clickToRebind')}
                 >
                     {isRecording ? (
                         <span className="text-xs text-primary font-medium">
@@ -160,6 +181,11 @@ function ShortcutRow({
                         ))
                     )}
                 </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    {isRecording ? t('recordingHint') : t('clickToRebind')}
+                </TooltipContent>
+                </Tooltip>
             </div>
         </div>
     );
@@ -178,20 +204,6 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
 
     const [recordingActionId, setRecordingActionId] = useState<string | null>(null);
     const [conflictMessage, setConflictMessage] = useState<string | null>(null);
-
-    // Close on Escape (only when not recording)
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && !recordingActionId) {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, onClose, recordingActionId]);
 
     // Clear conflict message after a delay
     useEffect(() => {
@@ -253,8 +265,6 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
 
     const hasCustomBindings = Object.keys(customBindings).length > 0;
 
-    if (!isOpen) return null;
-
     // Group definitions by category
     const grouped = new Map<string, ShortcutDefinition[]>();
     for (const cat of SHORTCUT_CATEGORIES) {
@@ -264,53 +274,49 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
         grouped.get(def.category)?.push(def);
     }
 
+    // While a key is being recorded, Escape and a click outside both belong to
+    // the rebind — Escape cancels it, and the footer says so. Radix would
+    // otherwise close the whole dialog out from under the gesture.
+    const busyRebinding = (event: Event) => {
+        if (recordingActionId) event.preventDefault();
+    };
+
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/60 backdrop-blur-sm"
-            onClick={(e) => {
-                if (e.target === e.currentTarget && !recordingActionId) {
-                    onClose();
-                }
-            }}
-        >
-            <div className="bg-background border border-border rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                    <div className="flex items-center gap-3">
-                        <Keyboard className="w-5 h-5 text-primary" />
-                        <h2 className="text-lg font-semibold text-foreground">
-                            {t('title')}
-                        </h2>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {hasCustomBindings && (
-                            <button
-                                onClick={handleResetAll}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded hover:bg-muted transition-colors text-muted-foreground"
-                                title={t('resetAllHint')}
-                            >
-                                <RotateCcw className="w-3.5 h-3.5" />
-                                {t('resetAll')}
-                            </button>
-                        )}
-                        <button
-                            onClick={onClose}
-                            className="p-1 rounded hover:bg-muted transition-colors"
-                        >
-                            <X className="w-5 h-5 text-muted-foreground" />
-                        </button>
-                    </div>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent
+                className="flex max-h-[80vh] flex-col sm:max-w-lg"
+                onEscapeKeyDown={busyRebinding}
+                onPointerDownOutside={busyRebinding}
+                onInteractOutside={busyRebinding}
+            >
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Keyboard className="h-5 w-5" />
+                        {t('title')}
+                    </DialogTitle>
+                    {/* The how-to-use line reads as the dialog's description, which
+                        is where every other modal here puts it — it used to sit in
+                        a footer of its own. */}
+                    <DialogDescription>
+                        {t.rich('footer', {
+                            kbd: (chunks) => (
+                                <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">
+                                    {chunks}
+                                </kbd>
+                            ),
+                        })}
+                    </DialogDescription>
+                </DialogHeader>
 
                 {/* Conflict warning */}
                 {conflictMessage && (
-                    <div className="mx-6 mt-3 px-3 py-2 bg-destructive/10 border border-destructive/30 rounded text-xs text-destructive">
+                    <div className="px-3 py-2 bg-destructive/10 border border-destructive/30 rounded text-xs text-destructive">
                         {conflictMessage}
                     </div>
                 )}
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto space-y-6">
+                <div className="-mx-6 overflow-y-auto px-6 space-y-6">
                     {SHORTCUT_CATEGORIES.map((cat) => {
                         const shortcuts = grouped.get(cat.id) || [];
                         if (shortcuts.length === 0) return null;
@@ -338,19 +344,25 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                     })}
                 </div>
 
-                {/* Footer */}
-                <div className="px-6 py-4 border-t border-border">
-                    <p className="text-xs text-muted-foreground text-center">
-                        {t.rich('footer', {
-                            kbd: (chunks) => (
-                                <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">
-                                    {chunks}
-                                </kbd>
-                            ),
-                        })}
-                    </p>
-                </div>
-            </div>
-        </div>
+                {hasCustomBindings && (
+                    <DialogFooter>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleResetAll}
+                                    className="text-muted-foreground"
+                                >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                    {t('resetAll')}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('resetAllHint')}</TooltipContent>
+                        </Tooltip>
+                    </DialogFooter>
+                )}
+            </DialogContent>
+        </Dialog>
     );
 }

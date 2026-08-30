@@ -145,6 +145,79 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   (needs Chrome; the HTML previews in `design/previews/` are the reference and open by
   double-clicking, no server).
 
+### Control labelling (`tests/a11y-labels.test.ts`)
+- Radix puts `role="combobox"` on a Select's **trigger** and `role="slider"` on a Slider's
+  **thumb**, so an `aria-label` left on the wrapper reaches neither, and a `<Label>` beside
+  a control names nothing unless they are wired together. The Inspector shipped that way
+  from v1.0: every field was visible text next to an anonymous control.
+- The test fails the build on three things: a `<Label>` with neither `htmlFor` nor `id`; a
+  `SelectTrigger`/`Input`/`Slider`/raw `<input>` with no `aria-label`, `aria-labelledby` or
+  `id`; and a `<Button>`/`<button>` whose children render no text and which carries no name.
+  It cannot check that a pairing is *correct*, only that one was attempted.
+- The Inspector routes both ids through its `Field` component, so a caption there cannot be
+  rendered without one. `htmlFor`/`id` for labelable controls (inputs, Select triggers —
+  it also focuses them when the caption is clicked); `aria-labelledby` for a Radix slider,
+  whose thumb is a `<span>` and cannot be a label's target.
+- **A tooltip is not a name.** Radix Tooltip sets `aria-describedby` on its trigger: a
+  description, read after the name, on a control the user could not identify in the first
+  place. Every icon-only button takes an `aria-label` from the same message key its tooltip
+  already uses, so the two cannot drift.
+- The icon-only rule is deliberately conservative — any text, or any expression that might
+  render text, counts as named. It under-reports rather than flagging buttons that are fine.
+
+### Cursors, and other things decided once (`tests/a11y.test.ts`, rule 6)
+- **The cursor is decided by the primitive, never the call site.** `design/README.md`,
+  "The cursor names the gesture", is the table. `Button` and `SelectTrigger` carry
+  `cursor-pointer`; `Slider` carries `pointer` on the rail and `grab`/`grabbing` on the
+  thumb; disabled is `not-allowed` everywhere. The test asserts both halves — that the
+  primitives declare them, and that no call site repeats one.
+- It got there because the piano roll's velocity slider offered a hand and the identical
+  sliders in the Inspector offered an arrow. Nothing was wrong with either; nothing said
+  which was right.
+- **Panels collapse, they do not close or hide.** All four leave a labelled bar behind, so
+  the verb pair is Collapse/Expand — it was Close Browser, Close Editor, Hide Visualizer and
+  Collapse Inspector, four names for two actions. Each collapse button carries a tooltip
+  with its shortcut; each collapsed bar names the expand.
+- **A dialog's header icon inherits its title's colour.** Two of five were `text-primary`,
+  which reads as a state the others do not have.
+
+### Use the primitives (`tests/a11y.test.ts`, rule 5)
+- shadcn + Radix in `components/ui` **is** the UI. Anything hand-rolled beside it is
+  *nearly* right, which is exactly why it survives: it works, it just visibly belongs to a
+  different application. The suite fails the build on a browser `confirm()`/`alert()`, an
+  `<input type="range">`, and a native `title=` tooltip.
+- What that replaced: `window.confirm` for deleting a sample and `window.alert` for the iOS
+  install steps (neither themable nor translatable), three range faders that did not match
+  the Radix sliders beside them, nine OS-drawn `title` tooltips, and ten buttons that
+  re-implemented `buttonVariants` by hand.
+- **The one allowed exception** is the drum grid's per-step `title`: 256 virtualized cells,
+  and a Radix Tooltip subscribes each one to a provider. It is named in the test.
+- A destructive confirm is an `AlertDialog`, never a `Dialog` — no dismiss-by-clicking-away,
+  and the buttons carry the roles.
+- Still deliberately raw `<button>`: the piano roll's 84 keys, the drum grid's step cells,
+  and the browser's draggable cards and list rows. They are painted surfaces rather than
+  buttons, and `<Button>`'s variants would fight every state they have.
+
+### Modals
+- **Every modal is a Radix `Dialog`** from `components/ui/dialog.tsx`, and the fourth rule in
+  `tests/a11y.test.ts` fails the build on any `fixed inset-0` overlay written outside
+  `components/ui`. Three were hand-rolled `<div>`s — the shortcuts sheet, latency
+  calibration, and the iOS install instructions — each missing `role="dialog"`, a name, a
+  focus trap, focus restore, Escape and scroll lock, none of which is visible until somebody
+  needs one.
+- `DialogContent` takes `hideClose` for a dialog that draws its own close button — one that
+  must stay disabled while work is in flight (calibration) or that sits in a header beside
+  other actions (the shortcuts sheet's Reset All).
+- A dialog that must not be dismissed mid-task passes the *same* guard to `onEscapeKeyDown`,
+  `onPointerDownOutside` and `onInteractOutside`; guarding only one leaves the other routes
+  open. Escape belongs to the rebind while a shortcut is being recorded, and to nothing at
+  all while a calibration is measuring.
+- **Known, pre-existing:** a closed dialog's node lingers in the DOM after its exit
+  animation, so Radix restores focus to the opener late or not at all. It behaves the same
+  on the dialogs that never changed, so it is in the shared primitive rather than any one
+  modal — and it may be an artifact of the headless pane throttling `animationend`. Verify
+  in a real browser before chasing it.
+
 ### Instruments & templates
 - `SYNTH_PRESETS` (lib/audio/synth-presets.ts) is canonical. `INSTRUMENTS`
   (lib/browser/index.ts) derives id/name/category from it; only browser metadata

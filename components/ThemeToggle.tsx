@@ -19,7 +19,7 @@ export function ThemeToggle() {
 
     if (!mounted) {
         return (
-            <Button variant="ghost" size="icon-sm" disabled>
+            <Button aria-label={t('toggleTheme')} variant="ghost" size="icon-sm" disabled>
                 <Sun className="h-4 w-4" />
             </Button>
         );
@@ -31,6 +31,7 @@ export function ThemeToggle() {
         <Tooltip>
             <TooltipTrigger asChild>
                 <Button
+                    aria-label={isDark ? t('themeToLight') : t('themeToDark')}
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setTheme(isDark ? 'light' : 'dark')}
