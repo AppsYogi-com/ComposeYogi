@@ -82,13 +82,17 @@
     "tempo": "Tempo (Beats Per Minute)",
     "timeSignature": "Time Signature",
     "timeSignatureHint": "Time Signature (click to change)",
-    "scale": "Scale",
+    "vibe": "Vibe",
+    "vibeHint": "Key and scale — currently {scale}. Pick a vibe, or set them exactly in the Inspector.",
     "custom": "Custom",
+    "beatsPerBar": "Beats per bar",
+    "beatUnit": "Beat unit",
     "apply": "Apply",
     "metronome": "Metronome",
     "zoomOut": "Zoom Out",
     "resetZoom": "Reset Zoom",
     "zoomIn": "Zoom In",
+    "zoom": "Zoom",
     "shortcuts": "Keyboard Shortcuts",
     "settings": "Audio Settings",
     "lightMode": "Light mode",
@@ -97,7 +101,8 @@
   },
   "browser": {
     "title": "Browser",
-    "close": "Close Browser",
+    "collapse": "Collapse Browser",
+    "expand": "Expand Browser",
     "collapsedLabel": "BROWSER",
     "tabs": {
       "templates": "Templates",
@@ -133,6 +138,8 @@
   "inspector": {
     "title": "Inspector",
     "collapsedLabel": "INSPECTOR",
+    "collapse": "Collapse Inspector",
+    "expand": "Expand Inspector",
     "emptyState": "Select a track or clip to edit",
     "project": {
       "title": "Project",
@@ -165,6 +172,7 @@
     "effects": {
       "title": "Effects",
       "emptyState": "Drag effects onto the track<br></br>to add them",
+      "remove": "Remove effect",
       "mix": "Mix (Wet)",
       "decay": "Decay",
       "feedback": "Feedback",
@@ -203,7 +211,8 @@
     }
   },
   "editor": {
-    "close": "Close Editor",
+    "collapse": "Collapse Editor",
+    "expand": "Expand Editor",
     "collapsedLabel": "EDITOR",
     "editing": "Editing: {name}",
     "emptyState": "Select a clip to edit",
@@ -262,9 +271,11 @@
   },
   "tracks": {
     "add": "Add Track",
+    "delete": "Delete track",
     "defaultName": "Track {index}",
     "mute": "Mute",
     "solo": "Solo",
+    "volume": "Volume",
     "arm": "Arm for recording",
     "disarm": "Disarm"
   },
@@ -281,12 +292,14 @@
     "live": "Live",
     "bars": "Frequency Bars",
     "waveform": "Waveform",
-    "hide": "Hide Visualizer"
+    "collapse": "Collapse Visualizer",
+    "expand": "Expand Visualizer"
   },
   "projects": {
     "title": "Projects",
     "description": "Select a project to open or create a new one",
     "new": "New Project",
+    "options": "Project options",
     "untitled": "Untitled Project",
     "empty": "No projects yet",
     "emptyHint": "Create your first project above",
@@ -521,6 +534,10 @@
   "common": {
     "loading": "Loading…",
     "close": "Close",
+    "cancel": "Cancel",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "toggleTheme": "Toggle theme",
     "dismiss": "Dismiss",
     "themeToLight": "Light mode",
     "themeToDark": "Dark mode",

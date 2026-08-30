@@ -46,6 +46,7 @@ interface TrimHandles {
 
 export function WaveformEditor({ clip }: WaveformEditorProps) {
     const t = useTranslations('editor.waveform');
+    const tCommon = useTranslations('common');
 const format = useFormatter();
     const project = useProjectStore((s) => s.project);
     const updateClip = useProjectStore((s) => s.updateClip);
@@ -598,6 +599,7 @@ const format = useFormatter();
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
+                            aria-label={t('stop')}
                             variant={isPlaying ? 'default' : 'ghost'}
                             size="icon-sm"
                             onClick={togglePlayback}
@@ -619,6 +621,7 @@ const format = useFormatter();
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('loopSelection')}
                                 variant={isLooping ? 'default' : 'ghost'}
                                 size="icon-sm"
                                 onClick={() => setIsLooping(!isLooping)}
@@ -653,6 +656,7 @@ const format = useFormatter();
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
+                                    aria-label={t('clearSelection')}
                                     variant="ghost"
                                     size="icon-sm"
                                     onClick={clearSelection}
@@ -687,6 +691,7 @@ const format = useFormatter();
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t('fadeIn')}</span>
                     <Slider
+                        aria-label={t('fadeIn')}
                         value={[fadeIn]}
                         onValueChange={([v]) => setFadeIn(v)}
                         onValueCommit={([v]) => updateClip(clip.id, { fadeIn: v })}
@@ -701,6 +706,7 @@ const format = useFormatter();
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t('fadeOut')}</span>
                     <Slider
+                        aria-label={t('fadeOut')}
                         value={[fadeOut]}
                         onValueChange={([v]) => setFadeOut(v)}
                         onValueCommit={([v]) => updateClip(clip.id, { fadeOut: v })}
@@ -717,7 +723,7 @@ const format = useFormatter();
                 {/* Reset */}
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon-sm" onClick={resetAll}>
+                        <Button aria-label={t('resetAll')} variant="ghost" size="icon-sm" onClick={resetAll}>
                             <RotateCcw className="h-3.5 w-3.5" />
                         </Button>
                     </TooltipTrigger>
@@ -726,13 +732,13 @@ const format = useFormatter();
 
                 {/* Zoom */}
                 <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon-sm" onClick={zoomOut}>
+                    <Button aria-label={tCommon('zoomOut')} variant="ghost" size="icon-sm" onClick={zoomOut}>
                         <ZoomOut className="h-3.5 w-3.5" />
                     </Button>
                     <span className="w-10 text-center text-xs text-muted-foreground">
                         {Math.round(zoom * 100)}%
                     </span>
-                    <Button variant="ghost" size="icon-sm" onClick={zoomIn}>
+                    <Button aria-label={tCommon('zoomIn')} variant="ghost" size="icon-sm" onClick={zoomIn}>
                         <ZoomIn className="h-3.5 w-3.5" />
                     </Button>
                 </div>

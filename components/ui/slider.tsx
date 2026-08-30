@@ -16,7 +16,12 @@ const Slider = React.forwardRef<
   <SliderPrimitive.Root
     ref={ref}
     className={cn(
-      "relative flex w-full touch-none select-none items-center",
+      // The rail takes a click, the thumb takes a drag — see "The cursor names
+      // the gesture" in design/README.md. Here rather than at the call sites,
+      // which is how the velocity slider ended up with a hand cursor and the
+      // Inspector's sliders with an arrow.
+      "relative flex w-full cursor-pointer touch-none select-none items-center",
+      "data-[disabled]:cursor-not-allowed",
       className
     )}
     {...props}
@@ -27,7 +32,7 @@ const Slider = React.forwardRef<
     <SliderPrimitive.Thumb
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
-      className="block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+      className="block h-4 w-4 cursor-grab rounded-full border border-primary/50 bg-background shadow transition-colors active:cursor-grabbing focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
     />
   </SliderPrimitive.Root>
 ))

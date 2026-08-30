@@ -8,6 +8,13 @@
 import { useState, useCallback } from 'react';
 import { useTranslations, useFormatter } from 'next-intl';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Activity,
     AlertCircle,
     CheckCircle,
@@ -17,13 +24,14 @@ import {
     Play,
     Settings2,
     Volume2,
-    X,
 } from 'lucide-react';
 import {
     latencyCalibrator,
     type CalibrationProgress,
     type LatencyCalibrationResult,
 } from '@/lib/audio/latency-calibration';
+import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
 
 // ============================================
 // Types
@@ -103,30 +111,34 @@ export function LatencyCalibrationModal({
     // Render Helpers
     // ========================================
 
-    if (!isOpen) return null;
+    // A calibration in flight owns the dialog: Escape and a click outside are
+    // both ignored, matching the close button that is already disabled. Half a
+    // measurement is not a measurement.
+    const busyCalibrating = (event: Event) => {
+        if (state === 'calibrating') event.preventDefault();
+    };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/60 backdrop-blur-sm">
-            <div className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md mx-4">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                    <div className="flex items-center gap-3">
-                        <Activity className="w-5 h-5 text-primary" />
-                        <h2 className="text-lg font-semibold text-foreground">
-                            {t('title')}
-                        </h2>
-                    </div>
-                    <button
-                        onClick={handleClose}
-                        disabled={state === 'calibrating'}
-                        className="p-1 rounded hover:bg-muted disabled:opacity-50 transition-colors"
-                    >
-                        <X className="w-5 h-5 text-muted-foreground" />
-                    </button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+            <DialogContent
+                className="sm:max-w-md"
+                // The close button goes away entirely while a measurement runs,
+                // rather than sitting there disabled: a control that is visible
+                // and does nothing is worse than one that is not there.
+                hideClose={state === 'calibrating'}
+                onEscapeKeyDown={busyCalibrating}
+                onPointerDownOutside={busyCalibrating}
+                onInteractOutside={busyCalibrating}
+            >
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5" />
+                        {t('title')}
+                    </DialogTitle>
+                    <DialogDescription>{t('description')}</DialogDescription>
+                </DialogHeader>
 
-                {/* Content */}
-                <div className="p-6">
+                <div>
                     {state === 'idle' && (
                         <IdleView onStart={() => setState('instructions')} />
                     )}
@@ -157,8 +169,8 @@ export function LatencyCalibrationModal({
                         />
                     )}
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -176,12 +188,9 @@ function IdleView({ onStart }: { onStart: () => void }) {
     return (
         <div className="space-y-6">
             <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                     <Headphones className="w-8 h-8 text-primary" />
                 </div>
-                <p className="text-muted-foreground">
-                    {t('description')}
-                </p>
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
@@ -204,13 +213,10 @@ function IdleView({ onStart }: { onStart: () => void }) {
                 </div>
             </div>
 
-            <button
-                onClick={onStart}
-                className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
+            <Button onClick={onStart} size="lg" className="w-full">
                 <Play className="w-4 h-4" />
                 {t('start')}
-            </button>
+            </Button>
         </div>
     );
 }
@@ -273,13 +279,10 @@ function InstructionsView({ onContinue }: { onContinue: () => void }) {
                 </div>
             </div>
 
-            <button
-                onClick={onContinue}
-                className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
+            <Button onClick={onContinue} size="lg" className="w-full">
                 <Play className="w-4 h-4" />
                 {t('continue')}
-            </button>
+            </Button>
         </div>
     );
 }
@@ -379,18 +382,12 @@ function CompleteView({
             </div>
 
             <div className="flex gap-3">
-                <button
-                    onClick={onRetry}
-                    className="flex-1 py-3 px-4 border border-border hover:bg-muted text-foreground font-medium rounded-lg transition-colors"
-                >
+                <Button onClick={onRetry} variant="outline" size="lg" className="flex-1">
                     {t('retry')}
-                </button>
-                <button
-                    onClick={onAccept}
-                    className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors"
-                >
+                </Button>
+                <Button onClick={onAccept} size="lg" className="flex-1">
                     {t('apply')}
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -430,14 +427,14 @@ function ErrorView({
                     {t('manualTitle')}
                 </h4>
                 <div className="flex items-center gap-3">
-                    <input
-                        type="range"
-                        min="0"
-                        max="200"
-                        step="1"
-                        value={manualLatency}
-                        onChange={(e) => onManualChange(Number(e.target.value))}
-                        className="flex-1 h-1 cursor-pointer appearance-none rounded-full bg-muted [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                    <Slider
+                        aria-label={t('manualTitle')}
+                        min={0}
+                        max={200}
+                        step={1}
+                        value={[manualLatency]}
+                        onValueChange={([v]) => onManualChange(v)}
+                        className="flex-1"
                     />
                     <div className="w-16 text-right">
                         <span className="font-mono text-foreground">
@@ -451,18 +448,12 @@ function ErrorView({
             </div>
 
             <div className="flex gap-3">
-                <button
-                    onClick={onRetry}
-                    className="flex-1 py-3 px-4 border border-border hover:bg-muted text-foreground font-medium rounded-lg transition-colors"
-                >
+                <Button onClick={onRetry} variant="outline" size="lg" className="flex-1">
                     {t('retry')}
-                </button>
-                <button
-                    onClick={onUseManual}
-                    className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors"
-                >
+                </Button>
+                <Button onClick={onUseManual} size="lg" className="flex-1">
                     {t('useManual')}
-                </button>
+                </Button>
             </div>
         </div>
     );

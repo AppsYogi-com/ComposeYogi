@@ -13,14 +13,23 @@ import {
 } from 'lucide-react';
 import { useProjectStore } from '@/lib/store';
 import { listProjects, loadProject, deleteProject, renameProject } from '@/lib/persistence';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from '@/components/ui/dialog';
 import {
     DropdownMenu,
@@ -222,6 +231,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                                         <div className="flex-1 min-w-0">
                                             {isRenaming && selectedProjectId === project.id ? (
                                                 <Input
+                                                    aria-label={t('rename')}
                                                     value={renameValue}
                                                     onChange={(e) => setRenameValue(e.target.value)}
                                                     onKeyDown={(e) => {
@@ -254,6 +264,7 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                                 <Button
+                                                    aria-label={t('options')}
                                                     variant="ghost"
                                                     size="icon-sm"
                                                     className="opacity-0 group-hover:opacity-100 transition-opacity"
@@ -290,25 +301,28 @@ export function ProjectSelector({ isOpen, onClose, onProjectSelect }: ProjectSel
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation Dialog */}
-            <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                <DialogContent className="max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle>{t('deleteTitle')}</DialogTitle>
-                        <DialogDescription>
+            {/* Destructive confirm: an AlertDialog, not a Dialog. It has no
+                dismiss-by-clicking-away and its buttons carry the roles, which is
+                the whole difference between "are you sure" and "here is a panel". */}
+            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <AlertDialogContent className="max-w-sm">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>
                             {t('deleteDescription', { name: projectToDelete?.name ?? '' })}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-                            {t('cancel')}
-                        </Button>
-                        <Button variant="destructive" onClick={handleConfirmDelete}>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmDelete}
+                            className={buttonVariants({ variant: 'destructive' })}
+                        >
                             {t('delete')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

@@ -46,6 +46,7 @@ import type { Viewport } from '@/hooks/useVisibleClips';
 import { DraggableClip } from './DraggableClip';
 import { LoopBraces } from './LoopBraces';
 import { SnapSelect } from './SnapSelect';
+import { Slider } from '@/components/ui/slider';
 import { trackColorValue } from '@/lib/design/track-colors';
 import type { Track } from '@/types';
 
@@ -1232,6 +1233,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                         {props.track.name}
                     </span>
                     <Button
+                        aria-label={t('delete')}
                         variant="ghost"
                         size="icon"
                         className="h-5 w-5 text-muted-foreground hover:text-destructive"
@@ -1245,60 +1247,77 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                 </div>
 
                 <div className="mt-auto flex items-center gap-1">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-6 w-6 ${props.track.muted ? 'text-destructive' : 'text-muted-foreground'}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            props.onMuteToggle();
-                        }}
-                        title={t('mute')}
-                    >
-                        {props.track.muted ? (
-                            <VolumeX className="h-3.5 w-3.5" />
-                        ) : (
-                            <Volume2 className="h-3.5 w-3.5" />
-                        )}
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={t('mute')}
+                                className={`h-6 w-6 ${props.track.muted ? 'text-destructive' : 'text-muted-foreground'}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    props.onMuteToggle();
+                                }}
+                            >
+                                {props.track.muted ? (
+                                    <VolumeX className="h-3.5 w-3.5" />
+                                ) : (
+                                    <Volume2 className="h-3.5 w-3.5" />
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('mute')}</TooltipContent>
+                    </Tooltip>
 
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-6 w-6 ${props.track.solo ? 'text-accent' : 'text-muted-foreground'}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            props.onSoloToggle();
-                        }}
-                        title={t('solo')}
-                    >
-                        <Headphones className="h-3.5 w-3.5" />
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={t('solo')}
+                                className={`h-6 w-6 ${props.track.solo ? 'text-accent' : 'text-muted-foreground'}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    props.onSoloToggle();
+                                }}
+                            >
+                                <Headphones className="h-3.5 w-3.5" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('solo')}</TooltipContent>
+                    </Tooltip>
 
                     {props.track.type === 'audio' && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={`h-6 w-6 ${props.track.armed ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                props.onArmToggle();
-                            }}
-                            title={props.track.armed ? t('disarm') : t('arm')}
-                        >
-                            <Mic className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={props.track.armed ? t('disarm') : t('arm')}
+                                    className={`h-6 w-6 ${props.track.armed ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        props.onArmToggle();
+                                    }}
+                                >
+                                    <Mic className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {props.track.armed ? t('disarm') : t('arm')}
+                            </TooltipContent>
+                        </Tooltip>
                     )}
 
-                    <input
-                        type="range"
+                    <Slider
+                        aria-label={t('volume')}
                         min={0}
                         max={1}
                         step={0.01}
-                        value={props.track.volume}
-                        onChange={(e) => props.onVolumeChange(parseFloat(e.target.value))}
+                        value={[props.track.volume]}
+                        onValueChange={([v]) => props.onVolumeChange(v)}
                         onClick={(e) => e.stopPropagation()}
-                        className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-input [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                        className="flex-1"
                     />
                 </div>
 

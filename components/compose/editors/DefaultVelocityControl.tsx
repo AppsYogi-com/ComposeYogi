@@ -19,6 +19,7 @@
 import { useTranslations } from 'next-intl';
 
 import { useUIStore } from '@/lib/store';
+import { Slider } from '@/components/ui/slider';
 
 const MIN_VELOCITY = 1;
 const MAX_VELOCITY = 127;
@@ -34,19 +35,20 @@ export function DefaultVelocityControl({ disabled = false }: DefaultVelocityCont
 
     return (
         <div className="flex items-center gap-1.5">
-            <label htmlFor="default-velocity" className="text-xs text-muted-foreground">
+            {/* A <span>, not a <label>: a Radix slider's thumb is not a labelable
+                element, so a `for` would bind to nothing. The slider carries its
+                own name, which says more than the caption does. */}
+            <span className="text-xs text-muted-foreground">
                 {t('defaultLabel')}
-            </label>
-            <input
-                id="default-velocity"
-                type="range"
+            </span>
+            <Slider
+                aria-label={t('defaultAriaLabel')}
                 min={MIN_VELOCITY}
                 max={MAX_VELOCITY}
-                value={defaultVelocity}
+                value={[defaultVelocity]}
                 disabled={disabled}
-                aria-label={t('defaultAriaLabel')}
-                onChange={(e) => setDefaultVelocity(Number(e.target.value))}
-                className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-input disabled:cursor-not-allowed disabled:opacity-50 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                onValueChange={([v]) => setDefaultVelocity(v)}
+                className="w-20"
             />
             <span className="w-6 text-right font-mono text-xs text-muted-foreground">
                 {defaultVelocity}

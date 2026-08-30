@@ -186,7 +186,14 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
                                         value={mp3Quality.toString()}
                                         onValueChange={(v) => setMp3Quality(parseInt(v) as Mp3Quality)}
                                     >
-                                        <SelectTrigger className="w-[180px] h-8 text-sm">
+                                        {/* aria-label, not the placeholder: a
+                                            placeholder is not an accessible name,
+                                            and it is gone the moment a bitrate is
+                                            chosen. */}
+                                        <SelectTrigger
+                                            className="w-[180px] h-8 text-sm"
+                                            aria-label={t('quality')}
+                                        >
                                             <SelectValue placeholder={t('quality')} />
                                         </SelectTrigger>
                                         <SelectContent>

@@ -8,6 +8,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { usePlaybackStore, useUIStore } from '@/lib/store';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SNAP_BEATS } from '@/lib/music';
 
 const HANDLE_WIDTH = 8; // Width of drag handles
@@ -157,13 +158,17 @@ export function LoopBraces({ pixelsPerBar, beatsPerBar, rulerHeight }: LoopBrace
             }}
         >
             {/* Loop region background */}
-            <div
-                className={`absolute inset-0 pointer-events-auto cursor-grab ${loopEnabled ? 'bg-accent/30' : 'bg-muted-foreground/20'
-                    } ${dragMode === 'move' ? 'cursor-grabbing' : ''}`}
-                onMouseDown={handleMiddleMouseDown}
-                onDoubleClick={handleDoubleClick}
-                title={loopEnabled ? t('enabled') : t('disabled')}
-            />
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div
+                        className={`absolute inset-0 pointer-events-auto cursor-grab ${loopEnabled ? 'bg-accent/30' : 'bg-muted-foreground/20'
+                            } ${dragMode === 'move' ? 'cursor-grabbing' : ''}`}
+                        onMouseDown={handleMiddleMouseDown}
+                        onDoubleClick={handleDoubleClick}
+                    />
+                </TooltipTrigger>
+                <TooltipContent>{loopEnabled ? t('enabled') : t('disabled')}</TooltipContent>
+            </Tooltip>
 
             {/* Left bracket/handle */}
             <div

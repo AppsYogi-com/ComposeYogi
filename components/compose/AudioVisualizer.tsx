@@ -231,6 +231,7 @@ export function AudioVisualizer() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('bars')}
                                 variant="ghost"
                                 size="icon-sm"
                                 onClick={() => setMode(mode === 'bars' ? 'waveform' : 'bars')}
@@ -247,6 +248,7 @@ export function AudioVisualizer() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('waveform')}
                                 variant="ghost"
                                 size="icon-sm"
                                 onClick={() => setMode(mode === 'waveform' ? 'bars' : 'waveform')}
@@ -264,6 +266,7 @@ export function AudioVisualizer() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
+                                aria-label={t('collapse')}
                                 variant="ghost"
                                 size="icon-sm"
                                 onClick={toggleVisualizer}
@@ -273,7 +276,7 @@ export function AudioVisualizer() {
                         </TooltipTrigger>
                         <TooltipContent side="top">
                             <p>
-                                {t('hide')}{' '}
+                                {t('collapse')}{' '}
                                 <kbd className="ml-1 text-xs opacity-60">V</kbd>
                             </p>
                         </TooltipContent>
@@ -299,6 +302,7 @@ export function VisualizerCollapsedBar() {
     return (
         <div className="border-t border-border bg-background">
             <button
+                aria-label={t('expand')}
                 onClick={toggleVisualizer}
                 className="w-full flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >

@@ -1,19 +1,23 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { PWAIosInstructions } from './PWAIosInstructions';
 
 export function PWAInstallButton() {
     const t = useTranslations('pwa');
     const { isInstallable, isInstalled, isIOS, canShowButton, promptInstall } = usePWAInstall();
+    const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
     const handleInstall = async () => {
         if (isIOS) {
-            // For iOS, show alert with instructions (can't programmatically install)
-            alert(t('iosDescription') + '\n\n1. ' + t('iosStep1') + '\n2. ' + t('iosStep2') + '\n3. ' + t('iosStep3'));
+            // Safari cannot be asked to install, so iOS gets the same instructions
+            // dialog the banner shows — not a window.alert().
+            setShowIOSInstructions(true);
         } else if (isInstallable) {
             await promptInstall();
         }
@@ -26,9 +30,11 @@ export function PWAInstallButton() {
     }
 
     return (
+        <>
         <Tooltip>
             <TooltipTrigger asChild>
                 <Button
+                    aria-label={t('install')}
                     variant="ghost"
                     size="icon-sm"
                     onClick={handleInstall}
@@ -42,5 +48,7 @@ export function PWAInstallButton() {
                 <p>{t('install')}</p>
             </TooltipContent>
         </Tooltip>
+        <PWAIosInstructions open={showIOSInstructions} onOpenChange={setShowIOSInstructions} />
+        </>
     );
 }

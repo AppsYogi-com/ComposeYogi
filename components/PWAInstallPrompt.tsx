@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { X, Download, Share } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PWAIosInstructions } from './PWAIosInstructions';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 export function PWAInstallPrompt() {
@@ -46,37 +47,13 @@ export function PWAInstallPrompt() {
         return null;
     }
 
-    // iOS instructions modal
+    // iOS instructions modal — shared with the toolbar install button.
     if (showIOSInstructions) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-4">
-                <div className="max-w-sm rounded-lg bg-card p-6 shadow-xl">
-                    <h3 className="mb-4 text-lg font-semibold">{t('iosTitle')}</h3>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                        {t('iosDescription')}
-                    </p>
-                    <ol className="mb-4 space-y-2 text-sm">
-                        <li className="flex items-center gap-2">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">1</span>
-                            <span>{t('iosStep1')} <Share className="inline h-4 w-4" /></span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">2</span>
-                            <span>{t('iosStep2')}</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">3</span>
-                            <span>{t('iosStep3')}</span>
-                        </li>
-                    </ol>
-                    <Button
-                        onClick={() => setShowIOSInstructions(false)}
-                        className="w-full"
-                    >
-                        {t('gotIt')}
-                    </Button>
-                </div>
-            </div>
+            <PWAIosInstructions
+                open
+                onOpenChange={(open) => !open && setShowIOSInstructions(false)}
+            />
         );
     }
 

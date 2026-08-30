@@ -33,6 +33,7 @@ interface PianoRollProps {
 
 export function PianoRoll({ clip }: PianoRollProps) {
     const t = useTranslations('editor.piano');
+    const tCommon = useTranslations('common');
     const tScales = useTranslations('scales');
     const addNote = useProjectStore((s) => s.addNote);
     const deleteNote = useProjectStore((s) => s.deleteNote);
@@ -372,13 +373,13 @@ export function PianoRoll({ clip }: PianoRollProps) {
 
                 {/* Zoom controls */}
                 <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon-sm" onClick={zoomOut}>
+                    <Button aria-label={tCommon('zoomOut')} variant="ghost" size="icon-sm" onClick={zoomOut}>
                         <ZoomOut className="h-3.5 w-3.5" />
                     </Button>
                     <span className="w-12 text-center text-xs text-muted-foreground">
                         {t('zoomLevel', { px: Math.round(pixelsPerBeat) })}
                     </span>
-                    <Button variant="ghost" size="icon-sm" onClick={zoomIn}>
+                    <Button aria-label={tCommon('zoomIn')} variant="ghost" size="icon-sm" onClick={zoomIn}>
                         <ZoomIn className="h-3.5 w-3.5" />
                     </Button>
                 </div>
@@ -395,6 +396,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                     <div className="flex flex-col" style={{ height: gridHeight }}>
                         {keys.map(({ pitch, noteName, octave, isBlack }) => (
                             <button
+                                aria-label={`${noteName}${octave}`}
                                 key={pitch}
                                 className={`
                                     flex-shrink-0 flex items-center justify-end pr-1.5 text-2xs font-medium transition-all
