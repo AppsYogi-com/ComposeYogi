@@ -108,6 +108,14 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   it was the shipped default that was broken. `recording-manager` is also the only writer of
   `recordingSession` (below), and it writes it **twice**: an estimate as the count-in begins,
   then the bar the transport actually reports once recording starts.
+  The count-in **always clicks**, whatever `metronomeEnabled` says, and the click comes from
+  `audioEngine.playCountIn()` rather than the metronome: the metronome is a `Tone.Loop` that
+  returns unless the transport is running, so it can never sound during pre-roll — which is
+  the count-in nearly every first-time user gets. `playCountIn` schedules against
+  `context.currentTime` instead, which covers both shapes identically, and the metronome loop
+  stands down for the duration (`countInUntil`) so a lead-in does not click twice.
+  `stopCountIn()` silences an abandoned count-in, except for anything already inside Tone's
+  0.1s lookAhead — audio already rendered cannot be unrendered.
 - `count-in.ts` — the countdown arithmetic, on the **wall clock** rather than transport
   position, because pre-roll has no transport position to read. Imports nothing, which is
   the point: it is the only part of the recording visuals a unit test can reach. `ceil`, not
@@ -405,11 +413,13 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   understood — one because the pane was hidden, one because a page reload had left the audio
   engine uninitialized so `audioEngine.play()` silently no-opped. **Check `isReady()` and
   that the recording manager has no stale session before trusting a transport measurement.**
-- **The count-in is silent by default.** PRD §9 says the metronome defaults ON; the store
-  says `metronomeEnabled: false`. The 8.7.7 overlay carries beat pips because of it. Forcing
-  the click on during count-in is a deliberate audio-behaviour change, not a visuals fix.
 - **`prefers-reduced-motion` is honoured by the recording pulse and nothing else**, though
   `design/README.md` has promised it product-wide since 8.6.
+- **The metronome still defaults OFF** (`metronomeEnabled: false`) even though PRD §9 lists
+  it ON among the recording defaults. Deliberate: §9's defaults are the *Recording UX*
+  section's, the count-in now clicks unconditionally, and a click running through the take
+  itself would bleed into any recording made on speakers. Turning it on globally would also
+  put a click over every demo template the moment a first-time visitor presses Play.
 - **Macro audio is unit-tested, not heard**: the clip macros and global swing are proven
   at the schedule level (`tests/clip-macros.test.ts`) but nobody has listened to them, and
   per-clip `Tone.Reverb.generate()` cost on reschedule for Space-heavy projects is

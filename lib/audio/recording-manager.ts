@@ -173,6 +173,19 @@ class RecordingManager {
         if (countInBars > 0) {
             usePlaybackStore.getState().setCountingIn(true);
 
+            // Click it. The count-in shipped in Sprint 2.1 and has been silent
+            // ever since for the default settings — the metronome is off by
+            // default, and even switched on it is a transport loop that cannot
+            // run during pre-roll. PRD §9 lists the metronome ON among the
+            // recording defaults; this is that, scoped to the count-in, where a
+            // click cannot bleed into the take.
+            audioEngine.playCountIn(
+                countInBars * project.timeSignature[0],
+                60 / audioEngine.getBpm(),
+                project.timeSignature[0],
+                playbackState.metronomeVolume
+            );
+
             // A lead-in only exists if there is music before the punch point.
             // Recording from the top — the default — puts `startBar - countInBars`
             // at a negative bar, and a transport parked at a negative time is not
@@ -244,10 +257,13 @@ class RecordingManager {
             return null;
         }
 
-        // Clear count-in timeout if still running
+        // Clear count-in timeout if still running. The clicks are already in
+        // the audio graph at absolute times, so they need cancelling too — a
+        // count-in that keeps ticking after you abandoned it is a haunting.
         if (this.countInTimeoutId) {
             clearTimeout(this.countInTimeoutId);
             this.countInTimeoutId = null;
+            audioEngine.stopCountIn();
             usePlaybackStore.getState().setCountingIn(false);
         }
 
@@ -282,6 +298,7 @@ class RecordingManager {
         if (this.countInTimeoutId) {
             clearTimeout(this.countInTimeoutId);
             this.countInTimeoutId = null;
+            audioEngine.stopCountIn();
             usePlaybackStore.getState().setCountingIn(false);
         }
 
