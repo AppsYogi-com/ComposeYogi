@@ -211,7 +211,15 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   `resolvedTheme` in its effect deps, or it keeps the previous theme's paint.
 - `tests/design-system.test.ts` fails the build on raw palette classes, hex literals,
   interpolated class names, off-scale type/radius, non-exhaustive class maps, a track hue
-  inside the accent band, and any colour pair that misses WCAG AA.
+  inside the accent band, any colour pair that misses WCAG AA, and a looping animation that
+  has not said what it rests as under reduced motion.
+- **Reduced motion is answered in one block** at the end of `app/globals.css`, not per
+  component — `design/README.md` § "Motion, when someone has asked for less of it" is the
+  rulebook. Three things there are load-bearing: the blanket rule is `0.01ms` and never
+  `none` (Radix unmounts on `animationend`, so `none` strands closed dialogs in the DOM); a
+  spinner keeps turning, because frozen it reports a hung app; and every resting state is
+  `!important`, because a running animation outranks a plain declaration and two rules from
+  that same block were measured disagreeing in one frame.
 - `npm run design:artboards` re-exports `design/artboards/*.png` and `public/og-image.png`
   (needs Chrome; the HTML previews in `design/previews/` are the reference and open by
   double-clicking, no server).
@@ -413,8 +421,6 @@ and PR; `docker-publish.yml` still builds/signs the image separately.
   understood — one because the pane was hidden, one because a page reload had left the audio
   engine uninitialized so `audioEngine.play()` silently no-opped. **Check `isReady()` and
   that the recording manager has no stale session before trusting a transport measurement.**
-- **`prefers-reduced-motion` is honoured by the recording pulse and nothing else**, though
-  `design/README.md` has promised it product-wide since 8.6.
 - **The metronome still defaults OFF** (`metronomeEnabled: false`) even though PRD §9 lists
   it ON among the recording defaults. Deliberate: §9's defaults are the *Recording UX*
   section's, the count-in now clicks unconditionally, and a click running through the take
