@@ -129,6 +129,23 @@ export const MIGRATIONS: Migration[] = [
             }
         },
     },
+    {
+        // Custom instruments (#21). A separate store rather than a settings
+        // key: they are listed, searched and deleted individually, and a single
+        // blob would have to be rewritten in full on every edit.
+        //
+        // Indexed by name rather than createdAt — unlike samples, which arrive
+        // in batches and read best newest-first, instruments are looked up by
+        // the name their author gave them.
+        version: 5,
+        name: 'user-instruments',
+        run: (db) => {
+            if (!db.objectStoreNames.contains('userInstruments')) {
+                const instruments = db.createObjectStore('userInstruments', { keyPath: 'id' });
+                instruments.createIndex('by-name', 'name');
+            }
+        },
+    },
 ];
 
 /** Highest migration version — db.ts opens the database at this version. */

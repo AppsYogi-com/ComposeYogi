@@ -4,7 +4,7 @@ import { useEffect, useCallback, useMemo, useState, useRef, Suspense } from 'rea
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
-import { audioEngine, playoutManager, registerAudioTake, clearAudioTakes, type LatencyCalibrationResult } from '@/lib/audio';
+import { audioEngine, playoutManager, registerAudioTake, clearAudioTakes, customInstrumentsHash, hydrateCustomInstruments, useCustomInstruments, type LatencyCalibrationResult } from '@/lib/audio';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('Compose');
@@ -101,6 +101,11 @@ function ComposePageContent() {
             initializedRef.current = true;
 
             try {
+                // Before anything is scheduled: a track pointing at a custom
+                // instrument that is not in the registry yet falls back to its
+                // track-colour default and plays the wrong sound for a render.
+                await hydrateCustomInstruments();
+
                 // Check for demo template first
                 if (demoId) {
                     const demoProject = loadDemoTemplate(demoId);
@@ -188,13 +193,21 @@ function ComposePageContent() {
     const mixerHash = project ? mixerStateHash(project.tracks) : '';
     const projectHash = projectScheduleHash(project);
 
+    // Custom instruments are the one thing whose *sound* can change while the
+    // project is untouched: `instrumentPreset` holds an id, and editing an
+    // instrument leaves that id alone. Without the revision here, saving an
+    // edit to an instrument already on a track changes nothing you can hear
+    // until something else forces a rebuild — #22, one layer down.
+    const customInstruments = useCustomInstruments();
+    const instrumentsHash = customInstrumentsHash(customInstruments);
+
     // Re-schedule clips when project clips or notes change
     useEffect(() => {
         if (isAudioReady) {
             void scheduleClipsRef.current();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAudioReady, project?.clips.length, clipNotesHash, trackHash, projectHash]);
+    }, [isAudioReady, project?.clips.length, clipNotesHash, trackHash, projectHash, instrumentsHash]);
 
     // Sync track effects
     useEffect(() => {

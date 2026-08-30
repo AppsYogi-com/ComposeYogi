@@ -7,11 +7,12 @@
  * - clips: Clip data (separate for efficient updates)
  * - audioTakes: Audio binary data (large, stored separately)
  * - userSamples: User-imported audio samples
+ * - userInstruments: User-made instruments (#21)
  * - settings: App-level settings (latency, preferences)
  */
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import type { Project, Track, Clip, AudioTake, PeaksCache, UserSample } from '@/types';
+import type { Project, Track, Clip, AudioTake, CustomInstrument, PeaksCache, UserSample } from '@/types';
 import { createLogger } from '@/lib/logger';
 import { LATEST_VERSION, runMigrations } from './migrations';
 
@@ -60,6 +61,13 @@ interface ComposeYogiDB extends DBSchema {
         value: UserSampleRecord;
         indexes: {
             'by-created': number;
+        };
+    };
+    userInstruments: {
+        key: string;
+        value: CustomInstrument;
+        indexes: {
+            'by-name': string;
         };
     };
 }
@@ -544,4 +552,42 @@ export async function getStorageEstimate(): Promise<{ usage: number; quota: numb
         };
     }
     return { usage: 0, quota: 0 };
+}
+
+// ============================================
+// Custom Instrument Operations (#21)
+// ============================================
+//
+// Stored as the domain object, with no record type and no mapping in either
+// direction. That is not laziness — `ProjectRecord` is hand-built both ways and
+// has cost two bugs where a new field was added to the type and forgotten in
+// one of the three places that copy it. A `CustomInstrument` is plain JSON that
+// structured clone handles natively, so the safest schema here is no schema:
+// add a field to the type and it persists, because nothing is enumerating them.
+
+export async function saveCustomInstrument(instrument: CustomInstrument): Promise<void> {
+    const db = await getDB();
+    await db.put('userInstruments', instrument);
+    logger.debug('Custom instrument saved', {
+        id: instrument.id,
+        name: instrument.name,
+        revision: instrument.revision,
+    });
+}
+
+export async function loadCustomInstrument(instrumentId: string): Promise<CustomInstrument | null> {
+    const db = await getDB();
+    return (await db.get('userInstruments', instrumentId)) ?? null;
+}
+
+/** Every custom instrument, by name — the order the browser panel lists them in. */
+export async function listCustomInstruments(): Promise<CustomInstrument[]> {
+    const db = await getDB();
+    return db.getAllFromIndex('userInstruments', 'by-name');
+}
+
+export async function deleteCustomInstrument(instrumentId: string): Promise<void> {
+    const db = await getDB();
+    await db.delete('userInstruments', instrumentId);
+    logger.debug('Custom instrument deleted', { id: instrumentId });
 }
