@@ -32,7 +32,6 @@ const PUBLIC_DOCS = [
     'ROADMAP.md',
     'CHANGELOG.md',
     'design/README.md',
-    '.github/copilot-instructions.md',
 ];
 
 // ============================================
