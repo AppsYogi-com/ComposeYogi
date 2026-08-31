@@ -9,8 +9,10 @@
 // every bug those can carry is a bug you would otherwise find by ear, once,
 // weeks later.
 //
-// Everything downstream — the voice, the ports, the listeners — is verified in
-// a browser and written up in docs/notes/sprint-8.7.md.
+// Everything downstream — the voice, the ports, the listeners — cannot be
+// verified here: Tone cannot be constructed under vitest, and the headless
+// pane refuses Web MIDI. It is verified by measuring in a real browser.
+// See CONTRIBUTING.md, "Testing audio".
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

@@ -133,6 +133,45 @@ playback. Update the snapshot deliberately and say so in the PR.
 Read [ARCHITECTURE.md](ARCHITECTURE.md) before changing audio, state or
 persistence — it documents the invariants a change must not break.
 
+### Testing audio
+
+Read this before writing your first audio test — it will save you an afternoon.
+
+**Tone.js cannot be constructed here.** `new Tone.PolySynth(...)` throws
+`param must be an AudioParam` under Vitest, because Node has no Web Audio. There
+is no mock and no workaround. **No unit test in this repo can prove that
+something sounds right.**
+
+What to do instead, in order of preference:
+
+1. **Put the decision somewhere Tone-free and test that.** Most "does it sound
+   right" questions are really "is the right number in the right field", and
+   those live in `instrument-spec.ts`, `preset-specs.ts`, `drum-kits.ts` or
+   `percussion.ts` — none of which import Tone. A kit or preset written as a
+   factory is a sound nothing can check.
+2. **Pin the output as a golden fixture.** `tests/golden/preset-voice-options.json`
+   holds the options objects every preset produces, so an accidental retune of a
+   shipped sound fails the build.
+3. **Measure it in a real browser** when the question is genuinely acoustic.
+
+If you go as far as (3), three things will lie to you, and all three have:
+
+- **A tap on the voice's own output is not what the user hears.** Measure at
+  `playoutManager.getAnalyser()`. The difference between those two readings is
+  what catches a voice that makes sound but never reaches the mixer. And the
+  master analyser sits *before* the destination, so it cannot see a
+  `.toDestination()` bypass at all — for that, tap `Tone.Destination.input`.
+- **An instantaneous FFT read is not a loudness measurement.** It samples one
+  moment of an envelope. Sample on an interval and keep a running max over
+  ~600 ms, or a loud note will measure quieter than a soft one.
+- **Start from a normal page load, through the control a user actually clicks.**
+  A feature shipped silent once because every harness called `Tone.start()` by
+  hand; the page a user opens has a suspended audio context until something
+  starts one, and nothing did.
+
+**Always mutate something deliberately first and confirm your harness fails.**
+Two harnesses have reported success while measuring nothing at all.
+
 ## Pull Request Process
 
 1. **Update your branch** with the latest upstream changes:

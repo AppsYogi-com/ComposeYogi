@@ -8,70 +8,48 @@ is no backend today, and nothing leaves the browser.
 ## Read this first
 
 **[ARCHITECTURE.md](../ARCHITECTURE.md) is the source of truth** for how the
-audio engine, state, persistence and rendering work, and which invariants a
-change must not break. This file does not restate it — it drifted out of date
-once already by trying to.
+audio engine, state, persistence and rendering work, which modules own a single
+answer, and which invariants a change must not break.
+**[CONTRIBUTING.md](../CONTRIBUTING.md)** covers workflow, PR expectations, and
+how to test audio in a codebase where Tone.js cannot be constructed under Vitest.
 
-Also worth reading before proposing changes:
+**This file does not restate either of them.** It has drifted out of date twice
+by trying to — most recently telling contributors that adding an instrument
+touches two places when it had taken three since v1.4. Anything that is a fact
+about the project belongs in those two documents, where a test now checks it.
+What is left here is only what an assistant specifically tends to get wrong.
 
-- **[ROADMAP.md](../ROADMAP.md)** — what is planned and in what order. Several
-  fields in `types/index.ts` (`energy`, `groove`, `brightness`, `space`,
-  `humanize`, `transpose`) are persisted but not yet wired to DSP. They are
-  **designed features, not dead code.** Do not suggest deleting them.
-- **[CONTRIBUTING.md](../CONTRIBUTING.md)** — workflow and PR expectations.
+## What assistants get wrong here
 
-## The rules that matter most
+1. **Do not delete "unused" fields.** Several fields in `types/index.ts` and some
+   unwired schema exist because a designed feature is scheduled but unbuilt —
+   punch recording and the count-in overlay were both in this state. They are
+   commitments, not dead code. Check [ROADMAP.md](../ROADMAP.md) before
+   proposing a removal.
 
-1. **`lib/audio/scheduler.ts` owns how a clip becomes sound.** Live playback and
-   offline export both schedule through it. A change to timing, instruments,
-   effects or mix gating that touches only one caller is a bug — that split is
-   exactly what made exports stop matching playback before.
-2. **If a feature changes how a clip sounds, add it to the reschedule hashes**
-   in `app/[locale]/compose/page.tsx`. Otherwise playback silently goes stale.
-3. **Never put per-frame values in React state.** The playhead and scroll
-   position use `playbackRefs` (plain `{ current }` refs) deliberately.
-4. **Mixer moves must not reschedule.** Volume, pan, mute and solo ramp existing
-   nodes. Rebuilding the schedule for a fader is a regression.
-5. **Adding an instrument touches two places**: the preset in
-   `lib/audio/synth-presets.ts` and its metadata in `lib/browser/index.ts`.
-   Forgetting the second fails the build, by design.
-6. **Every user-visible string needs both locales.** `npm run validate:locales`
-   gates the build.
-7. **Schema changes go in `lib/persistence/migrations.ts`** as a new numbered
-   migration. Never edit a shipped one.
+2. **Do not "fix" the MP3 encoder into the bundle.** It loads from
+   `public/workers/lame.min.js` via a `<script>` tag as a deliberate workaround
+   for webpack/CJS issues.
 
-## Conventions
+3. **A passing `npm run check` is not proof an audio change works.** There is no
+   Web Audio in the test environment, so nothing there can hear anything. Claims
+   about how something sounds must be measured in a browser — CONTRIBUTING.md
+   explains how, and the three ways such a measurement lies.
 
-- Banner comments: `// ============================================`
-- Imports: React → Next → external → internal (`@/…`) → types
-- `PascalCase.tsx` for components (`TrackList.tsx`), `kebab-case.ts` for lib
-  modules (`synth-presets.ts`); barrel `index.ts` per folder
-- 4-space indentation
-- `createLogger('Context')` from `lib/logger.ts` — no bare `console.*`
-- Immutable Zustand updates: `set((state) => ({ … }))`
-- Time: bars in UI and state, seconds in Tone.js — convert at the boundary
-- Always dispose Tone nodes (Players, Synths, effects) on unschedule/unmount
-- Commit messages follow Conventional Commits and reference the issue (`(#NN)`)
+4. **Never build a Tailwind class name by interpolation.** `bg-track-${role}`
+   produces no CSS. This shipped once and made every colour dot invisible.
+
+5. **Do not add a second answer to a question that already has one.** The
+   modules that own a single source of truth are listed in ARCHITECTURE.md, and
+   `tests/music.test.ts` and `tests/design-system.test.ts` fail the build on a
+   duplicate. Every one of them exists because a copy drifted and reached a
+   release.
 
 ## Commands
 
 ```bash
 npm run dev      # Dev server (Turbopack)
 npm test         # Vitest
-npm run check    # Locales + types + lint + tests — what CI runs
+npm run check    # Locales + tokens + types + lint + tests — what CI runs
 npm run build    # Production build
 ```
-
-## Where things live
-
-| | |
-|---|---|
-| Studio page (audio lifecycle, reschedule triggers) | `app/[locale]/compose/page.tsx` |
-| Shared scheduling core | `lib/audio/scheduler.ts` |
-| Live playback / offline export | `lib/audio/playout.ts` / `lib/audio/offline-renderer.ts` |
-| Stores | `lib/store/{project,playback,ui}.ts` |
-| Persistence and migrations | `lib/persistence/` |
-| Instruments | `lib/audio/synth-presets.ts` |
-| Shortcut registry | `lib/shortcuts/` |
-| Types | `types/index.ts` |
-| Tests | `tests/` |

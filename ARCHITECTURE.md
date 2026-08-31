@@ -112,9 +112,61 @@ automation (Sprint 14-15) depends on it.
 `INSTRUMENTS` (`lib/browser/index.ts`) derives id, name and category from it and
 adds only browser-panel metadata, typed `Record<SynthPresetId, …>`.
 
-**Adding an instrument:** add the preset, then add its metadata entry. Forget
-the second and the build fails — which is the point. These two lists used to be
-maintained by hand and drifted into a duplicate-instrument bug (#20).
+**Adding an instrument:** add a spec, a preset entry, and a metadata entry.
+Miss any of the three and the build fails — which is the point. These lists used
+to be maintained by hand and drifted into a duplicate-instrument bug (#20).
+
+`PRESET_SPECS` (`lib/audio/preset-specs.ts`) is canonical for what a preset
+*sounds like*, as plain data. It is typed `Record<SynthPresetId, AnyInstrumentSpec
+| null>`, so a new preset must say whether it is spec-built or one of the six
+samplers. `tests/golden/preset-voice-options.json` pins the resulting options
+objects, so **a change here that retunes a shipped sound fails the build.** That
+is deliberate: add a preset beside the old one rather than changing it.
+
+`lib/audio/instrument-spec.ts` turns a spec into audio values and **imports no
+Tone on purpose** — see Testing below. `lib/audio/drum-kits.ts` holds the six
+sampler kits as data for the same reason.
+
+**Custom instruments** (`lib/audio/custom-instruments.ts`) are user-owned specs
+in IndexedDB, read through `useSyncExternalStore` rather than a Zustand store —
+the scheduler and offline renderer are not React and must resolve instruments
+synchronously. `hydrateCustomInstruments()` must run before anything schedules.
+
+> ⚠️ Editing a custom instrument does not change its id, so **`revision` is
+> load-bearing**: it goes into the reschedule hash, and without it an edit to an
+> instrument already on a track leaves playback on the old voice. Same failure as
+> #22, in a new place.
+
+### Playing and previewing
+
+`live-play.ts` (the on-screen and MIDI keyboard) and `preview-voice.ts` (clicking
+a note in an editor) both build their voice with the scheduler's own
+`createSynthForTrack`, and both route to the track's **entry node** via
+`playoutManager.getTrackInput(track)`.
+
+> ⚠️ **Nothing in `components/` may call `.toDestination()`.** It is a straight
+> wire to the speakers, past the track's effects, fader, pan, the master limiter
+> and mute/solo. Both editors did this until v1.4: with every track muted,
+> clicking a drum still put −34.8 dB on the output. `tests/scheduler.test.ts`
+> fails the build on a new one; the two remaining exceptions are named there,
+> and both play something that belongs to no track.
+
+### MIDI
+
+Split so the parts that can be tested are:
+
+- `midi-messages.ts` — the byte parse. Imports nothing. A note-on with velocity 0
+  **is** a note-off, and only the two note commands are accepted by high nibble,
+  which is what stops a keyboard's 24-ppqn clock becoming a torrent of notes.
+- `note-book.ts` — which key or pedal actually stops a note. Every rule in it is
+  a stuck note if wrong. Lifting the pedal releases what the *pedal* was holding,
+  not everything.
+- `midi-take.ts` — a performance becomes notes. Nothing is quantized and nothing
+  is latency-compensated, the opposite of the audio path: a mic hears the player
+  after the sound leaves the speakers, a key is stamped as it goes down.
+- `midi-input.ts` — the Web MIDI wiring. **Unverifiable in CI** (no hardware, and
+  headless browsers refuse Web MIDI), so it is the specification plus a test over
+  the exact bytes. Reports from anyone with a keyboard are welcome.
 
 ### Audio, briefly
 
@@ -124,6 +176,36 @@ maintained by hand and drifted into a duplicate-instrument bug (#20).
 - MP3 encoder loads from `public/workers/lame.min.js` via a `<script>` tag. This
   is a deliberate workaround for webpack/CJS issues — please don't "fix" it back
   into the bundle.
+
+---
+
+## Music theory: `lib/music/`
+
+Small, dependency-free modules, each the **single source** for one fact. Every
+one of them exists because that fact previously lived in two or three places
+that disagreed, and each disagreement shipped.
+
+| Module | The single source for | What it cost before |
+|---|---|---|
+| `pitch.ts` | what a pitch is called and where it sounds | `Math.floor(pitch / 12)` is not the octave — MIDI 0 is C**-1** — so middle C was drawn as C5, and the keyboard's lowest note was labelled C1 while being 16.35 Hz |
+| `percussion.ts` | which drum a pitch is (GM 35–81) | the map lived in three places; the sampler kits' copy was an octave out, so **every kick played an open hi-hat** |
+| `scales.ts` | keys, intervals, and the transport's vibes | picking Harmonic Minor highlighted natural minor |
+| `snap.ts` | the editing grid, in beats | — |
+| `typing-keys.ts` | the computer keyboard as a piano | — |
+| `keyboard-layout.ts` | the drawn keyboard's geometry and keycaps | — |
+
+Two rules the build enforces:
+
+- **Never write `Math.floor(pitch / 12)`.** `tests/music.test.ts` scans
+  `components/` and `lib/` and fails on a fourth opinion.
+- **Never key a `Tone.Sampler` by note name.** Tone reads `C1` as MIDI 24;
+  General MIDI puts the kick at 36. Use `DRUM_PITCH`. The same test fails the
+  build on a note name beside a sample.
+
+`keyboard-layout.ts` also carries one design rule worth knowing before changing
+it: **the keyboard does not move.** The board is a fixed C1–C7 and only the lit
+block and the printed letters shift with the octave. Three earlier versions
+resized or re-centred it and all three felt broken.
 
 ---
 
@@ -163,6 +245,50 @@ Autosave debounces project writes by 3s; audio takes save immediately, and a
 - **Clips are virtualized** (`hooks/useVisibleClips.ts`): a lane mounts only the
   clips in the viewport plus a one-screen buffer. `DraggableClip` is memoized,
   so an unrelated store update doesn't re-render everything on screen.
+
+---
+
+## The design system: `lib/design/` + `design/`
+
+> **`lib/design/tokens.ts` is the single source for every colour, radius,
+> duration and elevation in the product.**
+
+`npm run design:tokens` *generates* `app/globals.css`, `public/manifest.json`,
+the token tables in [`design/README.md`](design/README.md), and the artboard
+stylesheet from it. **`npm run check` fails if any generated file has drifted**,
+so never hand-edit a generated block — change the token and regenerate.
+`tailwind.config.ts` holds no design values of its own; it imports them.
+
+[`design/README.md`](design/README.md) is the usage rulebook — principles, when
+to use which colour, and live HTML artboards that open by double-clicking, no
+build step. **All UI must comply with it**, and `tests/design-system.test.ts`
+enforces the parts a machine can check: no raw palette classes, no hex literals,
+no off-scale type or radius, no colour pair that misses WCAG AA, and no looping
+animation that has not declared what it rests as under reduced motion.
+
+Two traps worth knowing before you write a class name:
+
+- **Never build one by interpolation.** `bg-track-${role}` produces no CSS,
+  because Tailwind reads class names out of source text and cannot evaluate a
+  template literal. Use the static maps in `lib/design/track-colors.ts`. This
+  shipped once: every colour dot in the instrument browser rendered transparent.
+- **Canvas reads tokens at draw time** via `tokenColor()` / `monoFont()`, so a
+  canvas effect must list `resolvedTheme` in its dependencies or it keeps
+  painting the previous theme.
+
+Reduced motion is answered in **one** block at the end of `app/globals.css`,
+never per component.
+
+---
+
+## Templates
+
+`DEMO_TEMPLATES` (`lib/templates/demo-templates.ts`) is the single source for the
+eight demo arrangements; the browser panel's list derives from it, and
+`createProject(name, templateId)` loads the full arrangement. They are the first
+thing a visitor hears, so a bug in a template is a bug in the product's first
+impression — the drum-kit octave fault was invisible for four releases largely
+because nobody had listened to these closely.
 
 ---
 
@@ -214,19 +340,49 @@ If you are changing the audio engine, the scheduler tests are the ones that
 matter. A PR that changes scheduling behaviour without moving the golden render
 plan snapshot is either a no-op or a bug.
 
+> ⚠️ **Tone.js cannot be constructed in the test environment.**
+> `new Tone.PolySynth(...)` throws `param must be an AudioParam` under Vitest —
+> there is no Web Audio in Node. **No unit test can prove a synth sounds right.**
+
+This one constraint explains a lot of the codebase's shape, and working with it
+rather than against it is most of what makes an audio change reviewable:
+
+- `instrument-spec.ts`, `preset-specs.ts`, `drum-kits.ts`, `percussion.ts`,
+  `midi-messages.ts`, `note-book.ts` and `midi-take.ts` **import no Tone**, so
+  the decisions inside them are testable as plain data and arithmetic.
+- Anything written as a *factory* is a sound nothing can check. A kit written
+  that way had a wrong sample in it, and the fix survived a deliberate revert
+  with all 636 tests green — which is why kits and presets are data now.
+- Sound itself is verified by measuring in a real browser. See
+  [CONTRIBUTING.md](CONTRIBUTING.md) § "Testing audio" for how, and for the
+  three ways such a measurement can quietly lie to you.
+
 ---
 
 ## Known rough edges
 
 Honest list, so you don't have to discover these yourself:
 
-- **Clip macros** (`energy`, `groove`, `brightness`, `space`, `humanize`,
-  `transpose`) are persisted and exported but drive no DSP yet. They are a
-  designed feature, not dead code — implement, don't delete.
-- **Piano-roll velocity** is hardcoded to 100 and display-only. The velocity
-  lane is designed but unbuilt; the drum sequencer already has the drag-to-edit
-  interaction to port.
-- **Frame-rate, Lighthouse and cross-browser numbers** have not been captured on
-  real hardware since the Sprint 8.5 performance work. Treat them as unverified.
+- **Frame-rate, Lighthouse, the offline walkthrough and the cross-browser
+  matrix** have not been measured on real hardware since Sprint 8.5. Treat any
+  number you find for them as unverified — including in this file.
+- **Web MIDI has never run against hardware.** Notes, sustain, pitch bend and
+  the panic controllers are built to the specification and tested at the byte
+  level. If you own a MIDI keyboard, trying it is genuinely useful.
+- **No audio in the app has been assessed by ear.** Every claim about how
+  something sounds — the instruments, the drum kits, the clip macros, the Grand
+  Piano — is a measurement.
+- **`Project` has three hand-maintained field lists** that each fail silently
+  when a new field is forgotten: the reschedule hashes
+  (`lib/audio/schedule-hash.ts`), `ProjectRecord` (`lib/persistence/db.ts`, built
+  by hand in both directions), and autosave's change signature. All three have
+  exhaustiveness tests over `keyof Project`, so **adding a field to `Project`
+  means visiting all three** — the tests will say so, if you run them.
+- **Stretch-to-BPM repitches** rather than time-stretching. True time-stretch
+  needs WASM and is a later phase.
+- **There is no sampled acoustic piano.** All six `Tone.Sampler` presets are
+  drum kits; every melodic preset is synthesised.
+- **`+ Add Track` only creates MIDI tracks.** Changing a track to audio means
+  Inspector → Type → Audio.
 
 See [ROADMAP.md](ROADMAP.md) for where each of these is scheduled.
