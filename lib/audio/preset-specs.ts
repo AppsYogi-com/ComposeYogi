@@ -67,8 +67,11 @@ export const PRESET_SPECS: Record<SynthPresetId, AnyInstrumentSpec | null> = {
     //     after every note. Bright attack, still-harmonic body.
     //
     // It is synthesis, not a recording, and it will not be mistaken for a
-    // Steinway. What it is measured to do is in `docs/notes/sprint-8.7.md`
-    // § 8.7.6f.
+    // Steinway. Measured: 9.7% / 57% / 75% of a C1 / C2 / C3's energy lands
+    // above 150 Hz, where a laptop speaker starts moving air, against 0.0% /
+    // 0% / 0% for the sine it was added beside. Index 22 was chosen by
+    // sweeping 20 variants — at 24 and above the harmonics overtake the
+    // fundamental.
     'grand-piano': {
         voice: 'fmsynth',
         oscillator: {

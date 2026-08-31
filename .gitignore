@@ -49,8 +49,10 @@ next-env.d.ts
 # Misc
 *.pem
 
-#internal docs
-docs
+# Internal, maintainer-only planning docs. Public documentation is tracked
+# and lives at the repo root (README, ARCHITECTURE, CONTRIBUTING, ROADMAP,
+# CHANGELOG) plus design/. The rule is: tracked in git = public.
+internal_docs
 CLAUDE.md
 public/sw.js
 
