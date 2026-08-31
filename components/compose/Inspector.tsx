@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 import {
+    Check,
     ChevronLeft,
     ChevronRight,
+    ChevronsUpDown,
     Sliders,
     Music,
     Clock,
@@ -30,9 +32,20 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import { NOTE_NAMES, SCALE_IDS } from '@/lib/music';
 import { cn } from '@/lib/utils';
 import { trackColorValue } from '@/lib/design';
+import { INSTRUMENTS, INSTRUMENT_CATEGORIES } from '@/lib/browser';
+import { useCustomInstruments } from '@/lib/audio/custom-instruments';
 import type { Clip, InspectorSectionId, MusicalKey, MusicalScale, TrackType, TrackColor } from '@/types';
 
 // Option lists carry ids only — the labels come from `inspector.trackColors.*`
@@ -40,6 +53,148 @@ import type { Clip, InspectorSectionId, MusicalKey, MusicalScale, TrackType, Tra
 const TRACK_COLOR_OPTIONS: TrackColor[] = ['drums', 'bass', 'keys', 'melody', 'vocals', 'fx'];
 
 const TRACK_TYPE_OPTIONS: TrackType[] = ['audio', 'midi', 'drum'];
+
+/**
+ * A searchable instrument picker.
+ *
+ * A `Select` was the obvious primitive and the wrong one. There are 64 built-ins
+ * plus however many the user has made, so the list opened as a scrolling column
+ * taller than the Inspector — you could see about a tenth of it at a time and
+ * had to know which of ten categories a name lived under before you could find
+ * it. A list that long is a search problem, not a menu problem.
+ *
+ * So it is shadcn's combobox recipe — `Popover` + `Command` — which the repo
+ * already had the primitives for and had never used. The categories survive as
+ * group headings, so browsing still works; typing just skips it.
+ *
+ * **What each item is searched by is not what it displays.** cmdk filters on an
+ * item's `value`, so that string carries the name, the id and the category —
+ * "keys" finds the pianos, "fm" finds the FM bass and lead. The id it selects
+ * comes from the closure, never from the matched text.
+ */
+function InstrumentPicker({
+    id, value, drum, allowInherit, onChange,
+}: {
+    id: string;
+    value: string | undefined;
+    drum: boolean;
+    allowInherit?: boolean;
+    onChange: (value: string | undefined) => void;
+}) {
+    const t = useTranslations('inspector');
+    const custom = useCustomInstruments();
+    const [open, setOpen] = useState(false);
+
+    const groups = useMemo(() => {
+        interface Group {
+            key: string;
+            heading: string;
+            items: { id: string; name: string; search: string }[];
+        }
+        const built: Group[] = INSTRUMENT_CATEGORIES.map((category) => ({
+            key: category.id,
+            heading: `${category.icon} ${category.name}`,
+            items: INSTRUMENTS
+                .filter((instrument) => instrument.category === category.id
+                    && (instrument.trackType === 'drum') === drum)
+                .map((instrument) => ({
+                    id: instrument.id,
+                    name: instrument.name,
+                    search: `${instrument.name} ${instrument.id} ${category.name}`,
+                })),
+        })).filter((group) => group.items.length > 0);
+
+        if (!drum && custom.length) {
+            built.push({
+                key: 'custom',
+                heading: t('track.customInstruments'),
+                items: custom.map((instrument) => ({
+                    id: instrument.id,
+                    name: instrument.name,
+                    search: `${instrument.name} custom`,
+                })),
+            });
+        }
+        return built;
+    }, [drum, custom, t]);
+
+    const selected = groups.flatMap((group) => group.items).find((item) => item.id === value);
+    const label = value === undefined && allowInherit
+        ? t('clip.instrumentInherit')
+        : selected?.name ?? t('track.instrumentDefault');
+
+    const choose = (next: string | undefined) => {
+        onChange(next);
+        setOpen(false);
+    };
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                {/* A `<button>` is a labelable element, so the Field's caption
+                    reaches it through `htmlFor` the same way it reaches a Select
+                    trigger. `role="combobox"` is what tells a screen reader this
+                    opens a list rather than performing an action. */}
+                <Button
+                    id={id}
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="h-8 w-full justify-between px-3 font-normal"
+                >
+                    <span className="truncate">{label}</span>
+                    <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent
+                align="start"
+                className="w-[var(--radix-popover-trigger-width)] p-0"
+            >
+                <Command>
+                    <CommandInput placeholder={t('track.instrumentSearch')} />
+                    <CommandList>
+                        <CommandEmpty>{t('track.instrumentNotFound')}</CommandEmpty>
+                        {allowInherit && (
+                            <CommandGroup>
+                                <CommandItem
+                                    value={t('clip.instrumentInherit')}
+                                    onSelect={() => choose(undefined)}
+                                >
+                                    <Check
+                                        className={cn(
+                                            'mr-2 h-3.5 w-3.5',
+                                            value === undefined ? 'opacity-100' : 'opacity-0'
+                                        )}
+                                    />
+                                    {t('clip.instrumentInherit')}
+                                </CommandItem>
+                            </CommandGroup>
+                        )}
+                        {groups.map((group) => (
+                            <CommandGroup key={group.key} heading={group.heading}>
+                                {group.items.map((item) => (
+                                    <CommandItem
+                                        key={item.id}
+                                        value={item.search}
+                                        onSelect={() => choose(item.id)}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-3.5 w-3.5',
+                                                value === item.id ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {item.name}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        ))}
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 export function Inspector() {
     const t = useTranslations('inspector');
@@ -202,6 +357,30 @@ export function Inspector() {
                                 </SelectContent>
                             </Select>
                         )}</Field>
+
+                        {/* The track's instrument — what live playing sounds
+                            through, and the fallback for clips that carry none
+                            of their own. Until now the only way to change one
+                            was to *drag* an instrument onto the lane, which also
+                            dropped a two-bar demo clip on top of whatever was
+                            there: there was no way to change a track's sound
+                            without changing its contents. An audio track has no
+                            instrument, so it does not get the field. */}
+                        {selectedTrack.type !== 'audio' && (
+                            <Field label={t('track.instrument')}>{({ id }) => (
+                                <InstrumentPicker
+                                    id={id}
+                                    value={selectedTrack.instrumentPreset}
+                                    drum={selectedTrack.type === 'drum'}
+                                    onChange={(value) => {
+                                        if (!value) return;
+                                        useProjectStore.getState().updateTrack(selectedTrack.id, {
+                                            instrumentPreset: value,
+                                        });
+                                    }}
+                                />
+                            )}</Field>
+                        )}
 
                         <Field label={t('track.pan', { value: Math.round((selectedTrack.pan || 0) * 100) })}>
                             {({ labelledBy }) => (
@@ -374,6 +553,28 @@ export function Inspector() {
                                 className="h-8"
                             />
                         )}</Field>
+
+                        {/* A clip's own instrument wins over its track's, so a
+                            track-level change looks like it did nothing on any
+                            clip that carries one — and dropping an instrument on
+                            a lane sets both. The override is editable here, and
+                            clearable, rather than being a thing the arrangement
+                            can set and nothing can unset. */}
+                        {selectedClip.type !== 'audio' && (
+                            <Field label={t('clip.instrument')}>{({ id }) => (
+                                <InstrumentPicker
+                                    id={id}
+                                    value={selectedClip.instrumentPreset}
+                                    drum={selectedClip.type === 'drum'}
+                                    allowInherit
+                                    onChange={(value) => {
+                                        useProjectStore.getState().updateClip(selectedClip.id, {
+                                            instrumentPreset: value,
+                                        });
+                                    }}
+                                />
+                            )}</Field>
+                        )}
 
                         <div className="grid grid-cols-2 gap-2">
                             <Field label={t('clip.start')}>{({ id }) => (

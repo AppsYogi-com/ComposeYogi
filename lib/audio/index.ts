@@ -123,3 +123,32 @@ export {
     type SynthPresetId,
     type ResolvedInstrument,
 } from './synth-presets';
+
+export { livePlayEngine } from './live-play';
+export { previewVoice } from './preview-voice';
+export {
+    getMidiState,
+    releaseMidiAccess,
+    requestMidiAccess,
+    subscribeToMidiMessages,
+    subscribeToMidiState,
+    type MidiDevice,
+    type MidiState,
+    type MidiStatus,
+} from './midi-input';
+export {
+    PITCH_BEND_RANGE_CENTS,
+    bendToCents,
+    parseMidiMessage,
+    velocityToGain,
+    type MidiMessage,
+} from './midi-messages';
+export { NoteBook, type NoteAction } from './note-book';
+export {
+    MIN_NOTE_BEATS,
+    clipBarsForNotes,
+    closeHeldNotes,
+    notesFromPerformance,
+    type DraftNote,
+    type PerformedNote,
+} from './midi-take';

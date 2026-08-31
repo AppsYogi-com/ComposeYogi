@@ -33,7 +33,7 @@ import {
 } from './clip-macros';
 import { getAudioTake } from './recording-manager';
 import { stretchRate } from './stretch';
-import { resolveCustomInstrument } from './custom-instruments';
+import { getCustomInstrument, resolveCustomInstrument } from './custom-instruments';
 import { createSynthFromPreset, waitForSynthReady, type ResolvedInstrument, type SynthType } from './synth-presets';
 
 import type { AudioTake, Clip, Project, Track, TrackEffect } from '@/types';
@@ -142,6 +142,29 @@ export function effectiveTrackGain(track: Track, allTracks: Track[]): number {
     return isTrackAudible(track, allTracks) ? track.volume : 0;
 }
 
+/**
+ * The gain a track's chain should be *created* at.
+ *
+ * A chain is built lazily, by whoever asks for a track's input first — and on a
+ * page where nothing has played yet, that is the live keyboard or an editor's
+ * preview rather than the transport. Those chains used to be born at
+ * `track.volume`, which meant **a muted track's preview was audible** until the
+ * transport ran and the mixer caught up. Reported as "I muted the track and I
+ * can still hear it", and it was the second half of that bug: the first was the
+ * editors playing straight to the speakers.
+ *
+ * `knownTracks` is the list the mixer last resolved from, which on a cold page
+ * is **empty** — and that needs no special case, though the first draft had one.
+ * `isTrackAudible` reads solo as "is anyone soloed", so an empty list means
+ * nobody is, which is both the right answer and the same answer that judging the
+ * track against itself gives. Mutation testing showed the `length ? … : [track]`
+ * fallback changed nothing in any case; it is gone rather than left looking like
+ * it does something.
+ */
+export function initialTrackGain(track: Track, knownTracks: readonly Track[]): number {
+    return effectiveTrackGain(track, [...knownTracks]);
+}
+
 // ============================================
 // Render Plan
 // ============================================
@@ -243,6 +266,24 @@ export function buildRenderPlan(project: Project): RenderPlan {
 /** Wrap a built-in synth as a resolved instrument: nothing after the voice. */
 function bare(synth: SynthType): ResolvedInstrument {
     return { synth, output: synth, nodes: [] };
+}
+
+/**
+ * The identity of the voice a track sounds through.
+ *
+ * Anything that keeps a built voice alive between notes — live play, the
+ * editors' preview — has to know when to throw it away and build another. The
+ * track id is not enough and neither is the preset id: **`instrumentPreset`
+ * holds an id, and editing a custom instrument changes the sound without
+ * changing the id**, so a key without the revision leaves every held voice on
+ * the sound from before the edit. That is #22, and this is the third place it
+ * would otherwise have appeared — which is why the key is here, beside
+ * `createSynthForTrack`, rather than copied into each caller.
+ */
+export function trackVoiceKey(track: Track): string {
+    const preset = track.instrumentPreset ?? `color:${track.color}`;
+    const revision = getCustomInstrument(track.instrumentPreset)?.revision ?? 0;
+    return `${track.id}|${preset}|${revision}`;
 }
 
 /**

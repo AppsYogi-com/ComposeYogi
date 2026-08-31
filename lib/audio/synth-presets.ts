@@ -244,6 +244,12 @@ export async function waitForSynthReady(synth: SynthType): Promise<void> {
 // literal ids, which is what makes INSTRUMENT_META provably exhaustive.
 export const SYNTH_PRESETS = {
     // Keys
+    'grand-piano': {
+        id: 'grand-piano',
+        name: 'Grand Piano',
+        category: 'keys',
+        createSynth: fromSpec('grand-piano'),
+    },
     'electric-piano': {
         id: 'electric-piano',
         name: 'Electric Piano',

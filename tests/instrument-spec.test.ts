@@ -7,7 +7,7 @@
 // right. What it can prove, and what actually matters, is that the options
 // object handed to Tone is byte-for-byte the one the hand-written factories
 // used to pass. `tests/golden/preset-voice-options.json` is a copy of those
-// literals taken before they were deleted; if a spec drifts, 52 shipped sounds
+// literals taken before they were deleted; if a spec drifts, 53 shipped sounds
 // change under saved projects, and this is what says so.
 
 import { describe, expect, it } from 'vitest';
@@ -72,7 +72,7 @@ describe('preset specs reproduce the shipped sounds', () => {
     it('covers both kinds, and neither list is empty', () => {
         // Every rule that walks one of these lists passes vacuously if the
         // filter that built it ever stops matching.
-        expect(CUSTOMIZABLE_MELODIC_IDS.length).toBe(52);
+        expect(CUSTOMIZABLE_MELODIC_IDS.length).toBe(53);
         expect(CUSTOMIZABLE_DRUM_IDS.length).toBe(6);
         expect([...CUSTOMIZABLE_MELODIC_IDS, ...CUSTOMIZABLE_DRUM_IDS].slice().sort())
             .toEqual(CUSTOMIZABLE_PRESET_IDS.slice().sort());
@@ -89,16 +89,44 @@ describe('preset specs reproduce the shipped sounds', () => {
         expect(Object.keys(PRESET_SPECS).sort()).toEqual(SYNTH_PRESET_IDS.slice().sort());
     });
 
+    /**
+     * Output trims that are part of a preset's design rather than an accident.
+     *
+     * Level is not the same kind of macro as brightness. Brightness at 100 is
+     * load-bearing — it is what makes `filterSpecFor` return null, so no filter
+     * node is built and the built-in is its factory's output exactly. Level is a
+     * plain `volume.value` set after construction, invisible to the golden
+     * fixture, and for the 52 presets transcribed from deleted factories it must
+     * be 0 because those factories set none: a trim there would be a sound that
+     * never shipped.
+     *
+     * `grand-piano` has no deleted factory. It was designed here, and FM spreads
+     * its energy across sidebands: it peaks at 0.25 where the sine presets peak
+     * at 0.78, and a 10 dB drop on switching instruments reads as a broken one.
+     * The value is pinned rather than waved through, so changing it still fails
+     * the build.
+     */
+    const DESIGNED_LEVEL_TRIMS: Record<string, number> = {
+        'grand-piano': 5,
+    };
+
     it('starts every preset from neutral macros', () => {
         // A preset that shipped with, say, brightness 60 would mean the built-in
         // itself is filtered — which would contradict the fixture above, since
         // the factories built no filter at all.
         for (const id of CUSTOMIZABLE_MELODIC_IDS) {
             const spec = PRESET_SPECS[id] as InstrumentSpec;
-            expect(spec.brightness).toBe(NEUTRAL_MACROS.brightness);
-            expect(spec.resonance).toBe(NEUTRAL_MACROS.resonance);
-            expect(spec.level).toBe(NEUTRAL_MACROS.level);
-            expect(filterSpecFor(spec)).toBeNull();
+            expect(spec.brightness, id).toBe(NEUTRAL_MACROS.brightness);
+            expect(spec.resonance, id).toBe(NEUTRAL_MACROS.resonance);
+            expect(spec.level, id).toBe(DESIGNED_LEVEL_TRIMS[id] ?? NEUTRAL_MACROS.level);
+            expect(filterSpecFor(spec), id).toBeNull();
+        }
+    });
+
+    it('names a real preset for every designed trim', () => {
+        // So the exception list cannot outlive the preset it excuses.
+        for (const id of Object.keys(DESIGNED_LEVEL_TRIMS)) {
+            expect(CUSTOMIZABLE_MELODIC_IDS, id).toContain(id);
         }
     });
 

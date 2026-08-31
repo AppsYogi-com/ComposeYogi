@@ -131,6 +131,18 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
         rebindable: true,
     },
     {
+        id: 'view.toggleLivePlay',
+        label: 'Play with the computer keyboard',
+        category: 'view',
+        // `K` and not something more mnemonic because the musical-typing layout
+        // has to leave the key alone. Both rows are spoken for — `z`–`m` and
+        // `q`–`u` with the black keys above them — and a toggle bound to a note
+        // key is a mode that cannot be switched off with the key that switched
+        // it on. `k`, `a`, `f`, `p` and the top row are what is left.
+        defaultKey: 'k',
+        rebindable: true,
+    },
+    {
         id: 'view.zoomIn',
         label: 'Zoom in',
         category: 'view',
@@ -161,6 +173,53 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
         category: 'view',
         defaultKey: 'slash, shift+slash',
         rebindable: true,
+    },
+
+    // Live playing's octave shift. Display-only for the same reason Shift and
+    // Escape below are: the arrows are handled by the window listener that only
+    // exists while the live keyboard is open, so rebinding them here would offer
+    // something that does not work. Registered so the sheet lists them and so
+    // the `<kbd>` in the octave tooltips names a key this registry knows.
+    {
+        id: 'view.octaveDown',
+        label: 'Octave down, while playing live',
+        category: 'view',
+        defaultKey: '',
+        rebindable: false,
+        displayKeys: ['\u2190'],
+    },
+    {
+        id: 'view.octaveUp',
+        label: 'Octave up, while playing live',
+        category: 'view',
+        defaultKey: '',
+        rebindable: false,
+        displayKeys: ['\u2192'],
+    },
+
+    {
+        id: 'playback.sustain',
+        label: 'Sustain, while playing live',
+        category: 'playback',
+        // Held rather than pressed, and handled by the same window listener as
+        // Escape below, so it is display-only for the same reason.
+        defaultKey: '',
+        rebindable: false,
+        displayKeys: ['Shift'],
+    },
+    {
+        id: 'playback.allNotesOff',
+        label: 'Silence a stuck note',
+        category: 'playback',
+        // Display-only, like the mouse gestures below. Escape is handled by a
+        // window listener that only exists while the live keyboard is open, so
+        // it is a real key with a real effect but not a `useShortcut` binding —
+        // and offering to rebind it would be offering something that does not
+        // work. It is registered so the sheet lists it and so the `<kbd>Esc</kbd>`
+        // beside the panic button is a key the registry knows about.
+        defaultKey: '',
+        rebindable: false,
+        displayKeys: ['Esc'],
     },
 
     // Navigation (display-only, not rebindable — mouse/gesture actions)

@@ -65,6 +65,9 @@
     }
   },
   "transport": {
+    "calibration": "Latency calibration",
+    "livePlay": "Play with the computer keyboard",
+    "livePlayNoTrack": "Add a track to play live",
     "openProjects": "Open Projects",
     "autoSaved": "Auto-saved to browser",
     "returnToStart": "Return to start",
@@ -92,9 +95,8 @@
     "zoomOut": "Zoom Out",
     "resetZoom": "Reset Zoom",
     "zoomIn": "Zoom In",
-    "zoom": "Zoom",
     "shortcuts": "Keyboard Shortcuts",
-    "settings": "Audio Settings",
+    "settings": "Settings",
     "lightMode": "Light mode",
     "darkMode": "Dark mode",
     "recordedClipName": "Recording"
@@ -220,6 +222,11 @@
       "name": "Name",
       "type": "Type",
       "color": "Color",
+      "instrument": "Instrument",
+      "instrumentDefault": "Default for this colour",
+      "instrumentSearch": "Search instruments…",
+      "instrumentNotFound": "No instrument found",
+      "customInstruments": "My Instruments",
       "pan": "Pan: {value}%"
     },
     "trackTypes": {
@@ -254,6 +261,8 @@
     "clip": {
       "title": "Clip",
       "name": "Name",
+      "instrument": "Instrument",
+      "instrumentInherit": "Same as track",
       "start": "Start (Bar)",
       "length": "Length (Bars)"
     },
@@ -349,6 +358,7 @@
     "mute": "Mute",
     "solo": "Solo",
     "volume": "Volume",
+    "armToRecordHint": "Arm this track to record what you play.",
     "arm": "Arm for recording",
     "disarm": "Disarm",
     "armed": "Armed",
@@ -360,6 +370,21 @@
   "loop": {
     "enabled": "Loop enabled (double-click to disable)",
     "disabled": "Loop disabled (double-click to enable)"
+  },
+  "livePlay": {
+    "noTrack": "Select a track to play",
+    "octave": "Octave",
+    "octaveDown": "Octave down",
+    "octaveUp": "Octave up",
+    "velocityHint": "How hard the notes you play land, live and in the clip",
+    "sustain": "Sustain",
+    "sustainHold": "Sustain: click to latch, or hold",
+    "panic": "Panic",
+    "panicHint": "Silence a stuck note",
+    "midiSearching": "Looking for MIDI devices\u2026",
+    "midiNoDevices": "No MIDI device connected",
+    "midiDenied": "MIDI access was refused",
+    "midiUnsupported": "This browser has no Web MIDI"
   },
   "visualizer": {
     "title": "Visualizer",
@@ -509,6 +534,8 @@
         "stop": "Stop and return to start",
         "record": "Record on the armed track",
         "toggleLoop": "Toggle loop",
+        "sustain": "Sustain, while playing live",
+        "allNotesOff": "Silence a stuck note",
         "toggleMetronome": "Toggle metronome"
       },
       "editing": {
@@ -522,6 +549,9 @@
         "toggleBrowser": "Toggle browser panel",
         "toggleInspector": "Toggle inspector panel",
         "toggleEditor": "Toggle editor panel",
+        "toggleLivePlay": "Play with the computer keyboard",
+        "octaveDown": "Octave down, while playing live",
+        "octaveUp": "Octave up, while playing live",
         "toggleVisualizer": "Toggle visualizer",
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",

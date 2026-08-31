@@ -1,1147 +1,1172 @@
 {
-    "electric-piano": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.005,
-                "decay": 0.8,
-                "sustain": 0.2,
-                "release": 1.2
-            }
-        }
-    },
-    "bright-piano": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.005,
-                "decay": 0.5,
-                "sustain": 0.3,
-                "release": 1
-            }
-        }
-    },
-    "harpsichord": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "sawtooth"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 1.2,
-                "sustain": 0,
-                "release": 0.6
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.3,
-                "sustain": 0,
-                "release": 0.3,
-                "baseFrequency": 800,
-                "octaves": 4
-            }
-        }
-    },
-    "organ": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "custom",
-                "partials": [
-                    1,
-                    0.8,
-                    0.6,
-                    0.4,
-                    0.3,
-                    0.2
-                ]
-            },
-            "envelope": {
-                "attack": 0.01,
-                "decay": 0.01,
-                "sustain": 1,
-                "release": 0.15
-            }
-        }
-    },
-    "clavinet": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "pulse"
-            },
-            "envelope": {
-                "attack": 0.002,
-                "decay": 0.3,
-                "sustain": 0.1,
-                "release": 0.15
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.15,
-                "sustain": 0.1,
-                "release": 0.1,
-                "baseFrequency": 800,
-                "octaves": 2
-            }
-        }
-    },
-    "sub-bass": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.005,
-                "decay": 0.5,
-                "sustain": 0.8,
-                "release": 0.3
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.1,
-                "sustain": 1,
-                "release": 0.3,
-                "baseFrequency": 80,
-                "octaves": 1
-            }
-        }
-    },
-    "synth-bass": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "sawtooth"
-            },
-            "envelope": {
-                "attack": 0.01,
-                "decay": 0.3,
-                "sustain": 0.4,
-                "release": 0.2
-            },
-            "filterEnvelope": {
-                "attack": 0.01,
-                "decay": 0.2,
-                "sustain": 0.3,
-                "release": 0.2,
-                "baseFrequency": 200,
-                "octaves": 2.5
-            }
-        }
-    },
-    "fm-bass": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 1,
-            "modulationIndex": 8,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "square"
-            },
-            "envelope": {
-                "attack": 0.01,
-                "decay": 0.4,
-                "sustain": 0.3,
-                "release": 0.2
-            },
-            "modulationEnvelope": {
-                "attack": 0.01,
-                "decay": 0.2,
-                "sustain": 0.1,
-                "release": 0.2
-            }
-        }
-    },
-    "pluck-bass": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.005,
-                "decay": 0.25,
-                "sustain": 0.05,
-                "release": 0.1
-            },
-            "filterEnvelope": {
-                "attack": 0.002,
-                "decay": 0.15,
-                "sustain": 0.05,
-                "release": 0.1,
-                "baseFrequency": 300,
-                "octaves": 3
-            }
-        }
-    },
-    "saw-lead": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "sawtooth"
-            },
-            "envelope": {
-                "attack": 0.01,
-                "decay": 0.2,
-                "sustain": 0.6,
-                "release": 0.3
-            }
-        }
-    },
-    "square-lead": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "square"
-            },
-            "envelope": {
-                "attack": 0.02,
-                "decay": 0.15,
-                "sustain": 0.5,
-                "release": 0.4
-            }
-        }
-    },
-    "fm-lead": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 3,
-            "modulationIndex": 10,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.01,
-                "decay": 0.3,
-                "sustain": 0.5,
-                "release": 0.5
-            },
-            "modulationEnvelope": {
-                "attack": 0.02,
-                "decay": 0.4,
-                "sustain": 0.2,
-                "release": 0.3
-            }
-        }
-    },
-    "pulse-lead": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "pulse",
-                "width": 0.3
-            },
-            "envelope": {
-                "attack": 0.02,
-                "decay": 0.15,
-                "sustain": 0.7,
-                "release": 0.3
-            }
-        }
-    },
-    "warm-pad": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.8,
-                "decay": 0.5,
-                "sustain": 0.9,
-                "release": 2
-            }
-        }
-    },
-    "string-pad": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "fatsawtooth",
-                "spread": 20,
-                "count": 3
-            },
-            "envelope": {
-                "attack": 1,
-                "decay": 0.3,
-                "sustain": 0.8,
-                "release": 2.5
-            }
-        }
-    },
-    "choir-pad": {
-        "voice": "amsynth",
-        "options": {
-            "harmonicity": 2,
-            "oscillator": {
-                "type": "fatsine",
-                "spread": 30,
-                "count": 3
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 1.2,
-                "decay": 0.5,
-                "sustain": 0.85,
-                "release": 3
-            },
-            "modulationEnvelope": {
-                "attack": 0.8,
-                "decay": 0.3,
-                "sustain": 0.7,
-                "release": 2
-            }
-        }
-    },
-    "glass-pad": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 5,
-            "modulationIndex": 4,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.6,
-                "decay": 0.8,
-                "sustain": 0.7,
-                "release": 2.5
-            },
-            "modulationEnvelope": {
-                "attack": 0.5,
-                "decay": 0.6,
-                "sustain": 0.3,
-                "release": 2
-            }
-        }
-    },
-    "basic-synth": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.02,
-                "decay": 0.1,
-                "sustain": 0.5,
-                "release": 0.4
-            }
-        }
-    },
-    "pluck-synth": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "sawtooth"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.4,
-                "sustain": 0,
-                "release": 0.2
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.25,
-                "sustain": 0,
-                "release": 0.15,
-                "baseFrequency": 600,
-                "octaves": 4
-            }
-        }
-    },
-    "bell-synth": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 5.07,
-            "modulationIndex": 14,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 2,
-                "sustain": 0,
-                "release": 1.5
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 1.5,
-                "sustain": 0,
-                "release": 1
-            }
-        }
-    },
-    "chimes": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 7,
-            "modulationIndex": 12,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 3,
-                "sustain": 0,
-                "release": 2
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 2,
-                "sustain": 0,
-                "release": 1.5
-            }
-        }
-    },
-    "marimba": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 4,
-            "modulationIndex": 2,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.8,
-                "sustain": 0,
-                "release": 0.5
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 0.4,
-                "sustain": 0,
-                "release": 0.3
-            }
-        }
-    },
-    "xylophone": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 5.07,
-            "modulationIndex": 6,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.4,
-                "sustain": 0,
-                "release": 0.2
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 0.2,
-                "sustain": 0,
-                "release": 0.15
-            }
-        }
-    },
-    "vibraphone": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 3.01,
-            "modulationIndex": 4,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 2.5,
-                "sustain": 0.3,
-                "release": 2
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 1.5,
-                "sustain": 0.2,
-                "release": 1
-            }
-        }
-    },
-    "kalimba": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 8,
-            "modulationIndex": 2,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 1.2,
-                "sustain": 0,
-                "release": 0.8
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 0.6,
-                "sustain": 0,
-                "release": 0.4
-            }
-        }
-    },
-    "celeste": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 4,
-            "modulationIndex": 6,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 1.8,
-                "sustain": 0,
-                "release": 1.2
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 1,
-                "sustain": 0,
-                "release": 0.8
-            }
-        }
-    },
-    "glockenspiel": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 5.07,
-            "modulationIndex": 18,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 1.5,
-                "sustain": 0,
-                "release": 1
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 0.8,
-                "sustain": 0,
-                "release": 0.6
-            }
-        }
-    },
-    "steel-pan": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 4,
-            "modulationIndex": 3,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 1.5,
-                "sustain": 0,
-                "release": 0.8
-            },
-            "modulationEnvelope": {
-                "attack": 0.001,
-                "decay": 0.8,
-                "sustain": 0,
-                "release": 0.5
-            }
-        }
-    },
-    "guitar": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "fatsawtooth",
-                "spread": 10,
-                "count": 2
-            },
-            "envelope": {
-                "attack": 0.002,
-                "decay": 0.6,
-                "sustain": 0.05,
-                "release": 0.3
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.3,
-                "sustain": 0.05,
-                "release": 0.2,
-                "baseFrequency": 400,
-                "octaves": 3
-            }
-        }
-    },
-    "harp": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 1.5,
-                "sustain": 0,
-                "release": 1
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.8,
-                "sustain": 0,
-                "release": 0.5,
-                "baseFrequency": 500,
-                "octaves": 3
-            }
-        }
-    },
-    "pizzicato": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "sawtooth"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.2,
-                "sustain": 0,
-                "release": 0.1
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.12,
-                "sustain": 0,
-                "release": 0.08,
-                "baseFrequency": 500,
-                "octaves": 3.5
-            }
-        }
-    },
-    "ukulele": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.4,
-                "sustain": 0.02,
-                "release": 0.2
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.2,
-                "sustain": 0.02,
-                "release": 0.15,
-                "baseFrequency": 800,
-                "octaves": 2.5
-            }
-        }
-    },
-    "banjo": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "pulse",
-                "width": 0.15
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.3,
-                "sustain": 0.01,
-                "release": 0.15
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.15,
-                "sustain": 0.01,
-                "release": 0.1,
-                "baseFrequency": 1000,
-                "octaves": 3
-            }
-        }
-    },
-    "violin": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "fatsawtooth",
-                "spread": 15,
-                "count": 3
-            },
-            "envelope": {
-                "attack": 0.15,
-                "decay": 0.2,
-                "sustain": 0.85,
-                "release": 0.4
-            }
-        }
-    },
-    "cello": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "fatsawtooth",
-                "spread": 20,
-                "count": 3
-            },
-            "envelope": {
-                "attack": 0.2,
-                "decay": 0.3,
-                "sustain": 0.8,
-                "release": 0.6
-            }
-        }
-    },
-    "double-bass": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "fatsawtooth",
-                "spread": 12,
-                "count": 2
-            },
-            "envelope": {
-                "attack": 0.25,
-                "decay": 0.3,
-                "sustain": 0.75,
-                "release": 0.5
-            }
-        }
-    },
-    "tenor-violin": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "fatsawtooth",
-                "spread": 18,
-                "count": 3
-            },
-            "envelope": {
-                "attack": 0.18,
-                "decay": 0.25,
-                "sustain": 0.82,
-                "release": 0.5
-            }
-        }
-    },
-    "fiddle": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "fatsawtooth",
-                "spread": 10,
-                "count": 2
-            },
-            "envelope": {
-                "attack": 0.08,
-                "decay": 0.15,
-                "sustain": 0.8,
-                "release": 0.3
-            }
-        }
-    },
-    "flute": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.08,
-                "decay": 0.1,
-                "sustain": 0.85,
-                "release": 0.3
-            }
-        }
-    },
-    "piccolo": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.05,
-                "decay": 0.08,
-                "sustain": 0.9,
-                "release": 0.25
-            }
-        }
-    },
-    "saxophone": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "pulse",
-                "width": 0.35
-            },
-            "envelope": {
-                "attack": 0.05,
-                "decay": 0.2,
-                "sustain": 0.7,
-                "release": 0.3
-            },
-            "filterEnvelope": {
-                "attack": 0.03,
-                "decay": 0.15,
-                "sustain": 0.5,
-                "release": 0.25,
-                "baseFrequency": 400,
-                "octaves": 2.5
-            }
-        }
-    },
-    "bassoon": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "sawtooth"
-            },
-            "envelope": {
-                "attack": 0.06,
-                "decay": 0.3,
-                "sustain": 0.65,
-                "release": 0.4
-            },
-            "filterEnvelope": {
-                "attack": 0.04,
-                "decay": 0.2,
-                "sustain": 0.4,
-                "release": 0.3,
-                "baseFrequency": 150,
-                "octaves": 2
-            }
-        }
-    },
-    "oboe": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "pulse",
-                "width": 0.25
-            },
-            "envelope": {
-                "attack": 0.04,
-                "decay": 0.15,
-                "sustain": 0.75,
-                "release": 0.3
-            },
-            "filterEnvelope": {
-                "attack": 0.03,
-                "decay": 0.1,
-                "sustain": 0.6,
-                "release": 0.2,
-                "baseFrequency": 600,
-                "octaves": 2
-            }
-        }
-    },
-    "trumpet": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "square"
-            },
-            "envelope": {
-                "attack": 0.04,
-                "decay": 0.15,
-                "sustain": 0.7,
-                "release": 0.25
-            }
-        }
-    },
-    "euphonium": {
-        "voice": "fmsynth",
-        "options": {
-            "harmonicity": 1.5,
-            "modulationIndex": 2,
-            "oscillator": {
-                "type": "sine"
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.08,
-                "decay": 0.2,
-                "sustain": 0.7,
-                "release": 0.4
-            },
-            "modulationEnvelope": {
-                "attack": 0.1,
-                "decay": 0.3,
-                "sustain": 0.5,
-                "release": 0.3
-            }
-        }
-    },
-    "didgeridoo": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "sawtooth"
-            },
-            "envelope": {
-                "attack": 0.1,
-                "decay": 0.3,
-                "sustain": 0.9,
-                "release": 0.5
-            },
-            "filterEnvelope": {
-                "attack": 0.08,
-                "decay": 0.2,
-                "sustain": 0.4,
-                "release": 0.4,
-                "baseFrequency": 80,
-                "octaves": 1.5
-            }
-        }
-    },
-    "vocal-synth": {
-        "voice": "amsynth",
-        "options": {
-            "harmonicity": 3,
-            "oscillator": {
-                "type": "fatsine",
-                "spread": 40,
-                "count": 3
-            },
-            "modulation": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.15,
-                "decay": 0.4,
-                "sustain": 0.7,
-                "release": 0.8
-            },
-            "modulationEnvelope": {
-                "attack": 0.1,
-                "decay": 0.3,
-                "sustain": 0.5,
-                "release": 0.6
-            }
-        }
-    },
-    "orchestra-hit": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "fatsawtooth",
-                "spread": 30,
-                "count": 5
-            },
-            "envelope": {
-                "attack": 0.005,
-                "decay": 0.6,
-                "sustain": 0,
-                "release": 0.4
-            }
-        }
-    },
-    "guzheng": {
-        "voice": "monosynth",
-        "options": {
-            "oscillator": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 1.8,
-                "sustain": 0,
-                "release": 1.2
-            },
-            "filterEnvelope": {
-                "attack": 0.001,
-                "decay": 0.5,
-                "sustain": 0,
-                "release": 0.4,
-                "baseFrequency": 600,
-                "octaves": 4
-            }
-        }
-    },
-    "square-wave": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "square"
-            },
-            "envelope": {
-                "attack": 0.01,
-                "decay": 0.3,
-                "sustain": 0.6,
-                "release": 0.4
-            }
-        }
-    },
-    "triangle-wave": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.01,
-                "decay": 0.3,
-                "sustain": 0.7,
-                "release": 0.4
-            }
-        }
-    },
-    "sawtooth-wave": {
-        "voice": "synth",
-        "options": {
-            "oscillator": {
-                "type": "sawtooth"
-            },
-            "envelope": {
-                "attack": 0.01,
-                "decay": 0.3,
-                "sustain": 0.6,
-                "release": 0.4
-            }
-        }
-    },
-    "synth-drum-kit": {
-        "voice": "membrane",
-        "options": {
-            "pitchDecay": 0.08,
-            "octaves": 6,
-            "oscillator": {
-                "type": "triangle"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.25,
-                "sustain": 0,
-                "release": 0.08
-            }
-        }
-    },
-    "drum-synth": {
-        "voice": "membrane",
-        "options": {
-            "pitchDecay": 0.05,
-            "octaves": 4,
-            "oscillator": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.4,
-                "sustain": 0,
-                "release": 0.1
-            }
-        }
-    },
-    "bongos": {
-        "voice": "membrane",
-        "options": {
-            "pitchDecay": 0.03,
-            "octaves": 3,
-            "oscillator": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.15,
-                "sustain": 0,
-                "release": 0.05
-            }
-        }
-    },
-    "wooden-block": {
-        "voice": "membrane",
-        "options": {
-            "pitchDecay": 0.008,
-            "octaves": 2,
-            "oscillator": {
-                "type": "square"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.06,
-                "sustain": 0,
-                "release": 0.02
-            }
-        }
-    },
-    "taiko": {
-        "voice": "membrane",
-        "options": {
-            "pitchDecay": 0.08,
-            "octaves": 4,
-            "oscillator": {
-                "type": "sine"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.6,
-                "sustain": 0,
-                "release": 0.4
-            }
-        }
-    },
-    "maracas": {
-        "voice": "noise",
-        "options": {
-            "noise": {
-                "type": "white"
-            },
-            "envelope": {
-                "attack": 0.001,
-                "decay": 0.05,
-                "sustain": 0,
-                "release": 0.02
-            }
-        }
+  "grand-piano": {
+    "voice": "fmsynth",
+    "options": {
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.002,
+        "decay": 2.2,
+        "sustain": 0.08,
+        "release": 1.2
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 1.4,
+        "sustain": 0.45,
+        "release": 0.8
+      },
+      "harmonicity": 1,
+      "modulationIndex": 22
     }
+  },
+  "electric-piano": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.005,
+        "decay": 0.8,
+        "sustain": 0.2,
+        "release": 1.2
+      }
+    }
+  },
+  "bright-piano": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.005,
+        "decay": 0.5,
+        "sustain": 0.3,
+        "release": 1
+      }
+    }
+  },
+  "harpsichord": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "sawtooth"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 1.2,
+        "sustain": 0,
+        "release": 0.6
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.3,
+        "sustain": 0,
+        "release": 0.3,
+        "baseFrequency": 800,
+        "octaves": 4
+      }
+    }
+  },
+  "organ": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "custom",
+        "partials": [
+          1,
+          0.8,
+          0.6,
+          0.4,
+          0.3,
+          0.2
+        ]
+      },
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.01,
+        "sustain": 1,
+        "release": 0.15
+      }
+    }
+  },
+  "clavinet": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "pulse"
+      },
+      "envelope": {
+        "attack": 0.002,
+        "decay": 0.3,
+        "sustain": 0.1,
+        "release": 0.15
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.15,
+        "sustain": 0.1,
+        "release": 0.1,
+        "baseFrequency": 800,
+        "octaves": 2
+      }
+    }
+  },
+  "sub-bass": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.005,
+        "decay": 0.5,
+        "sustain": 0.8,
+        "release": 0.3
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.1,
+        "sustain": 1,
+        "release": 0.3,
+        "baseFrequency": 80,
+        "octaves": 1
+      }
+    }
+  },
+  "synth-bass": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "sawtooth"
+      },
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.3,
+        "sustain": 0.4,
+        "release": 0.2
+      },
+      "filterEnvelope": {
+        "attack": 0.01,
+        "decay": 0.2,
+        "sustain": 0.3,
+        "release": 0.2,
+        "baseFrequency": 200,
+        "octaves": 2.5
+      }
+    }
+  },
+  "fm-bass": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 1,
+      "modulationIndex": 8,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "square"
+      },
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.4,
+        "sustain": 0.3,
+        "release": 0.2
+      },
+      "modulationEnvelope": {
+        "attack": 0.01,
+        "decay": 0.2,
+        "sustain": 0.1,
+        "release": 0.2
+      }
+    }
+  },
+  "pluck-bass": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.005,
+        "decay": 0.25,
+        "sustain": 0.05,
+        "release": 0.1
+      },
+      "filterEnvelope": {
+        "attack": 0.002,
+        "decay": 0.15,
+        "sustain": 0.05,
+        "release": 0.1,
+        "baseFrequency": 300,
+        "octaves": 3
+      }
+    }
+  },
+  "saw-lead": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "sawtooth"
+      },
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.2,
+        "sustain": 0.6,
+        "release": 0.3
+      }
+    }
+  },
+  "square-lead": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "square"
+      },
+      "envelope": {
+        "attack": 0.02,
+        "decay": 0.15,
+        "sustain": 0.5,
+        "release": 0.4
+      }
+    }
+  },
+  "fm-lead": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 3,
+      "modulationIndex": 10,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.3,
+        "sustain": 0.5,
+        "release": 0.5
+      },
+      "modulationEnvelope": {
+        "attack": 0.02,
+        "decay": 0.4,
+        "sustain": 0.2,
+        "release": 0.3
+      }
+    }
+  },
+  "pulse-lead": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "pulse",
+        "width": 0.3
+      },
+      "envelope": {
+        "attack": 0.02,
+        "decay": 0.15,
+        "sustain": 0.7,
+        "release": 0.3
+      }
+    }
+  },
+  "warm-pad": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.8,
+        "decay": 0.5,
+        "sustain": 0.9,
+        "release": 2
+      }
+    }
+  },
+  "string-pad": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "fatsawtooth",
+        "spread": 20,
+        "count": 3
+      },
+      "envelope": {
+        "attack": 1,
+        "decay": 0.3,
+        "sustain": 0.8,
+        "release": 2.5
+      }
+    }
+  },
+  "choir-pad": {
+    "voice": "amsynth",
+    "options": {
+      "harmonicity": 2,
+      "oscillator": {
+        "type": "fatsine",
+        "spread": 30,
+        "count": 3
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 1.2,
+        "decay": 0.5,
+        "sustain": 0.85,
+        "release": 3
+      },
+      "modulationEnvelope": {
+        "attack": 0.8,
+        "decay": 0.3,
+        "sustain": 0.7,
+        "release": 2
+      }
+    }
+  },
+  "glass-pad": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 5,
+      "modulationIndex": 4,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.6,
+        "decay": 0.8,
+        "sustain": 0.7,
+        "release": 2.5
+      },
+      "modulationEnvelope": {
+        "attack": 0.5,
+        "decay": 0.6,
+        "sustain": 0.3,
+        "release": 2
+      }
+    }
+  },
+  "basic-synth": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.02,
+        "decay": 0.1,
+        "sustain": 0.5,
+        "release": 0.4
+      }
+    }
+  },
+  "pluck-synth": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "sawtooth"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.4,
+        "sustain": 0,
+        "release": 0.2
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.25,
+        "sustain": 0,
+        "release": 0.15,
+        "baseFrequency": 600,
+        "octaves": 4
+      }
+    }
+  },
+  "bell-synth": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 5.07,
+      "modulationIndex": 14,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 2,
+        "sustain": 0,
+        "release": 1.5
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 1.5,
+        "sustain": 0,
+        "release": 1
+      }
+    }
+  },
+  "chimes": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 7,
+      "modulationIndex": 12,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 3,
+        "sustain": 0,
+        "release": 2
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 2,
+        "sustain": 0,
+        "release": 1.5
+      }
+    }
+  },
+  "marimba": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 4,
+      "modulationIndex": 2,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.8,
+        "sustain": 0,
+        "release": 0.5
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 0.4,
+        "sustain": 0,
+        "release": 0.3
+      }
+    }
+  },
+  "xylophone": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 5.07,
+      "modulationIndex": 6,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.4,
+        "sustain": 0,
+        "release": 0.2
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 0.2,
+        "sustain": 0,
+        "release": 0.15
+      }
+    }
+  },
+  "vibraphone": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 3.01,
+      "modulationIndex": 4,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 2.5,
+        "sustain": 0.3,
+        "release": 2
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 1.5,
+        "sustain": 0.2,
+        "release": 1
+      }
+    }
+  },
+  "kalimba": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 8,
+      "modulationIndex": 2,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 1.2,
+        "sustain": 0,
+        "release": 0.8
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 0.6,
+        "sustain": 0,
+        "release": 0.4
+      }
+    }
+  },
+  "celeste": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 4,
+      "modulationIndex": 6,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 1.8,
+        "sustain": 0,
+        "release": 1.2
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 1,
+        "sustain": 0,
+        "release": 0.8
+      }
+    }
+  },
+  "glockenspiel": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 5.07,
+      "modulationIndex": 18,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 1.5,
+        "sustain": 0,
+        "release": 1
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 0.8,
+        "sustain": 0,
+        "release": 0.6
+      }
+    }
+  },
+  "steel-pan": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 4,
+      "modulationIndex": 3,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 1.5,
+        "sustain": 0,
+        "release": 0.8
+      },
+      "modulationEnvelope": {
+        "attack": 0.001,
+        "decay": 0.8,
+        "sustain": 0,
+        "release": 0.5
+      }
+    }
+  },
+  "guitar": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "fatsawtooth",
+        "spread": 10,
+        "count": 2
+      },
+      "envelope": {
+        "attack": 0.002,
+        "decay": 0.6,
+        "sustain": 0.05,
+        "release": 0.3
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.3,
+        "sustain": 0.05,
+        "release": 0.2,
+        "baseFrequency": 400,
+        "octaves": 3
+      }
+    }
+  },
+  "harp": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 1.5,
+        "sustain": 0,
+        "release": 1
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.8,
+        "sustain": 0,
+        "release": 0.5,
+        "baseFrequency": 500,
+        "octaves": 3
+      }
+    }
+  },
+  "pizzicato": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "sawtooth"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.2,
+        "sustain": 0,
+        "release": 0.1
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.12,
+        "sustain": 0,
+        "release": 0.08,
+        "baseFrequency": 500,
+        "octaves": 3.5
+      }
+    }
+  },
+  "ukulele": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.4,
+        "sustain": 0.02,
+        "release": 0.2
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.2,
+        "sustain": 0.02,
+        "release": 0.15,
+        "baseFrequency": 800,
+        "octaves": 2.5
+      }
+    }
+  },
+  "banjo": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "pulse",
+        "width": 0.15
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.3,
+        "sustain": 0.01,
+        "release": 0.15
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.15,
+        "sustain": 0.01,
+        "release": 0.1,
+        "baseFrequency": 1000,
+        "octaves": 3
+      }
+    }
+  },
+  "violin": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "fatsawtooth",
+        "spread": 15,
+        "count": 3
+      },
+      "envelope": {
+        "attack": 0.15,
+        "decay": 0.2,
+        "sustain": 0.85,
+        "release": 0.4
+      }
+    }
+  },
+  "cello": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "fatsawtooth",
+        "spread": 20,
+        "count": 3
+      },
+      "envelope": {
+        "attack": 0.2,
+        "decay": 0.3,
+        "sustain": 0.8,
+        "release": 0.6
+      }
+    }
+  },
+  "double-bass": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "fatsawtooth",
+        "spread": 12,
+        "count": 2
+      },
+      "envelope": {
+        "attack": 0.25,
+        "decay": 0.3,
+        "sustain": 0.75,
+        "release": 0.5
+      }
+    }
+  },
+  "tenor-violin": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "fatsawtooth",
+        "spread": 18,
+        "count": 3
+      },
+      "envelope": {
+        "attack": 0.18,
+        "decay": 0.25,
+        "sustain": 0.82,
+        "release": 0.5
+      }
+    }
+  },
+  "fiddle": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "fatsawtooth",
+        "spread": 10,
+        "count": 2
+      },
+      "envelope": {
+        "attack": 0.08,
+        "decay": 0.15,
+        "sustain": 0.8,
+        "release": 0.3
+      }
+    }
+  },
+  "flute": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.08,
+        "decay": 0.1,
+        "sustain": 0.85,
+        "release": 0.3
+      }
+    }
+  },
+  "piccolo": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.05,
+        "decay": 0.08,
+        "sustain": 0.9,
+        "release": 0.25
+      }
+    }
+  },
+  "saxophone": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "pulse",
+        "width": 0.35
+      },
+      "envelope": {
+        "attack": 0.05,
+        "decay": 0.2,
+        "sustain": 0.7,
+        "release": 0.3
+      },
+      "filterEnvelope": {
+        "attack": 0.03,
+        "decay": 0.15,
+        "sustain": 0.5,
+        "release": 0.25,
+        "baseFrequency": 400,
+        "octaves": 2.5
+      }
+    }
+  },
+  "bassoon": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "sawtooth"
+      },
+      "envelope": {
+        "attack": 0.06,
+        "decay": 0.3,
+        "sustain": 0.65,
+        "release": 0.4
+      },
+      "filterEnvelope": {
+        "attack": 0.04,
+        "decay": 0.2,
+        "sustain": 0.4,
+        "release": 0.3,
+        "baseFrequency": 150,
+        "octaves": 2
+      }
+    }
+  },
+  "oboe": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "pulse",
+        "width": 0.25
+      },
+      "envelope": {
+        "attack": 0.04,
+        "decay": 0.15,
+        "sustain": 0.75,
+        "release": 0.3
+      },
+      "filterEnvelope": {
+        "attack": 0.03,
+        "decay": 0.1,
+        "sustain": 0.6,
+        "release": 0.2,
+        "baseFrequency": 600,
+        "octaves": 2
+      }
+    }
+  },
+  "trumpet": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "square"
+      },
+      "envelope": {
+        "attack": 0.04,
+        "decay": 0.15,
+        "sustain": 0.7,
+        "release": 0.25
+      }
+    }
+  },
+  "euphonium": {
+    "voice": "fmsynth",
+    "options": {
+      "harmonicity": 1.5,
+      "modulationIndex": 2,
+      "oscillator": {
+        "type": "sine"
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.08,
+        "decay": 0.2,
+        "sustain": 0.7,
+        "release": 0.4
+      },
+      "modulationEnvelope": {
+        "attack": 0.1,
+        "decay": 0.3,
+        "sustain": 0.5,
+        "release": 0.3
+      }
+    }
+  },
+  "didgeridoo": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "sawtooth"
+      },
+      "envelope": {
+        "attack": 0.1,
+        "decay": 0.3,
+        "sustain": 0.9,
+        "release": 0.5
+      },
+      "filterEnvelope": {
+        "attack": 0.08,
+        "decay": 0.2,
+        "sustain": 0.4,
+        "release": 0.4,
+        "baseFrequency": 80,
+        "octaves": 1.5
+      }
+    }
+  },
+  "vocal-synth": {
+    "voice": "amsynth",
+    "options": {
+      "harmonicity": 3,
+      "oscillator": {
+        "type": "fatsine",
+        "spread": 40,
+        "count": 3
+      },
+      "modulation": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.15,
+        "decay": 0.4,
+        "sustain": 0.7,
+        "release": 0.8
+      },
+      "modulationEnvelope": {
+        "attack": 0.1,
+        "decay": 0.3,
+        "sustain": 0.5,
+        "release": 0.6
+      }
+    }
+  },
+  "orchestra-hit": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "fatsawtooth",
+        "spread": 30,
+        "count": 5
+      },
+      "envelope": {
+        "attack": 0.005,
+        "decay": 0.6,
+        "sustain": 0,
+        "release": 0.4
+      }
+    }
+  },
+  "guzheng": {
+    "voice": "monosynth",
+    "options": {
+      "oscillator": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 1.8,
+        "sustain": 0,
+        "release": 1.2
+      },
+      "filterEnvelope": {
+        "attack": 0.001,
+        "decay": 0.5,
+        "sustain": 0,
+        "release": 0.4,
+        "baseFrequency": 600,
+        "octaves": 4
+      }
+    }
+  },
+  "square-wave": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "square"
+      },
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.3,
+        "sustain": 0.6,
+        "release": 0.4
+      }
+    }
+  },
+  "triangle-wave": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.3,
+        "sustain": 0.7,
+        "release": 0.4
+      }
+    }
+  },
+  "sawtooth-wave": {
+    "voice": "synth",
+    "options": {
+      "oscillator": {
+        "type": "sawtooth"
+      },
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.3,
+        "sustain": 0.6,
+        "release": 0.4
+      }
+    }
+  },
+  "synth-drum-kit": {
+    "voice": "membrane",
+    "options": {
+      "pitchDecay": 0.08,
+      "octaves": 6,
+      "oscillator": {
+        "type": "triangle"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.25,
+        "sustain": 0,
+        "release": 0.08
+      }
+    }
+  },
+  "drum-synth": {
+    "voice": "membrane",
+    "options": {
+      "pitchDecay": 0.05,
+      "octaves": 4,
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.4,
+        "sustain": 0,
+        "release": 0.1
+      }
+    }
+  },
+  "bongos": {
+    "voice": "membrane",
+    "options": {
+      "pitchDecay": 0.03,
+      "octaves": 3,
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.15,
+        "sustain": 0,
+        "release": 0.05
+      }
+    }
+  },
+  "wooden-block": {
+    "voice": "membrane",
+    "options": {
+      "pitchDecay": 0.008,
+      "octaves": 2,
+      "oscillator": {
+        "type": "square"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.06,
+        "sustain": 0,
+        "release": 0.02
+      }
+    }
+  },
+  "taiko": {
+    "voice": "membrane",
+    "options": {
+      "pitchDecay": 0.08,
+      "octaves": 4,
+      "oscillator": {
+        "type": "sine"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.6,
+        "sustain": 0,
+        "release": 0.4
+      }
+    }
+  },
+  "maracas": {
+    "voice": "noise",
+    "options": {
+      "noise": {
+        "type": "white"
+      },
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.05,
+        "sustain": 0,
+        "release": 0.02
+      }
+    }
+  }
 }

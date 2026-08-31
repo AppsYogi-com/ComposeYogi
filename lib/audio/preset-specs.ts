@@ -2,7 +2,7 @@
 // ComposeYogi — Preset Specs
 // ============================================
 //
-// Every built-in instrument as data. This is the single source for what the 52
+// Every built-in instrument as data. This is the single source for what the 53
 // melodic presets sound like: `SYNTH_PRESETS` builds them from here, and the
 // instrument editor starts from here, so "customize the Electric Piano" begins
 // at the real Electric Piano rather than at something named after it.
@@ -41,6 +41,65 @@ import type { SynthPresetId } from './synth-presets';
  * for the reason above.
  */
 export const PRESET_SPECS: Record<SynthPresetId, AnyInstrumentSpec | null> = {
+    // The only preset here that was *designed* rather than transcribed, and the
+    // reason it exists is a measurement. `electric-piano` is a bare sine and
+    // `bright-piano` a triangle; rendered offline, a C1 on the sine puts its
+    // second harmonic **38.6 dB** below the fundamental and **0.0%** of the
+    // note's energy above 150 Hz — which is roughly where a laptop speaker
+    // starts moving air. So the whole bottom two octaves reach the listener as
+    // a frequency their speaker cannot reproduce and nothing else. A real piano
+    // is audible down there because harmonics 2 through 10 carry the note; ours
+    // had none to carry.
+    //
+    // FM at a **1:1 carrier-to-modulator ratio** is the fix and the classic one:
+    // sidebands land at every integer multiple of the fundamental, which is a
+    // harmonic series by construction rather than by luck. The two envelopes are
+    // what make it a piano rather than a bell:
+    //
+    //   - The amplitude envelope has almost no attack, a long decay and a
+    //     **low sustain**. A struck string never holds a level; it decays from
+    //     the moment the hammer leaves it. `sustain: 0.08` is quiet enough to
+    //     read as decay and loud enough that a held chord does not vanish.
+    //   - The modulation envelope keeps `sustain: 0.35`, and that number is the
+    //     whole point. A piano loses brightness as it decays, so the index falls
+    //     — but if it fell to zero the tone would settle back into the sine this
+    //     preset exists to replace, and the low end would go quiet again a second
+    //     after every note. Bright attack, still-harmonic body.
+    //
+    // It is synthesis, not a recording, and it will not be mistaken for a
+    // Steinway. What it is measured to do is in `docs/notes/sprint-8.7.md`
+    // § 8.7.6f.
+    'grand-piano': {
+        voice: 'fmsynth',
+        oscillator: {
+            type: 'sine',
+        },
+        envelope: {
+            attack: 0.002,
+            decay: 2.2,
+            sustain: 0.08,
+            release: 1.2,
+        },
+        modulation: {
+            type: 'sine',
+        },
+        modulationEnvelope: {
+            attack: 0.001,
+            decay: 1.4,
+            sustain: 0.45,
+            release: 0.8,
+        },
+        harmonicity: 1,
+        modulationIndex: 22,
+        brightness: 100,
+        resonance: 0,
+        // FM spreads its energy across the sidebands, so this peaks at 0.25
+        // against the sine presets' 0.78 — a 10 dB drop, jarring enough to read
+        // as a broken instrument when you switch to it. +5 dB brings it to about
+        // 0.45: still under the others, which is right, because 0.78 for a
+        // *single* note is most of the headroom a four-note chord needs.
+        level: 5,
+    },
     'electric-piano': {
         voice: 'synth',
         oscillator: {

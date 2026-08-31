@@ -65,6 +65,9 @@
     }
   },
   "transport": {
+    "calibration": "Calibraci\u00f3n de latencia",
+    "livePlay": "Tocar con el teclado del ordenador",
+    "livePlayNoTrack": "Añade una pista para tocar en vivo",
     "openProjects": "Abrir proyectos",
     "autoSaved": "Guardado automáticamente en el navegador",
     "returnToStart": "Volver al inicio",
@@ -92,9 +95,8 @@
     "zoomOut": "Alejar",
     "resetZoom": "Restablecer zoom",
     "zoomIn": "Acercar",
-    "zoom": "Zoom",
     "shortcuts": "Atajos de teclado",
-    "settings": "Ajustes de audio",
+    "settings": "Ajustes",
     "lightMode": "Modo claro",
     "darkMode": "Modo oscuro",
     "recordedClipName": "Grabación"
@@ -220,6 +222,11 @@
       "name": "Nombre",
       "type": "Tipo",
       "color": "Color",
+      "instrument": "Instrumento",
+      "instrumentDefault": "Predeterminado para este color",
+      "instrumentSearch": "Buscar instrumentos…",
+      "instrumentNotFound": "No se encontró ningún instrumento",
+      "customInstruments": "Mis instrumentos",
       "pan": "Paneo: {value}%"
     },
     "trackTypes": {
@@ -254,6 +261,8 @@
     "clip": {
       "title": "Clip",
       "name": "Nombre",
+      "instrument": "Instrumento",
+      "instrumentInherit": "Igual que la pista",
       "start": "Inicio (compás)",
       "length": "Duración (compases)"
     },
@@ -349,6 +358,7 @@
     "mute": "Silenciar",
     "solo": "Solo",
     "volume": "Volumen",
+    "armToRecordHint": "Activa esta pista para grabar lo que toques.",
     "arm": "Activar para grabar",
     "disarm": "Desactivar",
     "armed": "Armada",
@@ -360,6 +370,21 @@
   "loop": {
     "enabled": "Bucle activado (doble clic para desactivar)",
     "disabled": "Bucle desactivado (doble clic para activar)"
+  },
+  "livePlay": {
+    "noTrack": "Selecciona una pista para tocar",
+    "octave": "Octava",
+    "octaveDown": "Octava abajo",
+    "octaveUp": "Octava arriba",
+    "velocityHint": "Con qué fuerza suenan las notas que tocas, en vivo y en el clip",
+    "sustain": "Resonancia",
+    "sustainHold": "Resonancia: haz clic para fijarla o mantén",
+    "panic": "Pánico",
+    "panicHint": "Silenciar una nota atascada",
+    "midiSearching": "Buscando dispositivos MIDI\u2026",
+    "midiNoDevices": "Ning\u00fan dispositivo MIDI conectado",
+    "midiDenied": "Se deneg\u00f3 el acceso MIDI",
+    "midiUnsupported": "Este navegador no tiene Web MIDI"
   },
   "visualizer": {
     "title": "Visualizador",
@@ -509,6 +534,8 @@
         "stop": "Detener y volver al inicio",
         "record": "Grabar en la pista armada",
         "toggleLoop": "Activar o desactivar el bucle",
+        "sustain": "Resonancia, al tocar en vivo",
+        "allNotesOff": "Silenciar una nota atascada",
         "toggleMetronome": "Activar o desactivar el metrónomo"
       },
       "editing": {
@@ -522,6 +549,9 @@
         "toggleBrowser": "Mostrar u ocultar el explorador",
         "toggleInspector": "Mostrar u ocultar el inspector",
         "toggleEditor": "Mostrar u ocultar el editor",
+        "toggleLivePlay": "Tocar con el teclado del ordenador",
+        "octaveDown": "Octava abajo, al tocar en vivo",
+        "octaveUp": "Octava arriba, al tocar en vivo",
         "toggleVisualizer": "Mostrar u ocultar el visualizador",
         "zoomIn": "Acercar",
         "zoomOut": "Alejar",

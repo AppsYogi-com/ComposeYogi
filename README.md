@@ -185,7 +185,9 @@ Press <kbd>/</kbd> in the studio for the full, always-current list — it render
 from the shortcut registry in `lib/shortcuts/`, and every shortcut is rebindable
 from that same panel.
 
-The ones worth knowing before you open it:
+The ones worth knowing before you open it — note that while musical typing is on
+(<kbd>K</kbd>), the letter keys play notes instead, and the shortcuts bound to them
+stand down until you turn it off:
 
 | Action | Shortcut |
 |--------|----------|
@@ -193,6 +195,9 @@ The ones worth knowing before you open it:
 | Stop (return to start) | <kbd>Enter</kbd> |
 | Record | <kbd>R</kbd> |
 | Loop | <kbd>L</kbd> |
+| Play with the computer keyboard | <kbd>K</kbd> |
+| Sustain, while playing | <kbd>Shift</kbd> (hold) |
+| Silence a stuck note | <kbd>Esc</kbd> |
 | Undo / Redo | <kbd>Cmd/Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Shift</kbd> + <kbd>Z</kbd> |
 | Shortcut reference | <kbd>/</kbd> |
 

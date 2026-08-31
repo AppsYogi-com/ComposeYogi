@@ -32,7 +32,8 @@ import {
     Trash2,
     Plus,
     GripVertical,
-    Mic
+    Mic,
+    Piano
 } from 'lucide-react';
 import { useProjectStore, useUIStore, usePlaybackStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
@@ -730,6 +731,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                                 variant="ghost"
                                 size="icon"
                                 aria-label={t('mute')}
+                                aria-pressed={props.track.muted}
                                 className={`h-6 w-6 ${props.track.muted ? 'text-destructive' : 'text-muted-foreground'}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -752,6 +754,7 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                                 variant="ghost"
                                 size="icon"
                                 aria-label={t('solo')}
+                                aria-pressed={props.track.solo}
                                 className={`h-6 w-6 ${props.track.solo ? 'text-accent' : 'text-muted-foreground'}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -764,27 +767,47 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                         <TooltipContent>{t('solo')}</TooltipContent>
                     </Tooltip>
 
-                    {props.track.type === 'audio' && (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label={props.track.armed ? t('disarm') : t('arm')}
-                                    className={`h-6 w-6 ${props.track.armed ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        props.onArmToggle();
-                                    }}
-                                >
+                    {/* Every track can be armed now, not only audio ones.
+                        Arming a MIDI track means the notes you play land here —
+                        which is what Sprint 8.7.6 added, and which had no way to
+                        be said before. It also closes half of a known gap: `+
+                        Add Track` only makes MIDI tracks, and the arm button
+                        rendered only for audio ones, so the sole route to a
+                        recordable track was Inspector → Type → Audio and nothing
+                        on screen said so.
+
+                        The glyph follows the source: a microphone records a
+                        room, a keyboard records what was played, and one icon
+                        for both would be the mic claiming a take it has no part
+                        in. */}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                // No `aria-pressed` here on purpose: this button's
+                                // *name* changes with its state, so a reader
+                                // already hears which way it is. Adding both would
+                                // announce "Disarm, pressed" — the state twice, in
+                                // words that contradict each other.
+                                aria-label={props.track.armed ? t('disarm') : t('arm')}
+                                className={`h-6 w-6 ${props.track.armed ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    props.onArmToggle();
+                                }}
+                            >
+                                {props.track.type === 'audio' ? (
                                     <Mic className="h-3.5 w-3.5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {props.track.armed ? t('disarm') : t('arm')}
-                            </TooltipContent>
-                        </Tooltip>
-                    )}
+                                ) : (
+                                    <Piano className="h-3.5 w-3.5" />
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            {props.track.armed ? t('disarm') : t('arm')}
+                        </TooltipContent>
+                    </Tooltip>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
