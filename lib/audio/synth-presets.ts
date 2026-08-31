@@ -25,6 +25,8 @@
 
 import * as Tone from 'tone';
 
+import { DRUM_KITS, kitUrls, type DrumKitId } from './drum-kits';
+
 import { drumVoiceOptions, isDrumSpec, voiceOptions } from './instrument-spec';
 import { PRESET_SPECS } from './preset-specs';
 
@@ -150,124 +152,67 @@ const fromSpec = (presetId: string) => (): SynthType =>
 // Sampler Factories — the six kits that are not specs
 // ============================================
 
-// Drum Sampler - Maps GM drum pitches to actual samples
-// GM Drum mapping: 36=kick, 38=snare, 42=closed hat, 46=open hat, 37=rim, 39=clap
-const createDrumSampler = (): Tone.Sampler => {
-    const sampler = new Tone.Sampler({
-        urls: {
-            // Kicks (GM: 35-36)
-            C1: 'kick-deep.wav',      // 36 - Kick
-            B0: 'kick-808.wav',       // 35 - Acoustic Bass Drum
-            // Snares (GM: 38-40)
-            D1: 'snare-crisp.wav',    // 38 - Snare
-            E1: 'snare-clap.wav',     // 40 - Electric Snare / Clap
-            // Rim (GM: 37)
-            'C#1': 'perc-rim.wav',    // 37 - Side Stick
-            // Hi-hats (GM: 42, 44, 46)
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            // Shaker
-            'D#2': 'perc-shaker.wav',  // 51 - Ride Cymbal (using shaker)
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.5,
-    });
-    return sampler;
-};
+// ============================================
+// The six kits, and the octave they all had wrong
+// ============================================
+//
+// **Every kit is keyed by MIDI number, never by note name.** That is the whole
+// fix for a bug that shipped from v1.0 until Sprint 8.7.6i, and the reason is
+// arithmetic rather than taste: Tone parses a note name as
+// `index + (octave + 1) * 12`, so `C1` is MIDI **24**, while General MIDI's
+// kick is **36**. Every kit here was written as `C1: 'kick-deep.wav'` with a
+// `// 36 - Kick` comment beside it, so the samples sat a full octave below the
+// pitches the sequencer, the templates and the piano roll all write.
+//
+// What that sounded like, measured against the bundled Tone's own buffer
+// registry: `Tone.Sampler` repitches from the nearest buffer it has, so a kick
+// at 36 found `A#1` (34) and played **hihat-open.wav** two semitones sharp, a
+// snare at 38 found `D#2` (39) and played **perc-shaker.wav**, and every hat,
+// cymbal, tom and cowbell above 40 played that same 2.7 KB shaker at a
+// different speed. Seven of the nine loaded samples were unreachable. Every
+// demo template's drum track — the first thing a visitor hears — was a
+// hi-hat, a shaker, and a shaker.
+//
+// Note names are how it happened, so note names are gone. `SamplesMap` takes
+// `[midi: number]` as a first-class key, and `DRUM_PITCH` names the slots from
+// the one catalogue in `lib/music/percussion.ts`, so a kit cannot drift from
+// the sequencer's rows without failing to compile.
+//
+// ============================================
+// Ten samples against General MIDI's forty-seven slots
+// ============================================
+//
+// Everything the demo templates play is mapped exactly. `Tone.Sampler`
+// repitches its nearest neighbour for the rest, which is what a small kit does
+// — but **a slot gets an explicit mapping only when a sample genuinely is that
+// sound**, because `_findClosest` walks outward from the pitch asked for and a
+// sample in the wrong slot poisons every neighbour around it.
+//
+// The shaker used to sit on the **ride**, where the original author left it
+// with a `// using shaker` comment. That one lie cost the whole top half of the
+// kit: crash, china, ride bell, splash, tambourine, cowbell and every latin
+// slot found the shaker before they found anything else. It is on **Maracas
+// (70)** now, which is what a shaker is, and the cymbals re-point at
+// `hihat-open` — a cymbal for a cymbal — while 61-81 keep the shaker.
+//
+// The ride is deliberately **not** mapped. An open hat repitched a fifth up is
+// at least a different sound in the right family; naming it the ride would make
+// that row an exact duplicate of the open hat's. Toms, crashes and rides have
+// no samples of their own — that is a content gap, not a mapping one.
 
-// Punchy Drum - Fully synthesized punchy kit with its own unique samples
-const createPunchyKit = (): Tone.Sampler => {
+/**
+ * Build one of the six sampled kits.
+ *
+ * One function against six near-identical factories: what a kit *is* — its
+ * files, its folder, its release — is data in `drum-kits.ts`, where a test can
+ * read it. All that is left here is handing it to Tone.
+ */
+const createKit = (id: DrumKitId) => (): Tone.Sampler => {
+    const kit = DRUM_KITS[id];
     return new Tone.Sampler({
-        urls: {
-            C1: 'kick-punchy.wav',     // 36 - Kick (tight punchy)
-            B0: 'kick-sub.wav',        // 35 - Bass Drum (sub)
-            D1: 'snare-punchy.wav',    // 38 - Snare (punchy)
-            E1: 'snare-clap.wav',      // 40 - Clap
-            'C#1': 'perc-rim.wav',     // 37 - Rim shot
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51 - Shaker
-        },
-        baseUrl: '/samples/drums-punchy/',
-        release: 0.3,
-    });
-};
-
-// 808 Kit - Deep sub kick, clap snare, tight hats
-const create808Kit = (): Tone.Sampler => {
-    return new Tone.Sampler({
-        urls: {
-            C1: 'kick-808.wav',       // 36 - Kick (808)
-            B0: 'kick-808.wav',       // 35 - Bass Drum
-            D1: 'snare-clap.wav',     // 38 - Snare (clap)
-            E1: 'snare-clap.wav',     // 40 - Electric Snare
-            'C#1': 'perc-rim.wav',    // 37 - Side Stick
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.5,
-    });
-};
-
-// Acoustic Kit - Natural, punchy acoustic sounds
-const createAcousticKit = (): Tone.Sampler => {
-    return new Tone.Sampler({
-        urls: {
-            C1: 'kick-deep.wav',       // 36 - Kick (deep acoustic)
-            B0: 'kick-punchy.wav',     // 35 - Bass Drum (punchy)
-            D1: 'snare-crisp.wav',     // 38 - Snare (crisp acoustic)
-            E1: 'snare-crisp.wav',     // 40 - Electric Snare
-            'C#1': 'perc-rim.wav',     // 37 - Side Stick
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.5,
-    });
-};
-
-// Lo-Fi Kit - Muted, dusty character
-const createLoFiKit = (): Tone.Sampler => {
-    return new Tone.Sampler({
-        urls: {
-            C1: 'kick-deep.wav',       // 36 - Kick (muffled deep)
-            B0: 'kick-deep.wav',       // 35 - Bass Drum
-            D1: 'snare-lofi.wav',      // 38 - Snare (lo-fi)
-            E1: 'snare-clap.wav',      // 40 - Clap
-            'C#1': 'perc-rim.wav',     // 37 - Side Stick
-            'F#1': 'hihat-pedal.wav',  // 42 - Closed Hi-Hat (muted pedal)
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.3,
-    });
-};
-
-// Electronic Kit - Punchy, tight, modern
-const createElectronicKit = (): Tone.Sampler => {
-    return new Tone.Sampler({
-        urls: {
-            C1: 'kick-punchy.wav',     // 36 - Kick (punchy)
-            B0: 'kick-808.wav',        // 35 - Bass Drum (808 sub)
-            D1: 'snare-clap.wav',      // 38 - Snare (clap)
-            E1: 'snare-crisp.wav',     // 40 - Electric Snare
-            'C#1': 'perc-rim.wav',     // 37 - Side Stick
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.4,
+        urls: kitUrls(kit),
+        baseUrl: kit.baseUrl,
+        release: kit.release,
     });
 };
 
@@ -629,37 +574,37 @@ export const SYNTH_PRESETS = {
         id: 'drum-sampler',
         name: 'Drum Kit',
         category: 'drums',
-        createSynth: createDrumSampler,
+        createSynth: createKit('drum-sampler'),
     },
     'punchy-kit': {
         id: 'punchy-kit',
         name: 'Punchy Drum',
         category: 'drums',
-        createSynth: createPunchyKit,
+        createSynth: createKit('punchy-kit'),
     },
     '808-kit': {
         id: '808-kit',
         name: '808 Kit',
         category: 'drums',
-        createSynth: create808Kit,
+        createSynth: createKit('808-kit'),
     },
     'acoustic-kit': {
         id: 'acoustic-kit',
         name: 'Acoustic Kit',
         category: 'drums',
-        createSynth: createAcousticKit,
+        createSynth: createKit('acoustic-kit'),
     },
     'lofi-kit': {
         id: 'lofi-kit',
         name: 'Lo-Fi Kit',
         category: 'drums',
-        createSynth: createLoFiKit,
+        createSynth: createKit('lofi-kit'),
     },
     'electronic-kit': {
         id: 'electronic-kit',
         name: 'Electronic Kit',
         category: 'drums',
-        createSynth: createElectronicKit,
+        createSynth: createKit('electronic-kit'),
     },
     'bongos': {
         id: 'bongos',

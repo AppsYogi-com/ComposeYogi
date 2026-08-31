@@ -15,12 +15,18 @@
 // gets wrong: three notes in the space of two is easy to write as 1/3 of a beat
 // and be a hair out over a bar.
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { DRUM_KITS, SAMPLE_FAMILY, kitUrls } from '@/lib/audio/drum-kits';
+
 import {
+    DRUM_PITCH,
+    GM_PERCUSSION,
+    GM_PERCUSSION_HIGH,
+    GM_PERCUSSION_LOW,
     NOTE_NAMES,
     SCALE_IDS,
     SCALE_INTERVALS,
@@ -29,12 +35,14 @@ import {
     STRAIGHT_SNAP_VALUES,
     TRIPLET_SNAP_VALUES,
     VIBES,
+    drumSoundForPitch,
     matchVibe,
     scalePitchClasses,
     snapStepBeats,
     snapToGrid,
     vibeById,
 } from '@/lib/music';
+
 
 import type { MusicalScale, SnapValue } from '@/types';
 
@@ -59,6 +67,21 @@ const ALL_SNAP_VALUES: SnapValue[] = [
 // ============================================
 // Scales
 // ============================================
+
+/** Every .ts/.tsx file under a project directory, for the source scans below. */
+function sourceFilesUnder(dir: string): string[] {
+    const root = join(__dirname, '..', dir);
+    const out: string[] = [];
+    const walk = (path: string) => {
+        for (const entry of readdirSync(path, { withFileTypes: true })) {
+            const full = join(path, entry.name);
+            if (entry.isDirectory()) walk(full);
+            else if (/\.tsx?$/.test(entry.name)) out.push(full);
+        }
+    };
+    walk(root);
+    return out;
+}
 
 describe('every scale is complete', () => {
     it('covers the whole type — the test list is not stale', () => {
@@ -255,6 +278,186 @@ describe('snapStepBeats', () => {
         // note of no length is silent and unclickable.
         for (const snap of ALL_SNAP_VALUES) {
             expect(snapStepBeats(snap), `${snap} yields a zero-length note`).toBeGreaterThan(0);
+        }
+    });
+});
+
+describe('nothing names a pitch on its own again', () => {
+
+    it('leaves no sample mapped by note name', () => {
+        // The bug this replaced: every `Tone.Sampler` kit was written as
+        // `C1: 'kick-deep.wav'` with a `// 36 - Kick` comment beside it. Tone
+        // parses a note name as `index + (octave + 1) * 12`, so `C1` is MIDI 24
+        // and General MIDI's kick is 36 — the samples sat a full octave below
+        // the pitches the sequencer and the templates write, and Tone repitched
+        // the nearest buffer it did have. Measured against Tone's own registry:
+        // a kick played hihat-open two semitones sharp, and every drum above 40
+        // played the same shaker at a different speed.
+        //
+        // `SamplesMap` takes `[midi: number]` as a first-class key, so there is
+        // no reason for a note name to appear near a sample and every reason
+        // for it not to. `DRUM_PITCH` is the way to name one.
+        // Whole-line comments are skipped, unlike the octave guard above. That
+        // guard bans an *expression* outright, so prose has to avoid it too;
+        // this one bans a *key form*, and explaining why a key form is banned
+        // is impossible without writing one down. A trailing comment on a real
+        // line is still scanned, which is where a stray mapping would hide.
+        const isProse = (line: string) => /^(\/\/|\/?\*)/.test(line.trim());
+
+        const hits: string[] = [];
+        for (const file of sourceFilesUnder('lib')) {
+            readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
+                if (isProse(line)) return;
+                if (/(['"]?)[A-G](?:#|b)?-?\d\1\s*:\s*['"][^'"]*\.(wav|mp3|ogg)['"]/.test(line)) {
+                    hits.push(`${file}:${index + 1}  ${line.trim()}`);
+                }
+            });
+        }
+
+        expect(
+            hits,
+            'Key a Tone.Sampler by MIDI number via DRUM_PITCH from '
+            + 'lib/music/percussion.ts. A note name is an octave trap: Tone reads '
+            + 'C1 as MIDI 24, and General MIDI puts the kick at 36.'
+        ).toEqual([]);
+    });
+});
+
+// ============================================
+// The kit map
+// ============================================
+//
+// This list spent v1.0 through 8.7.6h private inside `DrumSequencer.tsx`, while
+// the six sampler kits kept a second copy in note names and `demo-templates.ts`
+// a third in a seven-entry literal. The sampler's copy was an octave out and
+// nobody could see the three side by side to notice. These tests are what makes
+// a fourth copy, or a drift in this one, fail the build.
+
+describe('General MIDI percussion', () => {
+    it('covers 35 to 81 exactly once each, with nothing outside', () => {
+        // The comment above the old list said "Full GM percussion set: MIDI
+        // notes 35-81" and sat above 46 of the 47 — Vibraslap (58) was simply
+        // absent. A range check is the only thing that notices a missing middle.
+        const pitches = GM_PERCUSSION.map((sound) => sound.pitch).sort((a, b) => a - b);
+        const expected = Array.from(
+            { length: GM_PERCUSSION_HIGH - GM_PERCUSSION_LOW + 1 },
+            (_, index) => GM_PERCUSSION_LOW + index
+        );
+        expect(pitches).toEqual(expected);
+    });
+
+    it('gives every sound a unique id, name and short name', () => {
+        // `DRUM_PITCH` is built by folding the array into a record, so a
+        // duplicate id silently drops a sound's pitch rather than erroring.
+        for (const field of ['id', 'name', 'shortName'] as const) {
+            const values = GM_PERCUSSION.map((sound) => sound[field]);
+            expect(new Set(values).size, `duplicate ${field}`).toBe(values.length);
+        }
+    });
+
+    it('keeps short names to three characters, the width of a lane rail', () => {
+        for (const sound of GM_PERCUSSION) {
+            expect(sound.shortName, sound.name).toHaveLength(3);
+        }
+    });
+
+    it('reaches every sound by pitch, and nothing outside the range', () => {
+        for (const sound of GM_PERCUSSION) {
+            expect(drumSoundForPitch(sound.pitch)).toEqual(sound);
+        }
+        expect(drumSoundForPitch(GM_PERCUSSION_LOW - 1)).toBeNull();
+        expect(drumSoundForPitch(GM_PERCUSSION_HIGH + 1)).toBeNull();
+        expect(drumSoundForPitch(60.5)).toBeNull();
+    });
+
+    it('names the pitches the kits and templates are keyed by', () => {
+        // The specific numbers the six samplers and every demo template depend
+        // on. Written out rather than derived, because deriving them from the
+        // same array they are meant to pin proves nothing — and because these
+        // are the General MIDI standard, not this app's choice.
+        expect(DRUM_PITCH.acousticBassDrum).toBe(35);
+        expect(DRUM_PITCH.kick).toBe(36);
+        expect(DRUM_PITCH.sideStick).toBe(37);
+        expect(DRUM_PITCH.snare).toBe(38);
+        expect(DRUM_PITCH.handClap).toBe(39);
+        expect(DRUM_PITCH.electricSnare).toBe(40);
+        expect(DRUM_PITCH.closedHat).toBe(42);
+        expect(DRUM_PITCH.pedalHat).toBe(44);
+        expect(DRUM_PITCH.openHat).toBe(46);
+        expect(DRUM_PITCH.ride).toBe(51);
+        expect(DRUM_PITCH.cowbell).toBe(56);
+    });
+});
+
+// ============================================
+// The sampled kits
+// ============================================
+//
+// These exist because the shaker-on-the-ride fix survived a deliberate revert
+// with every test green: a kit written as a Tone factory is a sound nothing can
+// check, and Tone cannot be constructed here at all. `drum-kits.ts` is the data;
+// this is what reads it.
+
+describe('the sampled kits', () => {
+    const kits = Object.entries(DRUM_KITS);
+
+    it('never files a sample under a slot of another family', () => {
+        // The whole shape of the bug: `perc-shaker.wav` sat on Ride Cymbal 1,
+        // and because `_findClosest` walks outward from the pitch asked for,
+        // that one entry handed the shaker to every cymbal, tom and latin slot
+        // above it. A sample belongs in a slot of its own family or in none.
+        const wrong: string[] = [];
+        for (const [id, kit] of kits) {
+            for (const [slot, file] of Object.entries(kit.samples)) {
+                const sound = GM_PERCUSSION.find((s) => s.id === slot)!;
+                const family = SAMPLE_FAMILY[file];
+                if (family !== sound.family) {
+                    wrong.push(`${id}: ${file} (${family}) on ${sound.name} (${sound.family})`);
+                }
+            }
+        }
+        expect(wrong).toEqual([]);
+    });
+
+    it('describes every sample it uses', () => {
+        for (const [id, kit] of kits) {
+            for (const file of Object.values(kit.samples)) {
+                expect(SAMPLE_FAMILY[file], `${id} uses ${file}, which SAMPLE_FAMILY does not describe`)
+                    .toBeDefined();
+            }
+        }
+    });
+
+    it('names only files that exist on disk', () => {
+        // A missing WAV is a 404 and a silent slot, and nothing else notices.
+        for (const [id, kit] of kits) {
+            for (const file of new Set(Object.values(kit.samples))) {
+                const path = join(__dirname, '..', 'public', kit.baseUrl, file);
+                expect(existsSync(path), `${id} names ${kit.baseUrl}${file}, which is not there`).toBe(true);
+            }
+        }
+    });
+
+    it('keys every slot by MIDI number, in General MIDI range', () => {
+        for (const [id, kit] of kits) {
+            const urls = kitUrls(kit);
+            for (const key of Object.keys(urls)) {
+                const midi = Number(key);
+                expect(Number.isInteger(midi), `${id} has a non-numeric key: ${key}`).toBe(true);
+                expect(midi).toBeGreaterThanOrEqual(GM_PERCUSSION_LOW);
+                expect(midi).toBeLessThanOrEqual(GM_PERCUSSION_HIGH);
+            }
+        }
+    });
+
+    it('covers what every demo template plays, in every kit', () => {
+        // Kick, snare, both hats, clap and rim. If one of these is unmapped it
+        // repitches off a neighbour, which is how the kick became a hi-hat.
+        const required = ['kick', 'snare', 'closedHat', 'openHat', 'handClap', 'sideStick'] as const;
+        for (const [id, kit] of kits) {
+            for (const slot of required) {
+                expect(kit.samples[slot], `${id} does not map ${slot}`).toBeDefined();
+            }
         }
     });
 });

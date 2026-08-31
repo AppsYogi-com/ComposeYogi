@@ -21,3 +21,14 @@ export {
     snapStepBeats,
     snapToGrid,
 } from './snap';
+
+export {
+    DRUM_PITCH,
+    GM_PERCUSSION,
+    GM_PERCUSSION_HIGH,
+    GM_PERCUSSION_LOW,
+    drumCapLabel,
+    drumSoundForPitch,
+    drumWindowRange,
+} from './percussion';
+export type { DrumSound, DrumSoundId } from './percussion';
