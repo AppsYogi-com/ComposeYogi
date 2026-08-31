@@ -381,7 +381,11 @@ const format = useFormatter();
             ctx.stroke();
         }
 
-    }, [audioBuffer, zoom, trimHandles, fadeIn, fadeOut, playheadPosition, selection, resolvedTheme]);
+        // `format` is next-intl's formatter: it is stable for a given locale, and
+        // the ruler labels have to be redrawn when the locale changes, because a
+        // Spanish "1,5s" is not an English "1.5s". Naming it here is both correct
+        // and what the exhaustive-deps rule was asking for.
+    }, [audioBuffer, zoom, trimHandles, fadeIn, fadeOut, playheadPosition, selection, resolvedTheme, format]);
 
     // Handle trim drag and region selection
     const handleMouseDown = useCallback((e: React.MouseEvent) => {

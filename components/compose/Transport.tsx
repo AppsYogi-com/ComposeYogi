@@ -11,33 +11,29 @@ import {
     Repeat,
     Volume2,
     VolumeX,
-    Settings,
     ChevronDown,
-    Mic,
     Cloud,
     CloudOff,
     Loader2,
     Check,
     Download,
     Upload,
-    Moon,
-    Sun,
-    Keyboard,
+    Piano,
     ZoomIn,
     ZoomOut,
 } from 'lucide-react';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
+import { CountInSelect } from './CountInSelect';
+import { SettingsMenu } from './SettingsMenu';
 import { VibeSelect } from './VibeSelect';
 import { ExportModal } from './ExportModal';
 import { ImportModal } from './ImportModal';
-import { useTheme } from 'next-themes';
 import { MusicWave } from '@/components/MusicWave';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useProjectStore, usePlaybackStore, useUIStore } from '@/lib/store';
 import { playbackRefs } from '@/lib/store/playback';
 import { audioEngine, recordingManager } from '@/lib/audio';
 import { formatTime, formatBarsBeats } from '@/lib/utils';
-import { useShortcut } from '@/hooks';
+import { useShortcut, useLiveTarget } from '@/hooks';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
@@ -58,7 +54,6 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { Slider } from '@/components/ui/slider';
 import Link from 'next/link';
 import type { SaveStatus } from '@/lib/persistence/autosave';
 
@@ -105,6 +100,10 @@ export function Transport({
     const zoomIn = useUIStore((s) => s.zoomIn);
     const zoomOut = useUIStore((s) => s.zoomOut);
     const setZoom = useUIStore((s) => s.setZoom);
+    const livePlayOpen = useUIStore((s) => s.livePlayOpen);
+    // Whether the keyboard has anything to sound through.
+    const liveTarget = useLiveTarget();
+    const toggleLivePlay = useUIStore((s) => s.toggleLivePlay);
 
     // Calculate zoom percentage (MIN_ZOOM=20, MAX_ZOOM=200, DEFAULT=80)
     const zoomPercentage = Math.round((zoom / 80) * 100);
@@ -213,8 +212,13 @@ export function Transport({
         }
 
         {
-            // Initialize recorder on-demand if not ready
-            if (!isRecorderReady) {
+            // Only an audio take needs a microphone. A MIDI track records the
+            // notes that were played, and asking for mic permission to do that
+            // would be a prompt the user cannot connect to anything they did —
+            // and one a refusal would then block a recording that never needed
+            // it. The recording manager makes the same distinction, from the
+            // same field.
+            if (!isRecorderReady && armedTrack.type === 'audio') {
                 try {
                     await recordingManager.initialize();
                     setIsRecorderReady(true);
@@ -240,6 +244,14 @@ export function Transport({
             }
         }
     }, [isAudioReady, isRecording, isCountingIn, armedTrack, countInBars, isRecorderReady, onRequestAudio, t]);
+
+    // R, L and M. All three were printed in the tooltips below and bound to
+    // nothing: the hint was written beside the button instead of registered in
+    // `lib/shortcuts`, so nothing could notice the difference. They live here
+    // rather than on the compose page because the handlers do.
+    useShortcut('playback.record', () => { void handleRecord(); }, [handleRecord]);
+    useShortcut('playback.toggleLoop', () => toggleLoop(), [toggleLoop]);
+    useShortcut('playback.toggleMetronome', () => toggleMetronome(), [toggleMetronome]);
 
     if (!project) return null;
 
@@ -395,7 +407,57 @@ export function Transport({
                                         : armedTrack
                                             ? t('recordTrack', { name: armedTrack.name })
                                             : t('armToRecord')}
-                                    <kbd className="ml-1 text-xs opacity-60">R</kbd>
+                                    {/* Only while it is true. `R` plays F on the
+                                        typing keyboard, so live playing takes it
+                                        — and a hint that is right half the time
+                                        is the thing tests/shortcuts.test.ts
+                                        exists to stop. */}
+                                    {!livePlayOpen && (
+                                        <kbd className="ml-1 text-xs opacity-60">R</kbd>
+                                    )}
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        {/* How many bars of click come first. Beside the button
+                            it delays, and readable without opening it. */}
+                        <CountInSelect />
+
+                        {/* Play It Live, inside the record group rather than
+                            beside it. That is where it belongs — the notes it
+                            plays are the notes record captures — and it is also
+                            what it can afford: the transport measured 0px of
+                            slack at 1536, so a button with its own separator
+                            put the bar 31px over and pushed the language
+                            switcher off the screen. Sharing this group's
+                            separators is the difference. */}
+                        {/* Disabled only when there is genuinely nothing to play
+                            through — no track that can hold an instrument. It is
+                            deliberately **not** tied to arming, which was the
+                            suggestion when this opened onto silence: arming means
+                            "record what I play", and needing it to *play* would
+                            make hearing an instrument a two-step ritual. No DAW
+                            asks for that. The silence had a different cause and
+                            `useLiveTarget` fixes it. */}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span>
+                                    <Button
+                                        aria-label={t('livePlay')}
+                                        aria-pressed={livePlayOpen}
+                                        variant={livePlayOpen ? "transport-active" : "transport"}
+                                        size="icon-sm"
+                                        disabled={!liveTarget && !livePlayOpen}
+                                        onClick={toggleLivePlay}
+                                    >
+                                        <Piano className="h-4 w-4" />
+                                    </Button>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                <p>
+                                    {liveTarget || livePlayOpen ? t('livePlay') : t('livePlayNoTrack')}{' '}
+                                    <kbd className="ml-1 text-xs opacity-60">K</kbd>
                                 </p>
                             </TooltipContent>
                         </Tooltip>
@@ -408,6 +470,7 @@ export function Transport({
                         <TooltipTrigger asChild>
                             <Button
                                 aria-label={t('loop')}
+                                aria-pressed={isLooping}
                                 variant={isLooping ? "transport-active" : "transport"}
                                 size="icon-sm"
                                 onClick={toggleLoop}
@@ -462,7 +525,7 @@ export function Transport({
                     </Tooltip>
                 </div>
 
-                <Separator orientation="vertical" className="h-6 mx-4" />
+                <Separator orientation="vertical" className="h-6 mx-2" />
 
                 {/* Time display */}
                 <div className="flex items-center bg-background rounded-md border border-border/50">
@@ -492,7 +555,7 @@ export function Transport({
                     </Tooltip>
                 </div>
 
-                <Separator orientation="vertical" className="h-6 mx-4" />
+                <Separator orientation="vertical" className="h-6 mx-2" />
 
                 {/* Tempo & Time Signature */}
                 <div className="flex items-center gap-2">
@@ -633,6 +696,7 @@ export function Transport({
                         <TooltipTrigger asChild>
                             <Button
                                 aria-label={t('metronome')}
+                                aria-pressed={metronomeEnabled}
                                 variant={metronomeEnabled ? "transport-active" : "transport"}
                                 size="icon-sm"
                                 onClick={toggleMetronome}
@@ -713,72 +777,31 @@ export function Transport({
                             </TooltipContent>
                         </Tooltip>
 
-                        {/* A convenience duplicate of the -/reset/+ buttons beside it, so
-                            it is the first thing to give way when the header runs out of room. */}
-                        <div className="hidden w-20 px-1 2xl:block">
-                            <Slider
-                                aria-label={t('zoom')}
-                                value={[zoom]}
-                                onValueChange={([value]) => setZoom(value)}
-                                min={20}
-                                max={200}
-                                step={5}
-                            />
-                        </div>
+                        {/* No zoom slider. It was a duplicate of the −/reset/+
+                            buttons immediately to its left, and it cost 80px in
+                            the bar that had none to spare. */}
                     </div>
                 </div>
             </div>
 
             {/* Right: Settings */}
             <div className="flex items-center gap-2 px-3 2xl:px-4">
-                {/* Recording indicator */}
-                {armedTrack && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive">
-                        <Mic className="h-3 w-3" />
-                        <span className="truncate max-w-[80px]">{armedTrack.name}</span>
-                    </div>
-                )}
-
+                {/* No armed-track indicator here. It appeared and disappeared with
+                    arming, so it moved every button to its right — state changing
+                    layout rather than appearance — and it cost 106px in a bar that
+                    only just fits. What it said is already said twice: the record
+                    button turns red and names the track, and the track header says
+                    ARMED. */}
                 <Separator orientation="vertical" className="h-6" />
 
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            aria-label={t('shortcuts')}
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setShowShortcutsModal(true)}
-                        >
-                            <Keyboard className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                        <p>
-                            {t('shortcuts')}{' '}
-                            <kbd className="ml-1 text-xs opacity-60">?</kbd>
-                        </p>
-                    </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            aria-label={t('settings')}
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={onOpenSettings}
-                        >
-                            <Settings className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                        <p>{t('settings')}</p>
-                    </TooltipContent>
-                </Tooltip>
-
-                <ThemeToggleButton />
-
-                <LanguageSwitcher />
+                {/* One gear, four things. The shortcuts sheet, latency
+                    calibration, the theme and the language were four separate
+                    glyphs in the tightest part of the header, and not one of
+                    them is touched while you are working. */}
+                <SettingsMenu
+                    onOpenShortcuts={() => setShowShortcutsModal(true)}
+                    onOpenCalibration={() => onOpenSettings?.()}
+                />
 
                 <KeyboardShortcutsModal
                     isOpen={showShortcutsModal}
@@ -796,48 +819,5 @@ export function Transport({
                 />
             </div>
         </header>
-    );
-}
-
-function ThemeToggleButton() {
-    const t = useTranslations('transport');
-    const tCommon = useTranslations('common');
-    const { resolvedTheme, setTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!mounted) {
-        return (
-            <Button aria-label={tCommon('toggleTheme')} variant="ghost" size="icon-sm" disabled>
-                <Sun className="h-4 w-4" />
-            </Button>
-        );
-    }
-
-    const isDark = resolvedTheme === 'dark';
-
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button
-                    aria-label={isDark ? t('lightMode') : t('darkMode')}
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                >
-                    {isDark ? (
-                        <Sun className="h-4 w-4" />
-                    ) : (
-                        <Moon className="h-4 w-4" />
-                    )}
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-                <p>{isDark ? t('lightMode') : t('darkMode')}</p>
-            </TooltipContent>
-        </Tooltip>
     );
 }

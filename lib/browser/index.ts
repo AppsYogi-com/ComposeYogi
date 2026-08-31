@@ -118,6 +118,7 @@ const INSTRUMENT_META: Record<SynthPresetId, {
     'pulse-lead': { description: 'Warm pulse width modulation lead', trackType: 'midi', trackColor: 'melody' },
 
     // Keys
+    'grand-piano': { description: 'FM piano with harmonics that carry the low end', trackType: 'midi', trackColor: 'keys' },
     'electric-piano': { description: 'Warm Rhodes-style keys', trackType: 'midi', trackColor: 'keys' },
     'bright-piano': { description: 'Clear acoustic piano', trackType: 'midi', trackColor: 'keys' },
     'harpsichord': { description: 'Baroque plucked-string keyboard with metallic twang', trackType: 'midi', trackColor: 'keys' },

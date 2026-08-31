@@ -19,8 +19,8 @@ import { v4 as uuid } from 'uuid';
 
 import { createLogger } from '@/lib/logger';
 
-import { CUSTOM_INSTRUMENT_PREFIX, parseInstrumentSpec } from './instrument-spec';
-import { isCustomizablePreset } from './preset-specs';
+import { CUSTOM_INSTRUMENT_PREFIX, isDrumSpec, parseInstrumentSpec } from './instrument-spec';
+import { isCustomizablePreset, specForPreset } from './preset-specs';
 
 import type { CustomInstrument } from '@/types';
 
@@ -137,9 +137,17 @@ export function importInstrumentFromJSON(jsonContent: string): InstrumentImportR
     // become a dangling reference. The spec is what makes the sound; the base
     // is only what Revert would restore, so falling back is lossless in every
     // way that can be heard.
-    const basePresetId = typeof file.basePresetId === 'string' && isCustomizablePreset(file.basePresetId)
-        ? file.basePresetId
-        : 'basic-synth';
+    //
+    // The fallback has to match the spec's *kind*, though: Revert reads the base
+    // preset, and a drum whose base had fallen back to a synth would turn into a
+    // Rhodes on a button labelled Revert. It also has to name a base of the right
+    // kind even when the file's own base is a real preset of the wrong one.
+    const fallbackBase = isDrumSpec(spec) ? 'drum-synth' : 'basic-synth';
+    const namedBase = typeof file.basePresetId === 'string' ? file.basePresetId : '';
+    const baseSpec = isCustomizablePreset(namedBase) ? specForPreset(namedBase) : null;
+    const basePresetId = baseSpec && isDrumSpec(baseSpec) === isDrumSpec(spec)
+        ? namedBase
+        : fallbackBase;
 
     const now = Date.now();
     return {

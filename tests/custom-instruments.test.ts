@@ -35,7 +35,7 @@ import {
 import { CUSTOM_INSTRUMENT_PREFIX, MACRO_RANGES } from '@/lib/audio/instrument-spec';
 import { deleteCustomInstrument, listCustomInstruments, loadCustomInstrument } from '@/lib/persistence/db';
 
-import type { CustomInstrument } from '@/types';
+import type { CustomInstrument, InstrumentSpec } from '@/types';
 
 async function wipe(): Promise<void> {
     for (const instrument of await listCustomInstruments()) {
@@ -118,10 +118,11 @@ describe('saveCustomInstrument', () => {
 
     it('clamps the spec on the way in', async () => {
         const instrument = draft();
-        instrument.spec.brightness = 9999;
-        instrument.spec.level = -9999;
+        const spec = instrument.spec as InstrumentSpec;
+        spec.brightness = 9999;
+        spec.level = -9999;
         const saved = await saveCustomInstrument(instrument);
-        expect(saved.spec.brightness).toBe(MACRO_RANGES.brightness.max);
+        expect((saved.spec as InstrumentSpec).brightness).toBe(MACRO_RANGES.brightness.max);
         expect(saved.spec.level).toBe(MACRO_RANGES.level.min);
     });
 

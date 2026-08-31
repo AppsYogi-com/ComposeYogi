@@ -15,6 +15,69 @@ Star ⭐ the repo to follow along.
 
 ## ✅ Shipped
 
+### v1.4 — Feel & Musicality *(August 2026)*
+
+Where a pattern stops being programmed and starts being played.
+
+- [x] **Play it live** — a MIDI keyboard plays the armed track's instrument, and
+      when there is no MIDI keyboard the computer keyboard does. `K` brings up a
+      73-key keyboard, C1 to C7, with every white key named and the letter
+      printed on every key the typing rows reach. The rest is dimmed, so you can
+      see where your hands are rather than having to be told — and the keyboard
+      never moves: shifting the octave slides the lit keys along it. Velocity,
+      sustain, pitch bend, mouse glissando, and what you play lands in a clip
+      while a track is armed. On a drum track the keys are labelled with drums
+      rather than notes, black keys included, because the key a piano calls C3
+      is a tom on a kit.
+      *The MIDI hardware path was built against the specification and has not been
+      tried on a real keyboard — reports welcome*
+- [x] **A muted track could still be heard from the editors** — clicking a note
+      in the piano roll or a drum in the sequencer played straight to the
+      speakers, past the track's fader, effects and its mute and solo buttons,
+      and using a generic synth rather than the track's own instrument. Previews
+      now run through the track, so they sound like it and go quiet when it does
+- [x] **You can change a track's instrument** — until now the only way to put a
+      sound on a track was to drag one from the browser, which also created a
+      clip and filled it with notes, so there was no way to change what a track
+      sounded like without changing what was on it. The Inspector now has an
+      Instrument field on the track and on the clip, and it is a search box
+      rather than a 64-item menu
+- [x] **The drums played the wrong sounds, and had since v1.0** — every kit
+      mapped its samples an octave below the notes the sequencer writes, so the
+      kick played an open hi-hat and the snare, hats and ride all played the
+      same shaker at different speeds. Seven of the nine samples in each kit
+      were downloaded on every visit and never heard. The demo beats had no
+      kick drum at all; one now lands 32 dB louder with 94% of its energy below
+      150 Hz. The shaker has moved off the ride cymbal too, so the cymbals
+      reach for a cymbal. *Your patterns were always right — the kits were
+      reading them wrongly*
+- [x] **Grand Piano** — the low half of the keyboard used to be a bare sine
+      wave, which a laptop speaker cannot reproduce at all below middle C. The
+      new FM piano carries those notes on their harmonics, the way a real one
+      does: at C2 and C3, 57% and 75% of the note now lands in a range a laptop
+      can play, against 0% before
+- [x] **Custom instruments** ([#21](https://github.com/AppsYogi-com/ComposeYogi/issues/21))
+      — start from any built-in, move four controls, hear it as you go. Save,
+      duplicate, and share as a file. Drum kits too, with their own controls
+- [x] **Clip macros that do something** — Energy, Groove, Brightness and Space
+      wired to real DSP, applied inside the scheduler so playback and export
+      cannot disagree
+- [x] **A velocity lane** in the piano roll, a default-velocity control, and
+      velocity drawn into the clip preview — so a flat part looks flat
+- [x] **Swing and humanize** — timing and velocity that breathe
+- [x] **Triplet snapping** — and a real grid in both the piano roll and the
+      arrangement, each with its own setting
+- [x] **Vibe-based key and scale picker** — "Chill", "Dark", rather than modes
+- [x] **Stretch to BPM** for audio clips
+- [x] **Recording looks like recording** — a count-in overlay you can set and
+      cancel, an ARMED badge, a pulsing region where the take is landing, and
+      arming on every track type, not just audio ones
+- [x] **The keyboard hints tell the truth** — `R`, `L`, `M` and `?` had been
+      printed in tooltips and bound to nothing since v1.0
+- [ ] Mobile artboards and a fresh demo GIF — the two pieces of the design
+      system that need a drawn reference and a recorded take, not a screenshot
+      *(carried to v1.5)*
+
 ### v1.3 — One Language *(August 2026)*
 
 The studio now has a single visual language, and a build that enforces it.
@@ -77,27 +140,7 @@ rebindable keyboard shortcuts, English and Spanish.
 
 ---
 
-## 🎼 Next — v1.4, Feel & Musicality
-
-Where a pattern stops being programmed and starts being played.
-
-- [ ] **Velocity lane** in the piano roll — the biggest gap between our editor
-      and a real one
-- [ ] **Clip macros that do something** — Energy, Groove, Brightness and Space
-      wired to real DSP: one slider, many changes
-- [ ] **Swing and humanize** — timing and velocity that breathe
-- [ ] **Triplet snapping** — and finer grid options, which unlock whole genres
-- [ ] **Vibe-based key and scale picker** — "Chill", "Dark", rather than modes
-- [ ] **Stretch to BPM** for audio clips
-- [ ] **Custom instruments** ([#21](https://github.com/AppsYogi-com/ComposeYogi/issues/21))
-      — design your own sounds, save and share them as presets
-- [ ] **Play it live** — MIDI keyboard input and musical typing
-- [ ] Mobile artboards and a fresh demo GIF — the two pieces of the design
-      system that need a drawn reference and a recorded take, not a screenshot
-
----
-
-## 🔗 Then — v1.5, Share & Cloud
+## 🔗 Next — v1.5, Share & Cloud
 
 A track should be able to become a link.
 

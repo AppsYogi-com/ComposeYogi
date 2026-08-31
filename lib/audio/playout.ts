@@ -19,6 +19,7 @@ import {
     buildRenderPlan,
     disposeMacroNodes,
     effectiveTrackGain,
+    initialTrackGain,
     isTrackAudible,
     releaseSynth,
     scheduleAudioClip,
@@ -72,6 +73,19 @@ class PlayoutManager {
     private trackEntries: Map<string, Tone.Gain> = new Map();
     private trackEffects: Map<string, Tone.ToneAudioNode[]> = new Map();
 
+    /**
+     * The track list the mixer state was last resolved from.
+     *
+     * Solo is exclusive, so an *effective* gain cannot be computed from one
+     * track alone — and a chain is created lazily, by whoever asks for a track's
+     * input first. Live play and the editors' preview both do that, and on a
+     * page where nothing has played yet they were the first: the chain was born
+     * at `track.volume`, so **a muted track's preview was audible** until the
+     * transport ran and `applyMixState` caught up. Keeping the list here is what
+     * lets a chain be born correct instead.
+     */
+    private mixTracks: Track[] = [];
+
     // Version counter to prevent concurrent scheduleProject races
     private scheduleVersion = 0;
     // Per-track counter for the same reason on async effect-chain rebuilds
@@ -114,6 +128,7 @@ class PlayoutManager {
         this.trackGains.clear();
         this.trackPanners.clear();
         this.effectsVersion.clear();
+        this.mixTracks = [];
         this.state.audioBuffers.clear();
         this.state.scheduledClips.clear();
         this.masterGain = null;
@@ -138,7 +153,9 @@ class PlayoutManager {
         if (!entry || !gain || !panner) {
             entry = new Tone.Gain(1);
             panner = new Tone.Panner(track.pan || 0);
-            gain = new Tone.Gain(track.volume ?? 0.8);
+            // The effective gain, not the fader: a chain created while its
+            // track is muted or another track is soloed must start silent.
+            gain = new Tone.Gain(initialTrackGain(track, this.mixTracks));
 
             // Default chain: entry -> gain -> panner -> master
             entry.connect(gain);
@@ -155,6 +172,25 @@ class PlayoutManager {
         }
 
         return { input: entry, gain, panner };
+    }
+
+    /**
+     * The node a track's sound enters at — its effects, fader, pan and the
+     * master bus all sit downstream of it.
+     *
+     * Public so live playing can join the same chain the scheduled clips use.
+     * These nodes are built once and reused: `clearAllScheduled` tears down the
+     * scheduled clips and leaves the chain standing, which is what makes it
+     * safe for a live voice to hold this connection across a reschedule.
+     *
+     * Null before `initialize()`, rather than throwing as `getOrCreateTrackChain`
+     * does — a live voice built before the first user gesture is a normal
+     * ordering, not a fault, and it routes to the destination until the mixer
+     * exists.
+     */
+    getTrackInput(track: Track): Tone.Gain | null {
+        if (!this.masterGain) return null;
+        return this.getOrCreateTrackChain(track).input;
     }
 
     public updateTrackEffects(trackId: string, effects: TrackEffect[]): void {
@@ -216,6 +252,7 @@ class PlayoutManager {
      * Solo is exclusive, so it can only be resolved with the full track list.
      */
     applyMixState(tracks: Track[]): void {
+        this.mixTracks = tracks;
         for (const track of tracks) {
             this.updateTrackVolume(track.id, effectiveTrackGain(track, tracks));
             this.updateTrackPan(track.id, track.pan);
@@ -227,6 +264,7 @@ class PlayoutManager {
      * toggling solo mid-playback is sample-accurate and free.
      */
     updateSoloState(tracks: Track[]): void {
+        this.mixTracks = tracks;
         for (const track of tracks) {
             this.updateTrackVolume(track.id, effectiveTrackGain(track, tracks));
         }

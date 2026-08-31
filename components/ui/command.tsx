@@ -43,8 +43,22 @@ const CommandInput = React.forwardRef<
     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
     <CommandPrimitive.Input
       ref={ref}
+      // `outline-none` alone does not hold here. `app/globals.css` carries a
+      // blanket `:focus-visible { outline: 2px solid hsl(var(--ring)) }`, which
+      // has the same specificity as a utility class and is emitted after the
+      // utilities, so it wins — and cmdk autofocuses this input, so the ring is
+      // on for the whole time the popover is open rather than appearing when a
+      // keyboard arrives. A permanent 2px accent outline offset 2px inside a
+      // bordered row reads as a validation error, not as focus.
+      //
+      // `focus-visible:outline-none` is `.class:focus-visible`, which outranks
+      // the bare pseudo-class and puts it back. Nothing is lost: this input is
+      // the popover's only focusable content, so the ring had nothing to
+      // disambiguate, and the caret and placeholder already say where typing
+      // goes. The row's `border-b` is the affordance, which is what shadcn
+      // ships and what every combobox looks like.
       className={cn(
-        "flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none focus-visible:outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}

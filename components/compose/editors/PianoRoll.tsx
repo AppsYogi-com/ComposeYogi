@@ -4,21 +4,34 @@ import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { ZoomIn, ZoomOut, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
-import { SNAP_BEATS, scalePitchClasses, snapStepBeats } from '@/lib/music';
+import {
+    HIGHEST_PITCH,
+    LOWEST_PITCH,
+    SNAP_BEATS,
+    isPlayablePitch,
+    pitchName,
+    scalePitchClasses,
+    snapStepBeats,
+} from '@/lib/music';
 import { SnapSelect } from '../SnapSelect';
 import { DefaultVelocityControl } from './DefaultVelocityControl';
 import { VelocityLane } from './VelocityLane';
 import { Button } from '@/components/ui/button';
+import { useTrackPreview } from '@/hooks/useTrackPreview';
 import type { Clip, Note } from '@/types';
-import * as Tone from 'tone';
 
 // ============================================
 // Constants
 // ============================================
 
-const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const MIN_OCTAVE = 1;
-const MAX_OCTAVE = 7;
+// The range and the naming both come from `lib/music/pitch.ts` now. They used to
+// be here, and they were an octave out: the key column named MIDI 60 "C5" while
+// `_pitchToNoteName`, two hundred lines below, named the same pitch "C4" — so a
+// note's own name and the key beside it disagreed. The floor moved with it. The
+// old one was pitch 12, which is C0 at 16.35 Hz: below human hearing, below what
+// any laptop reproduces, and offered on the live keyboard under the label "C1".
+const MIN_PITCH = LOWEST_PITCH;
+const MAX_PITCH = HIGHEST_PITCH;
 const NOTE_HEIGHT = 14;
 /** Piano-key column width. The velocity lane's gutter matches it so the bars
  *  sit under the notes they belong to. */
@@ -41,12 +54,14 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const project = useProjectStore((s) => s.project);
     const setEditorFocused = useUIStore((s) => s.setEditorFocused);
     const defaultVelocity = useUIStore((s) => s.defaultVelocity);
+    // Auditions through the clip's own track, so it is the track's instrument
+    // and a muted track stays silent.
+    const preview = useTrackPreview(clip);
 
     const snap = useUIStore((s) => s.editorSnap);
     const setSnap = useUIStore((s) => s.setEditorSnap);
     const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
     const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
-    const [previewSynth, setPreviewSynth] = useState<Tone.PolySynth | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
     // Resize state
@@ -66,7 +81,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
     const totalBeats = clip.lengthBars * beatsPerBar;
 
     // Calculate grid dimensions
-    const totalNotes = (MAX_OCTAVE - MIN_OCTAVE + 1) * 12;
+    const totalNotes = MAX_PITCH + 1 - MIN_PITCH;
     const gridHeight = totalNotes * NOTE_HEIGHT;
     const clipWidth = totalBeats * pixelsPerBeat;
 
@@ -88,43 +103,12 @@ export function PianoRoll({ clip }: PianoRollProps) {
         return scaleNotes.has(noteIndex);
     }, [scaleNotes]);
 
-    // Initialize preview synth
-    useEffect(() => {
-        const synth = new Tone.PolySynth(Tone.Synth, {
-            oscillator: { type: 'triangle' },
-            envelope: {
-                attack: 0.02,
-                decay: 0.1,
-                sustain: 0.3,
-                release: 0.3,
-            },
-        }).toDestination();
-        synth.volume.value = -12;
-        setPreviewSynth(synth);
-
-        return () => {
-            synth.dispose();
-        };
-    }, []);
 
     // Convert MIDI pitch to row index (higher pitches at top)
-    const pitchToRow = useCallback((pitch: number) => {
-        const maxPitch = MAX_OCTAVE * 12 + 11;
-        return maxPitch - pitch;
-    }, []);
+    const pitchToRow = useCallback((pitch: number) => MAX_PITCH - pitch, []);
 
     // Convert row index to MIDI pitch
-    const rowToPitch = useCallback((row: number) => {
-        const maxPitch = MAX_OCTAVE * 12 + 11;
-        return maxPitch - row;
-    }, []);
-
-    // Get note name from pitch
-    const _pitchToNoteName = useCallback((pitch: number) => {
-        const octave = Math.floor(pitch / 12) - 1;
-        const noteIndex = pitch % 12;
-        return `${NOTE_NAMES[noteIndex]}${octave}`;
-    }, []);
+    const rowToPitch = useCallback((row: number) => MAX_PITCH - row, []);
 
     // Snap value to grid. Snapping off leaves the value exactly where the
     // pointer was, which is the whole point of the setting.
@@ -148,7 +132,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
         const row = Math.floor(y / NOTE_HEIGHT);
         const pitch = rowToPitch(row);
 
-        if (pitch < MIN_OCTAVE * 12 || pitch > MAX_OCTAVE * 12 + 11) return;
+        if (!isPlayablePitch(pitch)) return;
 
         // Bounds check: don't allow notes beyond clip length
         if (beat >= totalBeats) return;
@@ -177,12 +161,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 return next;
             });
 
-            if (previewSynth) {
-                previewSynth.triggerAttackRelease(
-                    Tone.Frequency(existingNote.pitch, 'midi').toNote(),
-                    existingNote.duration * (60 / (project?.bpm || 120))
-                );
-            }
+            preview(existingNote.pitch, existingNote.velocity);
         } else {
             // Add new note (toggle on)
             const maxDuration = totalBeats - beat;
@@ -197,28 +176,18 @@ export function PianoRoll({ clip }: PianoRollProps) {
                 velocity: defaultVelocity,
             });
 
-            if (newNote && previewSynth) {
-                previewSynth.triggerAttackRelease(
-                    Tone.Frequency(pitch, 'midi').toNote(),
-                    noteStepBeats * (60 / (project?.bpm || 120))
-                );
-            }
+            if (newNote) preview(pitch);
         }
     }, [
         noteStepBeats, pixelsPerBeat, clip.id, clip.notes, totalBeats,
         pitchToRow, rowToPitch, snapToGrid, addNote,
-        previewSynth, project?.bpm, isDragging, defaultVelocity
+        preview, isDragging, defaultVelocity
     ]);
 
     // Handle key preview
     const handleKeyClick = useCallback((pitch: number) => {
-        if (previewSynth) {
-            previewSynth.triggerAttackRelease(
-                Tone.Frequency(pitch, 'midi').toNote(),
-                '8n'
-            );
-        }
-    }, [previewSynth]);
+        preview(pitch);
+    }, [preview]);
 
     /** Double-click removes a note. Single click selects it. */
     const handleGridDoubleClick = useCallback((e: React.MouseEvent) => {
@@ -321,13 +290,9 @@ export function PianoRoll({ clip }: PianoRollProps) {
     // Generate piano keys
     const keys = useMemo(() => {
         const result = [];
-        for (let octave = MAX_OCTAVE; octave >= MIN_OCTAVE; octave--) {
-            for (let i = 11; i >= 0; i--) {
-                const pitch = octave * 12 + i;
-                const noteName = NOTE_NAMES[i];
-                const isBlack = noteName.includes('#');
-                result.push({ pitch, noteName, octave, isBlack });
-            }
+        for (let pitch = MAX_PITCH; pitch >= MIN_PITCH; pitch--) {
+            const name = pitchName(pitch);
+            result.push({ pitch, name, isBlack: name.includes('#') });
         }
         return result;
     }, []);
@@ -394,9 +359,9 @@ export function PianoRoll({ clip }: PianoRollProps) {
                     style={{ width: KEY_COLUMN_WIDTH, scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     <div className="flex flex-col" style={{ height: gridHeight }}>
-                        {keys.map(({ pitch, noteName, octave, isBlack }) => (
+                        {keys.map(({ pitch, name, isBlack }) => (
                             <button
-                                aria-label={`${noteName}${octave}`}
+                                aria-label={name}
                                 key={pitch}
                                 className={`
                                     flex-shrink-0 flex items-center justify-end pr-1.5 text-2xs font-medium transition-all
@@ -410,7 +375,7 @@ export function PianoRoll({ clip }: PianoRollProps) {
                                 style={{ height: NOTE_HEIGHT }}
                                 onClick={() => handleKeyClick(pitch)}
                             >
-                                {noteName === 'C' ? `C${octave}` : ''}
+                                {name.startsWith('C') && !isBlack ? name : ''}
                             </button>
                         ))}
                     </div>

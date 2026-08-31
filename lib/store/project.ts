@@ -9,6 +9,7 @@ import { v4 as uuid } from 'uuid';
 import { MACRO_NEUTRAL } from '@/lib/audio/clip-macros';
 import { vibeById } from '@/lib/music';
 import { loadDemoTemplate } from '@/lib/templates';
+import type { SynthPresetId } from '@/lib/audio/synth-presets';
 import type {
     Project,
     Track,
@@ -121,6 +122,32 @@ const getNextTrackColor = (tracks: Track[]): TrackColor => {
     const usedColors = tracks.map(t => t.color);
     const availableColor = TRACK_COLORS.find(c => !usedColors.includes(c));
     return availableColor || TRACK_COLORS[tracks.length % TRACK_COLORS.length];
+};
+
+/**
+ * The instrument a new track starts on, by its role.
+ *
+ * Typed `Record<TrackColor, SynthPresetId>` rather than `Record<string, string>`,
+ * which is what it was: every role must name a default, and every default must
+ * name a preset that exists. As loose strings a typo compiled fine and fell
+ * through to a fallback at runtime, so a track would silently open on the wrong
+ * instrument — the same class of silent-list failure as the reschedule hash.
+ *
+ * `melody` was `saw-lead` until v1.4: a raw sawtooth held at 60% sustain, which
+ * is a soloing sound and an aggressive thing to hand someone who has just drawn
+ * their first four notes. A pluck decays (`sustain: 0`), so an overlapping first
+ * part comes out as music rather than a wall.
+ */
+const DEFAULT_PRESET_FOR_COLOR: Record<TrackColor, SynthPresetId> = {
+    drums: 'drum-sampler',
+    bass: 'synth-bass',
+    // The app's piano, since 8.7.6f. `electric-piano` is a bare sine and was the
+    // default here — so a new Keys track started on the one waveform with
+    // nothing below its fundamental for a speaker to find.
+    keys: 'grand-piano',
+    melody: 'pluck-synth',
+    fx: 'warm-pad',
+    vocals: 'basic-synth',
 };
 
 // ============================================
@@ -257,16 +284,6 @@ const projectStoreBase = (
         const maxOrder = tracks.length > 0 ? Math.max(...tracks.map(t => t.order)) : -1;
         const trackColor = color || getNextTrackColor(tracks);
 
-        // Assign a default instrument preset based on track color
-        const defaultPresetForColor: Record<string, string> = {
-            drums: 'drum-sampler',
-            bass: 'synth-bass',
-            keys: 'electric-piano',
-            melody: 'saw-lead',
-            fx: 'warm-pad',
-            vocals: 'basic-synth',
-        };
-
         const newTrack: Track = {
             id: uuid(),
             projectId: state.project.id,
@@ -279,7 +296,7 @@ const projectStoreBase = (
             solo: false,
             armed: false,
             order: maxOrder + 1,
-            instrumentPreset: defaultPresetForColor[trackColor] || 'basic-synth',
+            instrumentPreset: DEFAULT_PRESET_FOR_COLOR[trackColor],
         };
 
         set((s) => ({

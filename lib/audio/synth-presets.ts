@@ -13,9 +13,11 @@
 // specs alongside the factories would have been a second source of truth for 52
 // sounds, drifting the first time anyone edited one, so the factories are gone.
 //
-// The 12 drum kits stay bespoke: Samplers, MembraneSynths and a NoiseSynth are a
-// different construction with a different parameter space, and a custom drum kit
-// is a different feature (a kit is a mapping of pieces, not a voice).
+// The six *synthesised* drum presets are built the same way, from `DrumSpec`s —
+// a MembraneSynth is a voice with four parameters, which is what a spec is for.
+// The six `Tone.Sampler` kits stay bespoke: they load WAV files, so there is no
+// oscillator or envelope to name, and a kit is a mapping of pieces rather than a
+// voice.
 //
 // This file knows nothing about custom instruments — see `custom-instruments.ts`.
 // User content is resolved one layer up, in the scheduler, so the built-in
@@ -23,10 +25,12 @@
 
 import * as Tone from 'tone';
 
-import { voiceOptions } from './instrument-spec';
+import { DRUM_KITS, kitUrls, type DrumKitId } from './drum-kits';
+
+import { drumVoiceOptions, isDrumSpec, voiceOptions } from './instrument-spec';
 import { PRESET_SPECS } from './preset-specs';
 
-import type { InstrumentSpec, InstrumentVoice } from '@/types';
+import type { AnyInstrumentSpec, DrumSpec, InstrumentSpec, InstrumentVoice } from '@/types';
 
 // ============================================
 // Types
@@ -104,132 +108,111 @@ export function createVoice(spec: InstrumentSpec | null | undefined): Tone.PolyS
     return synth;
 }
 
+/**
+ * Build a percussion voice from a spec — the drum half of `createVoice`, and
+ * the only place one of the six synthesised kits is constructed.
+ *
+ * Neither class is wrapped in a PolySynth, unlike every melodic voice. A
+ * MembraneSynth retriggers cleanly on its own and a kit lane plays one hit at a
+ * time, so the wrapper would add voice allocation to something that has never
+ * needed it — and it would change the class the scheduler branches on, which is
+ * how a NoiseSynth would start being handed a pitch it does not have.
+ *
+ * Constructed by a branch rather than from a map: the two option shapes have
+ * nothing in common, so a map would be a map plus two casts.
+ */
+export function createDrumVoice(spec: DrumSpec): Tone.MembraneSynth | Tone.NoiseSynth {
+    const options = drumVoiceOptions(spec);
+
+    const synth = spec.voice === 'noise'
+        ? new Tone.NoiseSynth(options as ConstructorParameters<typeof Tone.NoiseSynth>[0])
+        : new Tone.MembraneSynth(options as ConstructorParameters<typeof Tone.MembraneSynth>[0]);
+
+    if (spec.level !== 0) synth.volume.value = spec.level;
+    return synth;
+}
+
+/**
+ * A voice from either kind of spec.
+ *
+ * The single dispatch point, so the built-in library and the custom-instrument
+ * registry cannot disagree about what a spec means — the same reason the
+ * scheduler is the single place a clip becomes sound.
+ */
+export function createSpecVoice(spec: AnyInstrumentSpec | null | undefined): SynthType {
+    if (!spec) return createVoice(spec);
+    return isDrumSpec(spec) ? createDrumVoice(spec) : createVoice(spec);
+}
+
 /** A built-in preset's `createSynth`, resolved from its spec at call time. */
 const fromSpec = (presetId: string) => (): SynthType =>
-    createVoice((PRESET_SPECS as Record<string, InstrumentSpec | null>)[presetId]);
+    createSpecVoice((PRESET_SPECS as Record<string, AnyInstrumentSpec | null>)[presetId]);
 
 // ============================================
-// Synth Factory Functions
+// Sampler Factories — the six kits that are not specs
 // ============================================
 
-// Drum Sampler - Maps GM drum pitches to actual samples
-// GM Drum mapping: 36=kick, 38=snare, 42=closed hat, 46=open hat, 37=rim, 39=clap
-const createDrumSampler = (): Tone.Sampler => {
-    const sampler = new Tone.Sampler({
-        urls: {
-            // Kicks (GM: 35-36)
-            C1: 'kick-deep.wav',      // 36 - Kick
-            B0: 'kick-808.wav',       // 35 - Acoustic Bass Drum
-            // Snares (GM: 38-40)
-            D1: 'snare-crisp.wav',    // 38 - Snare
-            E1: 'snare-clap.wav',     // 40 - Electric Snare / Clap
-            // Rim (GM: 37)
-            'C#1': 'perc-rim.wav',    // 37 - Side Stick
-            // Hi-hats (GM: 42, 44, 46)
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            // Shaker
-            'D#2': 'perc-shaker.wav',  // 51 - Ride Cymbal (using shaker)
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.5,
-    });
-    return sampler;
-};
+// ============================================
+// The six kits, and the octave they all had wrong
+// ============================================
+//
+// **Every kit is keyed by MIDI number, never by note name.** That is the whole
+// fix for a bug that shipped from v1.0 until Sprint 8.7.6i, and the reason is
+// arithmetic rather than taste: Tone parses a note name as
+// `index + (octave + 1) * 12`, so `C1` is MIDI **24**, while General MIDI's
+// kick is **36**. Every kit here was written as `C1: 'kick-deep.wav'` with a
+// `// 36 - Kick` comment beside it, so the samples sat a full octave below the
+// pitches the sequencer, the templates and the piano roll all write.
+//
+// What that sounded like, measured against the bundled Tone's own buffer
+// registry: `Tone.Sampler` repitches from the nearest buffer it has, so a kick
+// at 36 found `A#1` (34) and played **hihat-open.wav** two semitones sharp, a
+// snare at 38 found `D#2` (39) and played **perc-shaker.wav**, and every hat,
+// cymbal, tom and cowbell above 40 played that same 2.7 KB shaker at a
+// different speed. Seven of the nine loaded samples were unreachable. Every
+// demo template's drum track — the first thing a visitor hears — was a
+// hi-hat, a shaker, and a shaker.
+//
+// Note names are how it happened, so note names are gone. `SamplesMap` takes
+// `[midi: number]` as a first-class key, and `DRUM_PITCH` names the slots from
+// the one catalogue in `lib/music/percussion.ts`, so a kit cannot drift from
+// the sequencer's rows without failing to compile.
+//
+// ============================================
+// Ten samples against General MIDI's forty-seven slots
+// ============================================
+//
+// Everything the demo templates play is mapped exactly. `Tone.Sampler`
+// repitches its nearest neighbour for the rest, which is what a small kit does
+// — but **a slot gets an explicit mapping only when a sample genuinely is that
+// sound**, because `_findClosest` walks outward from the pitch asked for and a
+// sample in the wrong slot poisons every neighbour around it.
+//
+// The shaker used to sit on the **ride**, where the original author left it
+// with a `// using shaker` comment. That one lie cost the whole top half of the
+// kit: crash, china, ride bell, splash, tambourine, cowbell and every latin
+// slot found the shaker before they found anything else. It is on **Maracas
+// (70)** now, which is what a shaker is, and the cymbals re-point at
+// `hihat-open` — a cymbal for a cymbal — while 61-81 keep the shaker.
+//
+// The ride is deliberately **not** mapped. An open hat repitched a fifth up is
+// at least a different sound in the right family; naming it the ride would make
+// that row an exact duplicate of the open hat's. Toms, crashes and rides have
+// no samples of their own — that is a content gap, not a mapping one.
 
-// Punchy Drum - Fully synthesized punchy kit with its own unique samples
-const createPunchyKit = (): Tone.Sampler => {
+/**
+ * Build one of the six sampled kits.
+ *
+ * One function against six near-identical factories: what a kit *is* — its
+ * files, its folder, its release — is data in `drum-kits.ts`, where a test can
+ * read it. All that is left here is handing it to Tone.
+ */
+const createKit = (id: DrumKitId) => (): Tone.Sampler => {
+    const kit = DRUM_KITS[id];
     return new Tone.Sampler({
-        urls: {
-            C1: 'kick-punchy.wav',     // 36 - Kick (tight punchy)
-            B0: 'kick-sub.wav',        // 35 - Bass Drum (sub)
-            D1: 'snare-punchy.wav',    // 38 - Snare (punchy)
-            E1: 'snare-clap.wav',      // 40 - Clap
-            'C#1': 'perc-rim.wav',     // 37 - Rim shot
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51 - Shaker
-        },
-        baseUrl: '/samples/drums-punchy/',
-        release: 0.3,
-    });
-};
-
-// 808 Kit - Deep sub kick, clap snare, tight hats
-const create808Kit = (): Tone.Sampler => {
-    return new Tone.Sampler({
-        urls: {
-            C1: 'kick-808.wav',       // 36 - Kick (808)
-            B0: 'kick-808.wav',       // 35 - Bass Drum
-            D1: 'snare-clap.wav',     // 38 - Snare (clap)
-            E1: 'snare-clap.wav',     // 40 - Electric Snare
-            'C#1': 'perc-rim.wav',    // 37 - Side Stick
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.5,
-    });
-};
-
-// Acoustic Kit - Natural, punchy acoustic sounds
-const createAcousticKit = (): Tone.Sampler => {
-    return new Tone.Sampler({
-        urls: {
-            C1: 'kick-deep.wav',       // 36 - Kick (deep acoustic)
-            B0: 'kick-punchy.wav',     // 35 - Bass Drum (punchy)
-            D1: 'snare-crisp.wav',     // 38 - Snare (crisp acoustic)
-            E1: 'snare-crisp.wav',     // 40 - Electric Snare
-            'C#1': 'perc-rim.wav',     // 37 - Side Stick
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.5,
-    });
-};
-
-// Lo-Fi Kit - Muted, dusty character
-const createLoFiKit = (): Tone.Sampler => {
-    return new Tone.Sampler({
-        urls: {
-            C1: 'kick-deep.wav',       // 36 - Kick (muffled deep)
-            B0: 'kick-deep.wav',       // 35 - Bass Drum
-            D1: 'snare-lofi.wav',      // 38 - Snare (lo-fi)
-            E1: 'snare-clap.wav',      // 40 - Clap
-            'C#1': 'perc-rim.wav',     // 37 - Side Stick
-            'F#1': 'hihat-pedal.wav',  // 42 - Closed Hi-Hat (muted pedal)
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.3,
-    });
-};
-
-// Electronic Kit - Punchy, tight, modern
-const createElectronicKit = (): Tone.Sampler => {
-    return new Tone.Sampler({
-        urls: {
-            C1: 'kick-punchy.wav',     // 36 - Kick (punchy)
-            B0: 'kick-808.wav',        // 35 - Bass Drum (808 sub)
-            D1: 'snare-clap.wav',      // 38 - Snare (clap)
-            E1: 'snare-crisp.wav',     // 40 - Electric Snare
-            'C#1': 'perc-rim.wav',     // 37 - Side Stick
-            'F#1': 'hihat-closed.wav', // 42 - Closed Hi-Hat
-            'G#1': 'hihat-pedal.wav',  // 44 - Pedal Hi-Hat
-            'A#1': 'hihat-open.wav',   // 46 - Open Hi-Hat
-            'D#2': 'perc-shaker.wav',  // 51
-        },
-        baseUrl: '/samples/drums/',
-        release: 0.4,
+        urls: kitUrls(kit),
+        baseUrl: kit.baseUrl,
+        release: kit.release,
     });
 };
 
@@ -244,127 +227,12 @@ export async function waitForSynthReady(synth: SynthType): Promise<void> {
     // Other synth types are ready immediately
 }
 
-// ============================================
-// Mallet / Pitched Percussion
-// ============================================
-
-// ============================================
-// Plucked Strings
-// ============================================
-
-// ============================================
-// Bowed Strings
-// ============================================
-
-// ============================================
-// Woodwinds
-// ============================================
-
-// ============================================
-// Brass
-// ============================================
-
-// Synth Drum Kit — punchier, more tonal variety than Classic Drum
-const createSynthDrumKit = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.08,
-        octaves: 6,
-        oscillator: { type: 'triangle' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.25,
-            sustain: 0,
-            release: 0.08,
-        },
-    });
-};
-
-// Legacy drum synth for fallback (simpler, no samples needed)
-const createDrumSynth = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.05,
-        octaves: 4,
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.4,
-            sustain: 0,
-            release: 0.1,
-        },
-    });
-};
-
-// Bongos — high-pitched pair of hand drums, short tonal decay
-const createBongos = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.03,
-        octaves: 3,
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.15,
-            sustain: 0,
-            release: 0.05,
-        },
-    });
-};
-
-// Wooden Block — sharp, clicky percussive crack
-const createWoodenBlock = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.008,
-        octaves: 2,
-        oscillator: { type: 'square' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.06,
-            sustain: 0,
-            release: 0.02,
-        },
-    });
-};
-
-// ============================================
-// Basic Waveform Synths — pure oscillator PolySynths
-// ============================================
-
-// ============================================
-// Euphonium — warm, mellow low-brass PolySynth
-// ============================================
-
-// ============================================
-// Taiko — deep resonant Japanese drum (no samples)
-// ============================================
-
-const createTaiko = (): Tone.MembraneSynth => {
-    return new Tone.MembraneSynth({
-        pitchDecay: 0.08,
-        octaves: 4,
-        oscillator: { type: 'sine' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.6,
-            sustain: 0,
-            release: 0.4,
-        },
-    });
-};
-
-// ============================================
-// Maracas — shaker noise burst (no samples)
-// ============================================
-
-const createMaracas = (): Tone.NoiseSynth => {
-    return new Tone.NoiseSynth({
-        noise: { type: 'white' },
-        envelope: {
-            attack: 0.001,
-            decay: 0.05,
-            sustain: 0,
-            release: 0.02,
-        },
-    });
-};
+// Eight empty category banners used to sit here — Mallet, Plucked Strings,
+// Bowed Strings, Woodwinds, Brass, Basic Waveforms, Euphonium, and (until
+// 8.7.5b) Taiko and Maracas. Each one headed a factory that is now a spec in
+// `preset-specs.ts`, and a banner announcing a section with nothing in it says
+// the sounds live here when they do not. The categories themselves are still
+// real; they are in `SYNTH_PRESETS` below, which is where they belong.
 
 // ============================================
 // Preset Registry
@@ -376,6 +244,12 @@ const createMaracas = (): Tone.NoiseSynth => {
 // literal ids, which is what makes INSTRUMENT_META provably exhaustive.
 export const SYNTH_PRESETS = {
     // Keys
+    'grand-piano': {
+        id: 'grand-piano',
+        name: 'Grand Piano',
+        category: 'keys',
+        createSynth: fromSpec('grand-piano'),
+    },
     'electric-piano': {
         id: 'electric-piano',
         name: 'Electric Piano',
@@ -689,78 +563,78 @@ export const SYNTH_PRESETS = {
         createSynth: fromSpec('guzheng'),
     },
 
-    // Drums (special case)
+    // Drums — the six below are specs; the six samplers after them are not
     'synth-drum-kit': {
         id: 'synth-drum-kit',
         name: 'Synth Drum Kit',
         category: 'drums',
-        createSynth: createSynthDrumKit,
+        createSynth: fromSpec('synth-drum-kit'),
     },
     'drum-synth': {
         id: 'drum-synth',
         name: 'Classic Drum',
         category: 'drums',
-        createSynth: createDrumSynth,
+        createSynth: fromSpec('drum-synth'),
     },
     'drum-sampler': {
         id: 'drum-sampler',
         name: 'Drum Kit',
         category: 'drums',
-        createSynth: createDrumSampler,
+        createSynth: createKit('drum-sampler'),
     },
     'punchy-kit': {
         id: 'punchy-kit',
         name: 'Punchy Drum',
         category: 'drums',
-        createSynth: createPunchyKit,
+        createSynth: createKit('punchy-kit'),
     },
     '808-kit': {
         id: '808-kit',
         name: '808 Kit',
         category: 'drums',
-        createSynth: create808Kit,
+        createSynth: createKit('808-kit'),
     },
     'acoustic-kit': {
         id: 'acoustic-kit',
         name: 'Acoustic Kit',
         category: 'drums',
-        createSynth: createAcousticKit,
+        createSynth: createKit('acoustic-kit'),
     },
     'lofi-kit': {
         id: 'lofi-kit',
         name: 'Lo-Fi Kit',
         category: 'drums',
-        createSynth: createLoFiKit,
+        createSynth: createKit('lofi-kit'),
     },
     'electronic-kit': {
         id: 'electronic-kit',
         name: 'Electronic Kit',
         category: 'drums',
-        createSynth: createElectronicKit,
+        createSynth: createKit('electronic-kit'),
     },
     'bongos': {
         id: 'bongos',
         name: 'Bongos',
         category: 'drums',
-        createSynth: createBongos,
+        createSynth: fromSpec('bongos'),
     },
     'wooden-block': {
         id: 'wooden-block',
         name: 'Wooden Block',
         category: 'drums',
-        createSynth: createWoodenBlock,
+        createSynth: fromSpec('wooden-block'),
     },
     'taiko': {
         id: 'taiko',
         name: 'Taiko',
         category: 'drums',
-        createSynth: createTaiko,
+        createSynth: fromSpec('taiko'),
     },
     'maracas': {
         id: 'maracas',
         name: 'Maracas',
         category: 'drums',
-        createSynth: createMaracas,
+        createSynth: fromSpec('maracas'),
     },
 
     // Basic Waveform Synths

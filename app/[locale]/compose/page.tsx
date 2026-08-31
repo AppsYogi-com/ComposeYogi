@@ -15,6 +15,7 @@ import { EditorPanel, EditorCollapsedBar } from '@/components/compose/EditorPane
 import { TrackList } from '@/components/compose/TrackList';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AudioVisualizer, VisualizerCollapsedBar } from '@/components/compose/AudioVisualizer';
+import { LivePlayBar } from '@/components/compose/LivePlayBar';
 import { LatencyCalibrationModal } from '@/components/compose/LatencyCalibrationModal';
 import { ProjectSelector } from '@/components/compose/ProjectSelector';
 import { useAutosave, useShortcut, useLoadKeyBindings, usePersistKeyBindings } from '@/hooks';
@@ -84,10 +85,12 @@ function ComposePageContent() {
     const editorOpen = useUIStore((s) => s.editorOpen);
     const editorFocused = useUIStore((s) => s.editorFocused);
     const visualizerOpen = useUIStore((s) => s.visualizerOpen);
+    const livePlayOpen = useUIStore((s) => s.livePlayOpen);
     const toggleBrowser = useUIStore((s) => s.toggleBrowser);
     const toggleInspector = useUIStore((s) => s.toggleInspector);
     const toggleEditor = useUIStore((s) => s.toggleEditor);
     const toggleVisualizer = useUIStore((s) => s.toggleVisualizer);
+    const toggleLivePlay = useUIStore((s) => s.toggleLivePlay);
     const setScrollX = useUIStore((s) => s.setScrollX);
     const zoomIn = useUIStore((s) => s.zoomIn);
     const zoomOut = useUIStore((s) => s.zoomOut);
@@ -222,8 +225,17 @@ function ComposePageContent() {
     // Sync mixer state (volume, pan, mute, solo) — ramps existing nodes instead
     // of tearing down and rebuilding the schedule, so faders and solo are
     // instant and never interrupt playback.
+    //
+    // **Deliberately not gated on `isAudioReady`.** It is safe before the audio
+    // graph exists — every write is a `?.` on a chain that is not there yet —
+    // and running it anyway is what hands the manager the track list. A chain is
+    // created lazily by whoever asks for a track's input first, and on a page
+    // where nothing has played that is the live keyboard or an editor's preview.
+    // Without the list those chains were born at the raw fader value, so a muted
+    // track's preview was audible. `isAudioReady` stays in the deps so the real
+    // gains are applied the moment the graph does exist.
     useEffect(() => {
-        if (project && isAudioReady) {
+        if (project) {
             playoutManager.applyMixState(project.tracks);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -336,6 +348,14 @@ function ComposePageContent() {
     // V: Toggle visualizer
     useShortcut('view.toggleVisualizer', () => toggleVisualizer(), [toggleVisualizer]);
 
+    // `alwaysEnabled`, alone in the app: every other single-letter shortcut
+    // stands down while musical typing has the keyboard, and this is the one
+    // that has to keep working — a mode you can enter and not leave is worse
+    // than no mode. `K` is not on the typing layout, so nothing is lost.
+    useShortcut('view.toggleLivePlay', () => toggleLivePlay(), [toggleLivePlay], {
+        alwaysEnabled: true,
+    });
+
     // +/= : Zoom in
     useShortcut('view.zoomIn', () => zoomIn(), [zoomIn]);
 
@@ -419,6 +439,14 @@ function ComposePageContent() {
                     <ErrorBoundary area="arrangement" messages={boundaryMessages}>
                         <TrackList />
                     </ErrorBoundary>
+
+                    {/* Live playing. A mode rather than a panel, so it leaves
+                        nothing behind when it is off — see LivePlayBar. */}
+                    {livePlayOpen && (
+                        <ErrorBoundary area="arrangement" messages={boundaryMessages}>
+                            <LivePlayBar />
+                        </ErrorBoundary>
+                    )}
 
                     {/* Audio Visualizer */}
                     <ErrorBoundary area="visualizer" messages={boundaryMessages}>

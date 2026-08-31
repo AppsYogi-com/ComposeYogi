@@ -11,23 +11,48 @@ const logger = createLogger('Recording');
 import { audioRecorder, RecordedSegment, LoopBoundaries } from './recorder';
 import { audioEngine } from './engine';
 import { latencyCalibrator } from './latency-calibration';
+import { livePlayEngine } from './live-play';
+import { clipBarsForNotes, notesFromPerformance, type PerformedNote } from './midi-take';
 import { useProjectStore } from '@/lib/store/project';
 import { usePlaybackStore, playbackRefs } from '@/lib/store/playback';
 import { autosaveManager } from '@/lib/persistence';
-import type { Clip, AudioTake, PeaksCache } from '@/types';
+import type { Clip, AudioTake, Note, PeaksCache, TrackType } from '@/types';
 
 // ============================================
 // Types
 // ============================================
 
+/**
+ * What a take is capturing.
+ *
+ * `audio` opens the microphone; `midi` opens nothing at all and remembers what
+ * was played instead. The distinction is taken from the armed track's type
+ * rather than from a setting, because a MIDI track has nothing to record from a
+ * microphone and an audio track has no instrument to play — there is only ever
+ * one right answer, and asking would be asking the user to restate it.
+ *
+ * It also decides whether the browser asks for the microphone at all. Arming a
+ * MIDI track and pressing record used to be impossible; making it possible
+ * without this branch would have raised a mic permission prompt to record
+ * something no microphone is involved in.
+ */
+type RecordingMode = 'audio' | 'midi';
+
 interface RecordingSession {
     trackId: string;
+    mode: RecordingMode;
     startBar: number;
     startTime: number;
     isActive: boolean;
 }
 
-type RecordingCompleteCallback = (clip: Clip, take: AudioTake) => void;
+/** Audio tracks record audio; MIDI and drum tracks record what was played. */
+function modeForTrackType(type: TrackType): RecordingMode {
+    return type === 'audio' ? 'audio' : 'midi';
+}
+
+/** `take` is null for a MIDI take — there is no audio to hand back, only notes. */
+type RecordingCompleteCallback = (clip: Clip, take: AudioTake | null) => void;
 
 // ============================================
 // Audio Takes Storage (in-memory, will be persisted to IndexedDB)
@@ -140,8 +165,14 @@ class RecordingManager {
             throw new Error('No project loaded');
         }
 
+        const track = project.tracks.find((t) => t.id === trackId);
+        if (!track) {
+            throw new Error('Armed track is not in the project');
+        }
+        const mode = modeForTrackType(track.type);
+
         // Set loop boundaries for auto-trim
-        if (playbackState.loopEnabled) {
+        if (mode === 'audio' && playbackState.loopEnabled) {
             const loopBoundaries: LoopBoundaries = {
                 startTime: audioEngine.barToSeconds(playbackState.loopStartBar),
                 endTime: audioEngine.barToSeconds(playbackState.loopEndBar),
@@ -233,6 +264,7 @@ class RecordingManager {
 
         this.session = {
             trackId,
+            mode,
             startBar,
             startTime,
             isActive: true,
@@ -249,7 +281,16 @@ class RecordingManager {
             countInBeats: 0,
         });
 
-        logger.info('Recording started', { trackId, startBar, startTime });
+        logger.info('Recording started', { trackId, mode, startBar, startTime });
+
+        if (mode === 'midi') {
+            // Nothing to open and nothing to await: the notes are already
+            // arriving at the live voice, and this only starts remembering them.
+            // Started *after* the transport, so the first note is stamped
+            // against a clock that is running.
+            livePlayEngine.startCapture();
+            return;
+        }
 
         // Start the recorder with the ACTUAL transport time
         await audioRecorder.start(startTime, (segment) => {
@@ -292,6 +333,7 @@ class RecordingManager {
     async stopRecording(): Promise<RecordedSegment | null> {
         // Still counting in: no session, no audio, nothing to keep.
         if (this.abortCountIn() && !this.session?.isActive) {
+            livePlayEngine.cancelCapture();
             audioEngine.stop();
             this.onComplete = null;
             usePlaybackStore.getState().stopRecording();
@@ -305,6 +347,19 @@ class RecordingManager {
 
         // DON'T mark session as inactive yet - handleRecordingComplete needs it
         // The session will be cleared by handleRecordingComplete after creating the clip
+
+        if (this.session.mode === 'midi') {
+            // Read the performance *before* stopping the transport: held notes
+            // are closed at the transport's current position, and a transport
+            // already stopped and rewound reports 0, which would give every
+            // note still down a negative duration.
+            this.handlePerformanceComplete(livePlayEngine.stopCapture());
+
+            audioEngine.stop();
+            usePlaybackStore.getState().stopRecording();
+            usePlaybackStore.getState().stop();
+            return null;
+        }
 
         // Stop recorder - this returns the segment and triggers the callback
         // which calls handleRecordingComplete
@@ -330,12 +385,15 @@ class RecordingManager {
             return;
         }
 
+        const mode = this.session?.mode ?? 'audio';
+
         this.abortCountIn();
         this.session = null;
         this.onComplete = null;
 
         // Stop recorder without processing
-        await audioRecorder.stop();
+        livePlayEngine.cancelCapture();
+        if (mode === 'audio') await audioRecorder.stop();
         usePlaybackStore.getState().stopRecording();
 
     }
@@ -343,6 +401,71 @@ class RecordingManager {
     // ========================================
     // Private Methods
     // ========================================
+
+    /**
+     * A performance becomes a clip.
+     *
+     * The MIDI counterpart of `handleRecordingComplete`, and deliberately its
+     * sibling rather than a branch inside it: the two share a session and a
+     * start bar and nothing else — one writes an ArrayBuffer to IndexedDB and
+     * the other writes notes into the project, and folding them together would
+     * mean a function whose every line is inside an `if`.
+     *
+     * Nothing is quantized and nothing is latency-compensated — see
+     * `midi-take.ts`, which is where both decisions are argued.
+     */
+    private handlePerformanceComplete(performed: PerformedNote[]): void {
+        if (!this.session) {
+            logger.warn('No session when completing a performance');
+            return;
+        }
+
+        const { trackId, startBar, startTime } = this.session;
+        this.session = null;
+
+        const projectStore = useProjectStore.getState();
+        const project = projectStore.project;
+        if (!project) {
+            logger.error('No project when completing a performance');
+            this.onComplete = null;
+            return;
+        }
+
+        const notes = notesFromPerformance(performed, startTime, project.bpm);
+
+        // Played nothing, so nothing is left behind. An empty clip would be a
+        // silent rectangle the user has to notice and delete, which is a worse
+        // outcome than the take simply not having happened.
+        if (notes.length === 0) {
+            logger.info('Performance captured no notes — no clip created');
+            this.onComplete = null;
+            return;
+        }
+
+        const track = project.tracks.find((t) => t.id === trackId);
+        const clipType = track?.type === 'drum' ? 'drum' : 'midi';
+        const lengthBars = clipBarsForNotes(notes, project.timeSignature[0]);
+
+        const clip = projectStore.addClip(
+            trackId,
+            clipType,
+            Math.max(0, Math.floor(startBar)),
+            lengthBars
+        );
+
+        // One update rather than a call per note: `addNote` writes the store —
+        // and a zundo history entry — each time, so a thirty-note take would be
+        // thirty undos deep and thirty renders long.
+        projectStore.updateClip(clip.id, {
+            notes: notes.map((note): Note => ({ id: uuidv4(), ...note })),
+            name: `${this.clipLabel} ${clockTime(new Date())}`,
+        });
+
+        logger.info('Performance recorded', { trackId, notes: notes.length, lengthBars });
+
+        this.onComplete?.(clip, null);
+        this.onComplete = null;
+    }
 
     private handleRecordingComplete(segment: RecordedSegment): void {
 

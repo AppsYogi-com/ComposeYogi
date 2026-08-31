@@ -17,6 +17,13 @@
 // starts as one of the 64 built-ins, which is both the far friendlier starting
 // point and the reason the sound is always already musical.
 //
+// One dialog, two control sets (8.7.5b). A drum has no brightness and no
+// sustain worth reaching for; a melodic voice has no pitch sweep. Rather than a
+// second dialog — which would have been two places to fix the next time a
+// control moves — the panel below asks the spec what kind it is and renders the
+// four controls that mean something for it. Everything else, name and preview
+// and revert and export and save, is shared because none of it differs.
+//
 // You hear every change. A control that commits re-auditions the note, because
 // a sound editor where you adjust in silence and press play afterwards is a
 // form, not an instrument.
@@ -40,19 +47,31 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import {
+    DRUM_OSCILLATOR_SHAPES,
+    DRUM_RANGES,
     ENVELOPE_RANGES,
     MACRO_RANGES,
+    NOISE_TYPES,
     OSCILLATOR_SHAPES,
+    TONE_MEMBRANE_DEFAULTS,
     audioEngine,
     buildInstrumentFromSpec,
     downloadInstrument,
     getSynthPresetName,
+    isDrumSpec,
     saveCustomInstrument,
     specForPreset,
 } from '@/lib/audio';
 import { cn } from '@/lib/utils';
 
-import type { CustomInstrument, EnvelopeSpec, InstrumentSpec } from '@/types';
+import type {
+    AnyInstrumentSpec,
+    CustomInstrument,
+    DrumSpec,
+    EnvelopeSpec,
+    InstrumentSpec,
+    NoiseSpec,
+} from '@/types';
 
 // ============================================
 // Constants
@@ -80,6 +99,47 @@ function envelopeToSlider(seconds: number, min: number, max: number): number {
 
 function sliderToEnvelope(position: number, min: number, max: number): number {
     return min + Math.pow(position / 100, ENVELOPE_CURVE) * (max - min);
+}
+
+/** One hit, at a pitch low enough to hear a kick's body and high enough that a
+ *  wooden block still reads as one. The melodic preview is a chord because a
+ *  chord is what tells you about a voice; for a drum, a chord tells you nothing
+ *  and one hit tells you everything. */
+const PREVIEW_DRUM_NOTE = 'C2';
+const PREVIEW_DRUM_DURATION = 0.5;
+
+/**
+ * Pitch: how far the membrane's pitch falls, as a 0-100 knob.
+ *
+ * Shown as a knob position rather than in octaves for the same reason
+ * Brightness is: these are macros, and "6" next to a caption reading Pitch
+ * invites the reading "six semitones", which is not what it is. Linear, because
+ * octaves are already a logarithmic unit.
+ */
+function octavesToSlider(octaves: number): number {
+    return Math.round((octaves / DRUM_RANGES.octaves.max) * 100);
+}
+
+function sliderToOctaves(position: number): number {
+    return (position / 100) * DRUM_RANGES.octaves.max;
+}
+
+/**
+ * Snap: how *fast* the pitch falls, as a 0-100 knob — and inverted, because the
+ * underlying `pitchDecay` runs the other way. A short pitch decay is the click
+ * at the front of a wooden block; a long one is a descending boom. A control
+ * called Snap whose high end was the least snappy would be a lie of the same
+ * kind this sprint spent its first half removing from the transport.
+ *
+ * On the envelope curve, not linear: the range is 1ms to 500ms, and half of
+ * what is audible in it happens below 50ms.
+ */
+function pitchDecayToSlider(pitchDecay: number): number {
+    return 100 - envelopeToSlider(pitchDecay, DRUM_RANGES.pitchDecay.min, DRUM_RANGES.pitchDecay.max);
+}
+
+function sliderToPitchDecay(position: number): number {
+    return sliderToEnvelope(100 - position, DRUM_RANGES.pitchDecay.min, DRUM_RANGES.pitchDecay.max);
 }
 
 // ============================================
@@ -147,7 +207,7 @@ export function InstrumentEditor({ instrument, onClose, onSaved }: InstrumentEdi
     );
 
     const [name, setName] = useState('');
-    const [spec, setSpec] = useState<InstrumentSpec | null>(null);
+    const [spec, setSpec] = useState<AnyInstrumentSpec | null>(null);
     const [showMore, setShowMore] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -194,7 +254,7 @@ export function InstrumentEditor({ instrument, onClose, onSaved }: InstrumentEdi
      * at construction. Rebuilding is a few hundred microseconds and is the only
      * version that always plays what the panel says.
      */
-    const audition = useCallback(async (next?: InstrumentSpec) => {
+    const audition = useCallback(async (next?: AnyInstrumentSpec) => {
         const playing = next ?? spec;
         if (!playing) return;
 
@@ -209,17 +269,38 @@ export function InstrumentEditor({ instrument, onClose, onSaved }: InstrumentEdi
         built.output.connect(gainRef.current);
         voiceRef.current = built;
 
-        built.synth.triggerAttackRelease([...PREVIEW_CHORD], PREVIEW_DURATION);
+        // Three signatures, one per class the spec can build — and the branch is
+        // on the node rather than on the spec, because it is the node's
+        // signature that differs: a NoiseSynth takes no pitch at all, and a
+        // MembraneSynth takes exactly one. This is the same branch the scheduler
+        // makes, for the same reason.
+        const { synth } = built;
+        if (synth instanceof Tone.NoiseSynth) {
+            synth.triggerAttackRelease(PREVIEW_DRUM_DURATION);
+        } else if (synth instanceof Tone.MembraneSynth) {
+            synth.triggerAttackRelease(PREVIEW_DRUM_NOTE, PREVIEW_DRUM_DURATION);
+        } else {
+            synth.triggerAttackRelease([...PREVIEW_CHORD], PREVIEW_DURATION);
+        }
     }, [spec, disposeVoice]);
 
     const update = useCallback((patch: Partial<InstrumentSpec>) => {
-        setSpec((current) => (current ? { ...current, ...patch } : current));
+        setSpec((current) => (current && !isDrumSpec(current) ? { ...current, ...patch } : current));
+    }, []);
+
+    /** The drum half of `update`. Two functions rather than one taking the union,
+     *  so a patch naming `brightness` cannot be applied to a drum — and cannot
+     *  compile. */
+    const updateDrum = useCallback((patch: Partial<DrumSpec>) => {
+        setSpec((current) => (current && isDrumSpec(current) ? { ...current, ...patch } : current));
     }, []);
 
     const updateEnvelope = useCallback((patch: Partial<EnvelopeSpec>) => {
-        setSpec((current) =>
-            current ? { ...current, envelope: { ...current.envelope, ...patch } } : current
-        );
+        setSpec((current) => {
+            if (!current) return current;
+            const envelope = { ...current.envelope, ...patch };
+            return isDrumSpec(current) ? { ...current, envelope } : { ...current, envelope };
+        });
     }, []);
 
     const baseName = useMemo(
@@ -254,6 +335,18 @@ export function InstrumentEditor({ instrument, onClose, onSaved }: InstrumentEdi
 
     if (!instrument || !spec) return null;
 
+    // The three shapes the panel below renders. Read once, so no control has to
+    // ask again and none can disagree with its neighbour about what is open.
+    const drum = isDrumSpec(spec) ? spec : null;
+    const melodic = isDrumSpec(spec) ? null : spec;
+    const membrane = drum?.voice === 'membrane' ? drum : null;
+    const noise = drum?.voice === 'noise' ? drum : null;
+
+    // Present on every membrane a preset or the parser can produce; the fallback
+    // is Tone's own default, which is what an absent field means anyway.
+    const octaves = membrane?.octaves ?? TONE_MEMBRANE_DEFAULTS.octaves;
+    const pitchDecay = membrane?.pitchDecay ?? TONE_MEMBRANE_DEFAULTS.pitchDecay;
+
     const isOpen = Boolean(instrument);
 
     return (
@@ -283,124 +376,234 @@ export function InstrumentEditor({ instrument, onClose, onSaved }: InstrumentEdi
                         )}
                     </Field>
 
-                    <Field label={t('wave')}>
-                        {({ id }) => (
-                            <Select
-                                value={spec.oscillator.type}
-                                onValueChange={(value) => {
-                                    const next: InstrumentSpec = {
-                                        ...spec,
-                                        // Replacing the shape drops `partials`,
-                                        // `width` and the fat-oscillator spread
-                                        // along with it — they belong to the
-                                        // wave that was there, and carrying them
-                                        // onto a sine is meaningless.
-                                        oscillator: { type: value },
-                                    };
-                                    setSpec(next);
-                                    void audition(next);
-                                }}
-                            >
-                                <SelectTrigger id={id} aria-label={t('wave')}>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {/* A preset may arrive on a shape the picker
-                                        does not list — `custom` additive organs,
-                                        for one. It is shown so the control names
-                                        what is actually playing rather than
-                                        silently reading as something else. */}
-                                    {!(OSCILLATOR_SHAPES as readonly string[]).includes(spec.oscillator.type) && (
-                                        <SelectItem value={spec.oscillator.type}>
-                                            {t('waveOriginal')}
-                                        </SelectItem>
+                    {/* The control set is chosen from the spec's kind, not from a
+                        second dialog. A drum has no brightness and no sustain to
+                        reach for; a melodic voice has no pitch sweep. */}
+                    {melodic && (
+                        <>
+                            <Field label={t('wave')}>
+                                {({ id }) => (
+                                    <Select
+                                        value={melodic.oscillator.type}
+                                        onValueChange={(value) => {
+                                            const next: InstrumentSpec = {
+                                                ...melodic,
+                                                // Replacing the shape drops `partials`,
+                                                // `width` and the fat-oscillator spread
+                                                // along with it — they belong to the
+                                                // wave that was there, and carrying them
+                                                // onto a sine is meaningless.
+                                                oscillator: { type: value },
+                                            };
+                                            setSpec(next);
+                                            void audition(next);
+                                        }}
+                                    >
+                                        <SelectTrigger id={id} aria-label={t('wave')}>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {/* A preset may arrive on a shape the picker
+                                                does not list — `custom` additive organs,
+                                                for one. It is shown so the control names
+                                                what is actually playing rather than
+                                                silently reading as something else. */}
+                                            {!(OSCILLATOR_SHAPES as readonly string[]).includes(melodic.oscillator.type) && (
+                                                <SelectItem value={melodic.oscillator.type}>
+                                                    {t('waveOriginal')}
+                                                </SelectItem>
+                                            )}
+                                            {OSCILLATOR_SHAPES.map((shape) => (
+                                                <SelectItem key={shape} value={shape}>
+                                                    {t(`waves.${shape}`)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </Field>
+
+                            <Field label={t('brightness')} value={`${Math.round(melodic.brightness)}`}>
+                                {({ labelledBy }) => (
+                                    <Slider
+                                        aria-labelledby={labelledBy}
+                                        min={MACRO_RANGES.brightness.min}
+                                        max={MACRO_RANGES.brightness.max}
+                                        step={1}
+                                        value={[melodic.brightness]}
+                                        onValueChange={([value]) => update({ brightness: value })}
+                                        onValueCommit={() => void audition()}
+                                    />
+                                )}
+                            </Field>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field label={t('attack')} value={formatSeconds(melodic.envelope.attack)}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={[envelopeToSlider(
+                                                melodic.envelope.attack,
+                                                ENVELOPE_RANGES.attack.min,
+                                                ENVELOPE_RANGES.attack.max
+                                            )]}
+                                            onValueChange={([value]) => updateEnvelope({
+                                                attack: sliderToEnvelope(
+                                                    value,
+                                                    ENVELOPE_RANGES.attack.min,
+                                                    ENVELOPE_RANGES.attack.max
+                                                ),
+                                            })}
+                                            onValueCommit={() => void audition()}
+                                        />
                                     )}
-                                    {OSCILLATOR_SHAPES.map((shape) => (
-                                        <SelectItem key={shape} value={shape}>
-                                            {t(`waves.${shape}`)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </Field>
+                                </Field>
 
-                    <Field label={t('brightness')} value={`${Math.round(spec.brightness)}`}>
-                        {({ labelledBy }) => (
-                            <Slider
-                                aria-labelledby={labelledBy}
-                                min={MACRO_RANGES.brightness.min}
-                                max={MACRO_RANGES.brightness.max}
-                                step={1}
-                                value={[spec.brightness]}
-                                onValueChange={([value]) => update({ brightness: value })}
-                                onValueCommit={() => void audition()}
-                            />
-                        )}
-                    </Field>
+                                <Field label={t('release')} value={formatSeconds(melodic.envelope.release)}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={[envelopeToSlider(
+                                                melodic.envelope.release,
+                                                ENVELOPE_RANGES.release.min,
+                                                ENVELOPE_RANGES.release.max
+                                            )]}
+                                            onValueChange={([value]) => updateEnvelope({
+                                                release: sliderToEnvelope(
+                                                    value,
+                                                    ENVELOPE_RANGES.release.min,
+                                                    ENVELOPE_RANGES.release.max
+                                                ),
+                                            })}
+                                            onValueCommit={() => void audition()}
+                                        />
+                                    )}
+                                </Field>
+                            </div>
+                        </>
+                    )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <Field label={t('attack')} value={formatSeconds(spec.envelope.attack)}>
-                            {({ labelledBy }) => (
-                                <Slider
-                                    aria-labelledby={labelledBy}
-                                    min={0}
-                                    max={100}
-                                    step={1}
-                                    value={[envelopeToSlider(
-                                        spec.envelope.attack,
-                                        ENVELOPE_RANGES.attack.min,
-                                        ENVELOPE_RANGES.attack.max
-                                    )]}
-                                    onValueChange={([value]) => updateEnvelope({
-                                        attack: sliderToEnvelope(
-                                            value,
-                                            ENVELOPE_RANGES.attack.min,
-                                            ENVELOPE_RANGES.attack.max
-                                        ),
-                                    })}
-                                    onValueCommit={() => void audition()}
-                                />
-                            )}
-                        </Field>
+                    {membrane && (
+                        <>
+                            <Field label={t('wave')}>
+                                {({ id }) => (
+                                    <Select
+                                        value={membrane.oscillator?.type ?? 'sine'}
+                                        onValueChange={(value) => {
+                                            const next: DrumSpec = { ...membrane, oscillator: { type: value } };
+                                            setSpec(next);
+                                            void audition(next);
+                                        }}
+                                    >
+                                        <SelectTrigger id={id} aria-label={t('wave')}>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {DRUM_OSCILLATOR_SHAPES.map((shape) => (
+                                                <SelectItem key={shape} value={shape}>
+                                                    {t(`waves.${shape}`)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </Field>
 
-                        <Field label={t('release')} value={formatSeconds(spec.envelope.release)}>
-                            {({ labelledBy }) => (
-                                <Slider
-                                    aria-labelledby={labelledBy}
-                                    min={0}
-                                    max={100}
-                                    step={1}
-                                    value={[envelopeToSlider(
-                                        spec.envelope.release,
-                                        ENVELOPE_RANGES.release.min,
-                                        ENVELOPE_RANGES.release.max
-                                    )]}
-                                    onValueChange={([value]) => updateEnvelope({
-                                        release: sliderToEnvelope(
-                                            value,
-                                            ENVELOPE_RANGES.release.min,
-                                            ENVELOPE_RANGES.release.max
-                                        ),
-                                    })}
-                                    onValueCommit={() => void audition()}
-                                />
-                            )}
-                        </Field>
-                    </div>
+                            <Field label={t('pitch')} value={`${octavesToSlider(octaves)}`}>
+                                {({ labelledBy }) => (
+                                    <Slider
+                                        aria-labelledby={labelledBy}
+                                        min={0}
+                                        max={100}
+                                        step={1}
+                                        value={[octavesToSlider(octaves)]}
+                                        onValueChange={([value]) => updateDrum({ octaves: sliderToOctaves(value) })}
+                                        onValueCommit={() => void audition()}
+                                    />
+                                )}
+                            </Field>
 
-                    <button
-                        onClick={() => setShowMore((open) => !open)}
-                        aria-expanded={showMore}
-                        className="flex w-full items-center gap-1.5 rounded px-1 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                        {showMore ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                        {t('more')}
-                    </button>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field label={t('decay')} value={formatSeconds(membrane.envelope.decay)}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={[envelopeToSlider(
+                                                membrane.envelope.decay,
+                                                ENVELOPE_RANGES.decay.min,
+                                                ENVELOPE_RANGES.decay.max
+                                            )]}
+                                            onValueChange={([value]) => updateEnvelope({
+                                                decay: sliderToEnvelope(
+                                                    value,
+                                                    ENVELOPE_RANGES.decay.min,
+                                                    ENVELOPE_RANGES.decay.max
+                                                ),
+                                            })}
+                                            onValueCommit={() => void audition()}
+                                        />
+                                    )}
+                                </Field>
 
-                    {showMore && (
-                        <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
-                            <Field label={t('decay')} value={formatSeconds(spec.envelope.decay)}>
+                                <Field label={t('snap')} value={`${pitchDecayToSlider(pitchDecay)}`}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={[pitchDecayToSlider(pitchDecay)]}
+                                            onValueChange={([value]) => updateDrum({ pitchDecay: sliderToPitchDecay(value) })}
+                                            onValueCommit={() => void audition()}
+                                        />
+                                    )}
+                                </Field>
+                            </div>
+                        </>
+                    )}
+
+                    {noise && (
+                        <>
+                            <Field label={t('noise')}>
+                                {({ id }) => (
+                                    <Select
+                                        value={noise.noise?.type ?? 'white'}
+                                        onValueChange={(value) => {
+                                            const next: DrumSpec = {
+                                                ...noise,
+                                                noise: { type: value as NoiseSpec['type'] },
+                                            };
+                                            setSpec(next);
+                                            void audition(next);
+                                        }}
+                                    >
+                                        <SelectTrigger id={id} aria-label={t('noise')}>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {NOISE_TYPES.map((type) => (
+                                                <SelectItem key={type} value={type}>
+                                                    {t(`noises.${type}`)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </Field>
+
+                            {/* No Pitch and no Snap: a noise burst has no oscillator to
+                                sweep. Rendering them disabled would say the shaker is
+                                missing something it could have. */}
+                            <Field label={t('decay')} value={formatSeconds(noise.envelope.decay)}>
                                 {({ labelledBy }) => (
                                     <Slider
                                         aria-labelledby={labelledBy}
@@ -408,7 +611,7 @@ export function InstrumentEditor({ instrument, onClose, onSaved }: InstrumentEdi
                                         max={100}
                                         step={1}
                                         value={[envelopeToSlider(
-                                            spec.envelope.decay,
+                                            noise.envelope.decay,
                                             ENVELOPE_RANGES.decay.min,
                                             ENVELOPE_RANGES.decay.max
                                         )]}
@@ -423,35 +626,134 @@ export function InstrumentEditor({ instrument, onClose, onSaved }: InstrumentEdi
                                     />
                                 )}
                             </Field>
+                        </>
+                    )}
 
-                            <Field label={t('sustain')} value={`${Math.round(spec.envelope.sustain * 100)}%`}>
-                                {({ labelledBy }) => (
-                                    <Slider
-                                        aria-labelledby={labelledBy}
-                                        min={0}
-                                        max={100}
-                                        step={1}
-                                        value={[spec.envelope.sustain * 100]}
-                                        onValueChange={([value]) => updateEnvelope({ sustain: value / 100 })}
-                                        onValueCommit={() => void audition()}
-                                    />
-                                )}
-                            </Field>
+                    <button
+                        onClick={() => setShowMore((open) => !open)}
+                        aria-expanded={showMore}
+                        className="flex w-full items-center gap-1.5 rounded px-1 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        {showMore ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        {t('more')}
+                    </button>
 
-                            <Field label={t('resonance')} value={`${Math.round(spec.resonance)}`}>
-                                {({ labelledBy }) => (
-                                    <Slider
-                                        aria-labelledby={labelledBy}
-                                        min={MACRO_RANGES.resonance.min}
-                                        max={MACRO_RANGES.resonance.max}
-                                        step={1}
-                                        value={[spec.resonance]}
-                                        onValueChange={([value]) => update({ resonance: value })}
-                                        onValueCommit={() => void audition()}
-                                    />
-                                )}
-                            </Field>
+                    {showMore && (
+                        <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+                            {melodic && (
+                                <Field label={t('decay')} value={formatSeconds(melodic.envelope.decay)}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={[envelopeToSlider(
+                                                melodic.envelope.decay,
+                                                ENVELOPE_RANGES.decay.min,
+                                                ENVELOPE_RANGES.decay.max
+                                            )]}
+                                            onValueChange={([value]) => updateEnvelope({
+                                                decay: sliderToEnvelope(
+                                                    value,
+                                                    ENVELOPE_RANGES.decay.min,
+                                                    ENVELOPE_RANGES.decay.max
+                                                ),
+                                            })}
+                                            onValueCommit={() => void audition()}
+                                        />
+                                    )}
+                                </Field>
+                            )}
 
+                            {melodic && (
+                                <Field label={t('sustain')} value={`${Math.round(melodic.envelope.sustain * 100)}%`}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={[melodic.envelope.sustain * 100]}
+                                            onValueChange={([value]) => updateEnvelope({ sustain: value / 100 })}
+                                            onValueCommit={() => void audition()}
+                                        />
+                                    )}
+                                </Field>
+                            )}
+
+                            {melodic && (
+                                <Field label={t('resonance')} value={`${Math.round(melodic.resonance)}`}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={MACRO_RANGES.resonance.min}
+                                            max={MACRO_RANGES.resonance.max}
+                                            step={1}
+                                            value={[melodic.resonance]}
+                                            onValueChange={([value]) => update({ resonance: value })}
+                                            onValueCommit={() => void audition()}
+                                        />
+                                    )}
+                                </Field>
+                            )}
+
+                            {/* Attack and Release move behind More for a drum: a hit is
+                                defined by its decay, and an attack a person can hear on
+                                a membrane is already a different instrument. */}
+                            {drum && (
+                                <Field label={t('attack')} value={formatSeconds(drum.envelope.attack)}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={[envelopeToSlider(
+                                                drum.envelope.attack,
+                                                ENVELOPE_RANGES.attack.min,
+                                                ENVELOPE_RANGES.attack.max
+                                            )]}
+                                            onValueChange={([value]) => updateEnvelope({
+                                                attack: sliderToEnvelope(
+                                                    value,
+                                                    ENVELOPE_RANGES.attack.min,
+                                                    ENVELOPE_RANGES.attack.max
+                                                ),
+                                            })}
+                                            onValueCommit={() => void audition()}
+                                        />
+                                    )}
+                                </Field>
+                            )}
+
+                            {drum && (
+                                <Field label={t('release')} value={formatSeconds(drum.envelope.release)}>
+                                    {({ labelledBy }) => (
+                                        <Slider
+                                            aria-labelledby={labelledBy}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={[envelopeToSlider(
+                                                drum.envelope.release,
+                                                ENVELOPE_RANGES.release.min,
+                                                ENVELOPE_RANGES.release.max
+                                            )]}
+                                            onValueChange={([value]) => updateEnvelope({
+                                                release: sliderToEnvelope(
+                                                    value,
+                                                    ENVELOPE_RANGES.release.min,
+                                                    ENVELOPE_RANGES.release.max
+                                                ),
+                                            })}
+                                            onValueCommit={() => void audition()}
+                                        />
+                                    )}
+                                </Field>
+                            )}
+
+                            {/* Level is the one macro both kinds share. */}
                             <Field label={t('level')} value={`${spec.level > 0 ? '+' : ''}${format.number(spec.level, { maximumFractionDigits: 1 })} dB`}>
                                 {({ labelledBy }) => (
                                     <Slider
@@ -460,7 +762,9 @@ export function InstrumentEditor({ instrument, onClose, onSaved }: InstrumentEdi
                                         max={MACRO_RANGES.level.max}
                                         step={0.5}
                                         value={[spec.level]}
-                                        onValueChange={([value]) => update({ level: value })}
+                                        onValueChange={([value]) => (
+                                            melodic ? update({ level: value }) : updateDrum({ level: value })
+                                        )}
                                         onValueCommit={() => void audition()}
                                     />
                                 )}

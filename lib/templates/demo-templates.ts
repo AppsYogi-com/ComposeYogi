@@ -2,6 +2,8 @@
 // Demo Templates - Fully Produced 16-bar Arrangements
 // ============================================
 
+import { DRUM_PITCH } from '@/lib/music/percussion';
+
 import type { TrackType, TrackColor, TrackEffectType } from '@/types';
 
 // ============================================
@@ -53,15 +55,21 @@ export interface DemoTemplate {
 // Helper: Generate drum pattern notes
 // ============================================
 
-// Drum pitch mapping (GM standard)
+// Drum pitches come from the one catalogue — `lib/music/percussion.ts`. This
+// used to be a seven-entry literal here, a third copy of the same map: the
+// sequencer had its own, the sampler kits a third in note names, and the
+// sampler's was an octave out.
 const DRUM = {
-    kick: 36,
-    snare: 38,
-    closedHat: 42,
-    openHat: 46,
-    clap: 39,
-    rim: 37,
-    perc: 56,
+    kick: DRUM_PITCH.kick,
+    snare: DRUM_PITCH.snare,
+    closedHat: DRUM_PITCH.closedHat,
+    openHat: DRUM_PITCH.openHat,
+    clap: DRUM_PITCH.handClap,
+    rim: DRUM_PITCH.sideStick,
+    // Maracas, not the cowbell: the kits have a shaker and no cowbell, and the
+    // one pattern that uses this is a clave figure on offbeat sixteenths — which
+    // a shaker plays idiomatically and a repitched hi-hat does not.
+    perc: DRUM_PITCH.maracas,
 };
 
 function drumPattern(

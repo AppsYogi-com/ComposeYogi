@@ -4,6 +4,7 @@
 // ============================================
 
 import { create } from 'zustand';
+import { TYPING_OCTAVE_DEFAULT, clampTypingOctave } from '@/lib/music/typing-keys';
 import type { EditorScope, InspectorSectionId, ModalType, SnapValue } from '@/types';
 import type { KeyBindings } from '@/lib/shortcuts';
 
@@ -60,6 +61,18 @@ interface UIState {
     // project store — it is not part of the piece, it is part of how you work.
     defaultVelocity: number;
 
+    // Live playing (Sprint 8.7.6). Open means the keyboard strip is on screen
+    // *and* the letter keys play notes instead of running shortcuts — the two
+    // cannot be separated, because `r`, `e`, `b`, `i`, `v` and `m` are each both
+    // a note and a command, and there is no reading of a keypress that satisfies
+    // both. Which shortcuts surrender is derived from the layout, not listed;
+    // see `useShortcut`.
+    livePlayOpen: boolean;
+    // Which two octaves the typing rows cover. Clamped by `clampTypingOctave`
+    // to the range the piano roll can draw, so nothing is ever played that the
+    // editor then cannot show.
+    livePlayOctave: number;
+
     // Custom keyboard shortcut bindings
     customKeyBindings: KeyBindings;
     keyBindingsLoaded: boolean;
@@ -88,6 +101,12 @@ interface UIActions {
     setEditorSnap: (snap: SnapValue) => void;
     setEditorFocused: (focused: boolean) => void;
     setDefaultVelocity: (velocity: number) => void;
+
+    // Live playing
+    toggleLivePlay: () => void;
+    setLivePlayOpen: (open: boolean) => void;
+    setLivePlayOctave: (octave: number) => void;
+    shiftLivePlayOctave: (delta: number) => void;
 
     // Viewport
     setZoom: (zoom: number) => void;
@@ -156,6 +175,8 @@ export const useUIStore = create<UIStore>((set) => ({
     activeModal: null,
     isMobile: false,
     defaultVelocity: 100,
+    livePlayOpen: false,
+    livePlayOctave: TYPING_OCTAVE_DEFAULT,
     customKeyBindings: {},
     keyBindingsLoaded: false,
 
@@ -270,6 +291,26 @@ export const useUIStore = create<UIStore>((set) => ({
         set({ defaultVelocity: Math.max(1, Math.min(127, Math.round(velocity))) });
     },
 
+    // ========================================
+    // Live playing
+    // ========================================
+
+    toggleLivePlay: () => {
+        set((state) => ({ livePlayOpen: !state.livePlayOpen }));
+    },
+
+    setLivePlayOpen: (open) => {
+        set({ livePlayOpen: open });
+    },
+
+    setLivePlayOctave: (octave) => {
+        set({ livePlayOctave: clampTypingOctave(octave) });
+    },
+
+    shiftLivePlayOctave: (delta) => {
+        set((state) => ({ livePlayOctave: clampTypingOctave(state.livePlayOctave + delta) }));
+    },
+
     // Viewport
     setZoom: (zoom) => {
         set({ zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom)) });
@@ -369,6 +410,8 @@ export const selectIsDragging = (state: UIStore) => state.isDragging;
 export const selectActiveModal = (state: UIStore) => state.activeModal;
 export const selectIsMobile = (state: UIStore) => state.isMobile;
 export const selectDefaultVelocity = (state: UIStore) => state.defaultVelocity;
+export const selectLivePlayOpen = (state: UIStore) => state.livePlayOpen;
+export const selectLivePlayOctave = (state: UIStore) => state.livePlayOctave;
 export const selectCustomKeyBindings = (state: UIStore) => state.customKeyBindings;
 export const selectKeyBindingsLoaded = (state: UIStore) => state.keyBindingsLoaded;
 

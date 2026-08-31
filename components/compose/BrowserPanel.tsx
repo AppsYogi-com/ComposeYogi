@@ -686,10 +686,11 @@ export function BrowserPanel() {
                                                     <div className="absolute right-1 flex items-center gap-0.5 rounded bg-surface-elevated pl-3 opacity-0 transition-opacity group-hover:opacity-100">
 
                                                     {/* Only where there is a spec to start
-                                                        from: the drum kits are Samplers and
-                                                        MembraneSynths, and a customize button
-                                                        that opened an editor with nothing in it
-                                                        would be worse than no button. */}
+                                                        from — which since 8.7.5b is everything
+                                                        except the six sampler kits, whose sound
+                                                        is a folder of WAV files. A customize
+                                                        button that opened an editor with nothing
+                                                        in it would be worse than no button. */}
                                                     {isCustomizablePreset(instrument.id) && (
                                                         <button
                                                             onClick={(e) => {

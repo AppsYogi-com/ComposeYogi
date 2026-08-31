@@ -492,3 +492,114 @@ describe('the cursor names the gesture', () => {
         ).toEqual([]);
     });
 });
+
+// ============================================
+// 7 — A toggle must say which way it is
+// ============================================
+//
+// Mute and solo were two of these. Both carried a stable name — "Mute", "Solo"
+// — and signalled *on* with colour alone, so a screen reader announced the same
+// thing whether the track was silenced or not. The same was true of Loop, the
+// Metronome and the live-play button, which all light up with the
+// `transport-active` variant and said nothing about it.
+//
+// There are two honest ways to answer "which way is this switch". `aria-pressed`
+// keeps the name fixed and reports the state beside it. Or the **name itself**
+// changes — which is what Play/Pause and Arm/Disarm do, and why neither of those
+// carries `aria-pressed`: "Disarm, pressed" states it twice, in words that
+// contradict each other.
+//
+// The rule below is mechanical where the app is mechanical. `transport-active`
+// is the one visual token that means "this control is on", so any button
+// choosing it must answer one way or the other. It cannot see a toggle that
+// signals through `className` instead — the track header's do — so those are
+// named explicitly underneath.
+
+/** The variant that paints a transport control as "on". */
+const ACTIVE_VARIANT = 'transport-active';
+
+describe('a toggle says which way it is', () => {
+    /** The attribute's source text, or null when the element has no such attribute. */
+    const attributeText = (
+        element: ts.JsxOpeningLikeElement,
+        name: string,
+        sf: ts.SourceFile
+    ): string | null => {
+        for (const attribute of element.attributes.properties) {
+            if (!ts.isJsxAttribute(attribute)) continue;
+            if (attribute.name.getText(sf) !== name) continue;
+            return attribute.initializer ? attribute.initializer.getText(sf) : '';
+        }
+        return null;
+    };
+
+    it('reports the state of anything painted with the active variant', () => {
+        const silent: string[] = [];
+
+        for (const sf of componentFiles()) {
+            if (sf.fileName.includes(join('components', 'ui'))) continue;
+
+            eachOpeningElement(sf, (element) => {
+                const tag = element.tagName.getText(sf);
+                if (!BUTTONS.has(tag)) return;
+
+                // A **conditional** variant is a switch; a literal one is a
+                // look. The error screens set `variant="transport-active"`
+                // outright on their Retry and Reload buttons, which are not
+                // toggles and have no state to report.
+                const variant = attributeText(element, 'variant', sf);
+                if (!variant?.includes(ACTIVE_VARIANT)) return;
+                if (!variant.includes('?')) return;
+
+                const attributes = attributeNames(element, sf);
+                if (attributes.has('aria-pressed')) return;
+
+                // A name that changes with the state already answers it.
+                const label = attributeText(element, 'aria-label', sf) ?? '';
+                if (label.includes('?')) return;
+
+                silent.push(report(sf, element, `<${tag}> lights up but never says it is on`));
+            });
+        }
+
+        expect(
+            silent,
+            'A button that paints itself with the transport-active variant is a switch. '
+            + 'Give it aria-pressed, or let its aria-label change with the state the way '
+            + 'Play/Pause does — otherwise it is announced identically on and off.'
+        ).toEqual([]);
+    });
+
+    it('keeps the track header switches answerable', () => {
+        // These signal through className rather than the variant, so the rule
+        // above cannot see them. Mute and solo take aria-pressed; arm changes
+        // its own name instead, and must not do both.
+        const sf = componentFiles().find((f) => f.fileName.endsWith(join('compose', 'TrackList.tsx')));
+        expect(sf, 'TrackList.tsx has moved — this rule needs repointing').toBeDefined();
+
+        const found = new Map<string, Set<string>>();
+        eachOpeningElement(sf!, (element) => {
+            if (!BUTTONS.has(element.tagName.getText(sf!))) return;
+            const label = attributeText(element, 'aria-label', sf!) ?? '';
+            for (const control of ['mute', 'solo', 'arm']) {
+                if (!label.includes(`t('${control}')`)) continue;
+                found.set(control, attributeNames(element, sf!));
+            }
+        });
+
+        for (const control of ['mute', 'solo']) {
+            expect(found.get(control), `no button labelled t('${control}') in TrackList`).toBeDefined();
+            expect(
+                found.get(control)!.has('aria-pressed'),
+                `the ${control} button is a switch with a fixed name and must carry aria-pressed`
+            ).toBe(true);
+        }
+
+        // Arm's name is `armed ? t('disarm') : t('arm')`, so it answers already.
+        expect(found.get('arm'), "no button labelled t('arm') in TrackList").toBeDefined();
+        expect(
+            found.get('arm')!.has('aria-pressed'),
+            'arm changes its own name between Arm and Disarm — aria-pressed would say it twice'
+        ).toBe(false);
+    });
+});

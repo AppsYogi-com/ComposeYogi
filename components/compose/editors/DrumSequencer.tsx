@@ -1,17 +1,21 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, AlertCircle } from 'lucide-react';
 import { useProjectStore, useUIStore } from '@/lib/store';
 import { DRUM_BG } from '@/lib/design/track-colors';
-import type { DrumFamily } from '@/lib/design/tokens';
+// The kit map lives in `lib/music/percussion.ts` — it is a musical fact, and
+// while it was private to this file the samplers and the demo templates each
+// kept their own copy. Two of the three disagreed by an octave.
+import { GM_PERCUSSION as DRUM_SOUNDS } from '@/lib/music';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useTrackPreview } from '@/hooks/useTrackPreview';
 import { useViewportWidth } from '@/hooks/useVisibleClips';
 import { useVisibleStepRange, stepIndices } from '@/hooks/useVisibleSteps';
 
@@ -20,7 +24,6 @@ import { DefaultVelocityControl } from './DefaultVelocityControl';
 
 import type { Clip, Note } from '@/types';
 import type { AnchorRect } from './AnchoredTooltip';
-import * as Tone from 'tone';
 
 // ============================================
 // Velocity editing
@@ -48,88 +51,6 @@ interface VelocityDrag {
     /** False until the pointer passes the threshold; a press that never moves is a click. */
     moved: boolean;
 }
-
-// ============================================
-// Drum Sound Definitions (General MIDI Percussion)
-// Full GM percussion set: MIDI notes 35-81
-// ============================================
-
-interface DrumSound {
-    name: string;
-    shortName: string;
-    pitch: number; // MIDI note number
-    /** Kit family — drives the lane colour via DRUM_BG. See lib/design/tokens.ts. */
-    family: DrumFamily;
-}
-
-// Full General MIDI Percussion Map (organized by category)
-const DRUM_SOUNDS: DrumSound[] = [
-    // Kicks (35-36)
-    { name: 'Acoustic Bass Drum', shortName: 'BD1', pitch: 35, family: 'kick' },
-    { name: 'Bass Drum 1', shortName: 'BD2', pitch: 36, family: 'kick' },
-
-    // Snares & Rim (37-40)
-    { name: 'Side Stick', shortName: 'STK', pitch: 37, family: 'snare' },
-    { name: 'Acoustic Snare', shortName: 'SN1', pitch: 38, family: 'snare' },
-    { name: 'Hand Clap', shortName: 'CLP', pitch: 39, family: 'snare' },
-    { name: 'Electric Snare', shortName: 'SN2', pitch: 40, family: 'snare' },
-
-    // Toms (41, 43, 45, 47, 48, 50)
-    { name: 'Low Floor Tom', shortName: 'LFT', pitch: 41, family: 'tom' },
-    { name: 'High Floor Tom', shortName: 'HFT', pitch: 43, family: 'tom' },
-    { name: 'Low Tom', shortName: 'LTM', pitch: 45, family: 'tom' },
-    { name: 'Low-Mid Tom', shortName: 'LMT', pitch: 47, family: 'tom' },
-    { name: 'Hi-Mid Tom', shortName: 'HMT', pitch: 48, family: 'tom' },
-    { name: 'High Tom', shortName: 'HTM', pitch: 50, family: 'tom' },
-
-    // Hi-Hats (42, 44, 46)
-    { name: 'Closed Hi-Hat', shortName: 'CHH', pitch: 42, family: 'hat' },
-    { name: 'Pedal Hi-Hat', shortName: 'PHH', pitch: 44, family: 'hat' },
-    { name: 'Open Hi-Hat', shortName: 'OHH', pitch: 46, family: 'hat' },
-
-    // Cymbals (49, 51, 52, 53, 55, 57, 59)
-    { name: 'Crash Cymbal 1', shortName: 'CR1', pitch: 49, family: 'cymbal' },
-    { name: 'Ride Cymbal 1', shortName: 'RD1', pitch: 51, family: 'cymbal' },
-    { name: 'Chinese Cymbal', shortName: 'CHN', pitch: 52, family: 'cymbal' },
-    { name: 'Ride Bell', shortName: 'RBL', pitch: 53, family: 'cymbal' },
-    { name: 'Splash Cymbal', shortName: 'SPL', pitch: 55, family: 'cymbal' },
-    { name: 'Crash Cymbal 2', shortName: 'CR2', pitch: 57, family: 'cymbal' },
-    { name: 'Ride Cymbal 2', shortName: 'RD2', pitch: 59, family: 'cymbal' },
-
-    // Latin - Bongos & Congas (60-64)
-    { name: 'Hi Bongo', shortName: 'HBG', pitch: 60, family: 'perc' },
-    { name: 'Low Bongo', shortName: 'LBG', pitch: 61, family: 'perc' },
-    { name: 'Mute Hi Conga', shortName: 'MHC', pitch: 62, family: 'perc' },
-    { name: 'Open Hi Conga', shortName: 'OHC', pitch: 63, family: 'perc' },
-    { name: 'Low Conga', shortName: 'LCG', pitch: 64, family: 'perc' },
-
-    // Latin - Timbales (65-66)
-    { name: 'High Timbale', shortName: 'HTB', pitch: 65, family: 'perc' },
-    { name: 'Low Timbale', shortName: 'LTB', pitch: 66, family: 'perc' },
-
-    // Latin - Agogo & Bells (67-68, 56)
-    { name: 'High Agogo', shortName: 'HAG', pitch: 67, family: 'perc' },
-    { name: 'Low Agogo', shortName: 'LAG', pitch: 68, family: 'perc' },
-    { name: 'Cowbell', shortName: 'COW', pitch: 56, family: 'perc' },
-
-    // Shakers & Tambourine (54, 69-71)
-    { name: 'Tambourine', shortName: 'TMB', pitch: 54, family: 'perc' },
-    { name: 'Cabasa', shortName: 'CAB', pitch: 69, family: 'perc' },
-    { name: 'Maracas', shortName: 'MRC', pitch: 70, family: 'perc' },
-    { name: 'Short Whistle', shortName: 'SWH', pitch: 71, family: 'perc' },
-
-    // More Percussion (72-81)
-    { name: 'Long Whistle', shortName: 'LWH', pitch: 72, family: 'perc' },
-    { name: 'Short Guiro', shortName: 'SGU', pitch: 73, family: 'perc' },
-    { name: 'Long Guiro', shortName: 'LGU', pitch: 74, family: 'perc' },
-    { name: 'Claves', shortName: 'CLV', pitch: 75, family: 'perc' },
-    { name: 'Hi Wood Block', shortName: 'HWB', pitch: 76, family: 'perc' },
-    { name: 'Low Wood Block', shortName: 'LWB', pitch: 77, family: 'perc' },
-    { name: 'Mute Cuica', shortName: 'MCU', pitch: 78, family: 'perc' },
-    { name: 'Open Cuica', shortName: 'OCU', pitch: 79, family: 'perc' },
-    { name: 'Mute Triangle', shortName: 'MTR', pitch: 80, family: 'perc' },
-    { name: 'Open Triangle', shortName: 'OTR', pitch: 81, family: 'perc' },
-];
 
 // Pattern presets
 const PATTERN_PRESETS = {
@@ -167,6 +88,9 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
     const project = useProjectStore((s) => s.project);
     const setEditorFocused = useUIStore((s) => s.setEditorFocused);
     const defaultVelocity = useUIStore((s) => s.defaultVelocity);
+    // Auditions through the clip's own track: the kit it actually plays, and
+    // silent when the track is muted or another track is soloed.
+    const preview = useTrackPreview(clip);
 
     // A vertical drag on a filled step edits its velocity. As in the piano
     // roll's lane, nothing reaches the store until the gesture ends: velocity
@@ -184,7 +108,6 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
         sound: string;
         velocity: number;
     } | null>(null);
-    const [previewSynth, setPreviewSynth] = useState<Tone.MembraneSynth | null>(null);
     const [activePreset, setActivePreset] = useState<string | null>(null);
     const gridRef = useRef<HTMLDivElement>(null);
     const [gridScrollX, setGridScrollX] = useState(0);
@@ -207,27 +130,6 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
         width: gridWidth,
     });
     const visibleStepIndices = stepIndices(visibleSteps);
-
-    // Initialize preview synth
-    useEffect(() => {
-        const synth = new Tone.MembraneSynth({
-            pitchDecay: 0.05,
-            octaves: 4,
-            oscillator: { type: 'sine' },
-            envelope: {
-                attack: 0.001,
-                decay: 0.4,
-                sustain: 0.01,
-                release: 0.4,
-            },
-        }).toDestination();
-        synth.volume.value = -10;
-        setPreviewSynth(synth);
-
-        return () => {
-            synth.dispose();
-        };
-    }, []);
 
     // Convert notes to grid state
     const gridState = useMemo(() => {
@@ -265,15 +167,10 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
                 velocity: defaultVelocity,
             });
 
-            // Play preview
-            if (previewSynth) {
-                previewSynth.triggerAttackRelease(
-                    Tone.Frequency(sound.pitch, 'midi').toNote(),
-                    '16n'
-                );
-            }
+            // Play preview — the track's own kit, gated by mute and solo.
+            preview(sound.pitch);
         }
-    }, [clip.id, gridState, deleteNote, addNote, previewSynth, defaultVelocity]);
+    }, [clip.id, gridState, deleteNote, addNote, preview, defaultVelocity]);
 
     // ============================================
     // Velocity drag
@@ -339,13 +236,8 @@ export function DrumSequencer({ clip }: DrumSequencerProps) {
 
     // Preview sound on row hover
     const previewSound = useCallback((rowIndex: number) => {
-        if (!previewSynth) return;
-        const sound = DRUM_SOUNDS[rowIndex];
-        previewSynth.triggerAttackRelease(
-            Tone.Frequency(sound.pitch, 'midi').toNote(),
-            '16n'
-        );
-    }, [previewSynth]);
+        preview(DRUM_SOUNDS[rowIndex].pitch);
+    }, [preview]);
 
     // Apply preset pattern
     const applyPreset = useCallback((presetName: string) => {

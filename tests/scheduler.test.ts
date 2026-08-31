@@ -16,6 +16,7 @@ import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 import {
+    initialTrackGain,
     barsToSeconds,
     beatsToSeconds,
     buildRenderPlan,
@@ -128,6 +129,64 @@ describe('solo and mute gating', () => {
 // ============================================
 // Audio clip trimming
 // ============================================
+
+describe('a chain is born at the right gain', () => {
+    // The second half of "I muted the track and I can still hear it". A track's
+    // chain is created lazily by whoever asks for its input first, and on a page
+    // where nothing has played that is the live keyboard or an editor preview,
+    // not the transport. Those chains used to start at `track.volume`, so a
+    // muted track previewed at full level until the transport ran.
+    const quiet = makeTrack({ id: 'a', volume: 0.5 });
+    const other = makeTrack({ id: 'b', volume: 0.9 });
+
+    it('starts a normal track at its fader', () => {
+        expect(initialTrackGain(quiet, [quiet, other])).toBe(0.5);
+    });
+
+    it('starts a muted track silent', () => {
+        const muted = { ...quiet, muted: true };
+        expect(initialTrackGain(muted, [muted, other])).toBe(0);
+    });
+
+    it('starts a track silent while another track is soloed', () => {
+        const soloed = { ...other, solo: true };
+        expect(initialTrackGain(quiet, [quiet, soloed])).toBe(0);
+        expect(initialTrackGain(soloed, [quiet, soloed])).toBe(0.9);
+    });
+
+    it('still honours mute when nothing has been applied yet', () => {
+        // The cold-page case: the mixer has resolved nothing, so nobody is
+        // soloed — but mute is still knowable, and mute is the one that was
+        // audibly wrong.
+        expect(initialTrackGain(quiet, [])).toBe(0.5);
+        expect(initialTrackGain({ ...quiet, muted: true }, [])).toBe(0);
+        expect(initialTrackGain({ ...quiet, solo: true }, [])).toBe(0.5);
+    });
+
+    it('is the value playout actually builds the node with', () => {
+        // Tone cannot be constructed here, so the only way to pin the call is to
+        // read it. `getOrCreateTrackChain` reaching for `track.volume` directly
+        // is exactly the bug, and it is invisible to every other test.
+        const source = readFileSync(join(ROOT, 'lib', 'audio', 'playout.ts'), 'utf8');
+        const code = source
+            .split('\n')
+            .filter((line) => !line.trim().startsWith('*') && !line.trim().startsWith('//'))
+            .join('\n');
+        expect(code).toContain('initialTrackGain(track, this.mixTracks)');
+        // …and that the list it reads is actually kept up to date. Both halves
+        // are needed: reading a list nobody fills is the same silence bug with
+        // an extra step, and Tone cannot be constructed here to catch it any
+        // other way.
+        expect(
+            (code.match(/this\.mixTracks = tracks/g) ?? []).length,
+            'applyMixState and updateSoloState must both record the track list'
+        ).toBe(2);
+        expect(
+            /new Tone\.Gain\(\s*track\.volume/.test(code),
+            'playout builds a track gain from the raw fader — use initialTrackGain'
+        ).toBe(false);
+    });
+});
 
 describe('clipPlayDuration', () => {
     it('is the whole take when nothing is trimmed', () => {
@@ -413,5 +472,81 @@ describe('the arrangement draws the mix the scheduler renders', () => {
             'nothing in components/compose reads isTrackAudible, so the arrangement '
             + 'no longer shows which tracks a solo has silenced'
         ).not.toEqual([]);
+    });
+});
+
+// ============================================
+// Nothing plays outside the mixer
+// ============================================
+//
+// The bug this pins: both editors auditioned notes through their own
+// `new Tone.PolySynth(...).toDestination()`. `toDestination()` is Tone's "wire
+// this straight to the speakers", so those previews skipped the track's
+// effects, its fader, its pan, the master limiter, the visualiser — and **mute
+// and solo**. Measured in the running app with every track muted, clicking a
+// drum in the sequencer put −34.8 dB on the output while the mixer's own
+// analyser sat at −891 dB: the one meter that could have shown the problem was
+// downstream of it.
+//
+// A component has no business connecting to the destination. Anything that
+// makes a sound belongs to a track, and a track's sound enters at
+// `playoutManager.getTrackInput(track)` — which is what `preview-voice.ts` and
+// `live-play.ts` both do.
+
+describe('nothing in the UI plays straight to the speakers', () => {
+    it('leaves toDestination to the audio layer', () => {
+        const files = sourceFiles();
+        expect(files.length, 'the scan found no components — it has broken').toBeGreaterThan(0);
+
+        // Two places are allowed, and both are allowed for the same reason:
+        // what they play does not belong to a track, so there is no track chain
+        // to route it through.
+        //
+        //   InstrumentEditor  auditions an instrument *spec* while you design
+        //                     it. It is a library item in a modal; no clip and
+        //                     no track exist yet.
+        //   WaveformEditor    is a monitor on the raw take, and says so — it
+        //                     deliberately reproduces no effects, no fader and
+        //                     no macros either, only the trim, fades and
+        //                     stretch that this panel edits. Excluding the
+        //                     mixer is the whole point of it, not an oversight.
+        //
+        // The piano roll and the drum sequencer are *not* on this list, and
+        // that is the fix: what they audition is a note on a track's own
+        // instrument, which is exactly the thing mute and solo govern.
+        const ALLOWED = new Set([
+            join('components', 'compose', 'InstrumentEditor.tsx'),
+            join('components', 'compose', 'editors', 'WaveformEditor.tsx'),
+        ]);
+
+        const offenders: string[] = [];
+        for (const sf of files) {
+            const path = relative(ROOT, sf.fileName);
+            if (ALLOWED.has(path)) continue;
+            sf.text.split('\n').forEach((line, index) => {
+                if (line.trim().startsWith('//') || line.trim().startsWith('*')) return;
+                if (/\.toDestination\s*\(/.test(line) || /getDestination\s*\(/.test(line)) {
+                    offenders.push(`${path}:${index + 1}  ${line.trim()}`);
+                }
+            });
+        }
+
+        // A stale exception is as bad as a missing one: if a named file stops
+        // reaching for the destination, it should leave this list.
+        for (const allowed of ALLOWED) {
+            const sf = files.find((f) => relative(ROOT, f.fileName) === allowed);
+            expect(sf, `${allowed} is on the exception list but does not exist`).toBeDefined();
+            expect(
+                /\.toDestination\s*\(|getDestination\s*\(/.test(sf!.text),
+                `${allowed} no longer plays to the destination — take it off the exception list`
+            ).toBe(true);
+        }
+
+        expect(
+            offenders,
+            'A component must not connect audio to the destination — that bypasses the '
+            + "track's fader, pan, effects, and mute and solo. Route through "
+            + 'playoutManager.getTrackInput(track); see lib/audio/preview-voice.ts.'
+        ).toEqual([]);
     });
 });

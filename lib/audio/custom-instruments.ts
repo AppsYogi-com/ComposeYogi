@@ -32,11 +32,12 @@ import {
     clampSpec,
     filterSpecFor,
     isCustomInstrumentId,
+    isDrumSpec,
 } from './instrument-spec';
 import { specForPreset } from './preset-specs';
-import { createVoice, getSynthPreset, type ResolvedInstrument } from './synth-presets';
+import { createSpecVoice, getSynthPreset, type ResolvedInstrument } from './synth-presets';
 
-import type { CustomInstrument, InstrumentSpec } from '@/types';
+import type { AnyInstrumentSpec, CustomInstrument } from '@/types';
 
 const logger = createLogger('CustomInstruments');
 
@@ -114,7 +115,8 @@ export async function hydrateCustomInstruments(): Promise<CustomInstrument[]> {
 
 /**
  * A new instrument starting from a built-in, or null if that built-in has no
- * spec (the drum kits — see `preset-specs.ts`).
+ * spec (the six sampler kits — see `preset-specs.ts`). Works from either kind:
+ * a drum preset drafts a `DrumSpec` and the editor picks its controls from it.
  *
  * Not persisted: the editor works on this and saves when the user does, so
  * opening the editor and closing it leaves nothing behind.
@@ -218,26 +220,28 @@ export function customInstrumentsHash(instruments: CustomInstrument[]): string {
 // ============================================
 
 /**
- * A voice built from a spec. Narrower than `ResolvedInstrument` — a spec always
- * produces a PolySynth, never a Sampler or a NoiseSynth — so callers that
- * actually play notes (the editor's preview) get the polyphonic
- * `triggerAttackRelease` signature rather than the union's narrowest one.
+ * A voice built from a spec. Narrower than `ResolvedInstrument`: a spec builds
+ * one of three classes and never a Sampler, so a caller that actually plays
+ * notes (the editor's preview) has three cases to cover rather than five.
  */
 export interface BuiltVoice extends ResolvedInstrument {
-    synth: Tone.PolySynth;
+    synth: Tone.PolySynth | Tone.MembraneSynth | Tone.NoiseSynth;
 }
 
 /**
- * Build a custom instrument's voice and its tone filter.
+ * Build a custom instrument's voice, and its tone filter if it has one.
  *
- * The filter exists only when Brightness has been brought down — see
- * `filterSpecFor`. At full brightness this returns the bare voice with `output`
- * pointing at the synth itself, which is what makes an unedited custom
+ * The filter exists only when a *melodic* spec has had Brightness brought down
+ * — see `filterSpecFor`. Everywhere else this returns the bare voice with
+ * `output` pointing at the synth itself, which is what makes an unedited custom
  * instrument identical to the preset it came from rather than merely close.
+ *
+ * A drum spec is always in the "everywhere else" branch: it has no brightness
+ * at all, so a custom drum is exact by construction rather than by argument.
  */
-export function buildInstrumentFromSpec(spec: InstrumentSpec): BuiltVoice {
-    const synth = createVoice(spec);
-    const filter = filterSpecFor(spec);
+export function buildInstrumentFromSpec(spec: AnyInstrumentSpec): BuiltVoice {
+    const synth = createSpecVoice(spec) as BuiltVoice['synth'];
+    const filter = isDrumSpec(spec) ? null : filterSpecFor(spec);
 
     if (!filter) return { synth, output: synth, nodes: [] };
 

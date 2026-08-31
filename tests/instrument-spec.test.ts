@@ -7,30 +7,46 @@
 // right. What it can prove, and what actually matters, is that the options
 // object handed to Tone is byte-for-byte the one the hand-written factories
 // used to pass. `tests/golden/preset-voice-options.json` is a copy of those
-// literals taken before they were deleted; if a spec drifts, 52 shipped sounds
+// literals taken before they were deleted; if a spec drifts, 53 shipped sounds
 // change under saved projects, and this is what says so.
 
 import { describe, expect, it } from 'vitest';
 
 import {
     CUSTOM_INSTRUMENT_PREFIX,
+    DRUM_RANGES,
     ENVELOPE_RANGES,
     MACRO_RANGES,
     NEUTRAL_MACROS,
     brightnessToFrequency,
     clampSpec,
+    drumVoiceOptions,
     filterSpecFor,
     isCustomInstrumentId,
+    isDrumSpec,
     parseInstrumentSpec,
     resonanceToQ,
     voiceOptions,
 } from '@/lib/audio/instrument-spec';
-import { CUSTOMIZABLE_PRESET_IDS, PRESET_SPECS, isCustomizablePreset, specForPreset } from '@/lib/audio/preset-specs';
+import {
+    CUSTOMIZABLE_DRUM_IDS,
+    CUSTOMIZABLE_MELODIC_IDS,
+    CUSTOMIZABLE_PRESET_IDS,
+    PRESET_SPECS,
+    isCustomizablePreset,
+    specForPreset,
+} from '@/lib/audio/preset-specs';
 import { SYNTH_PRESET_IDS } from '@/lib/audio/synth-presets';
 
 import golden from './golden/preset-voice-options.json';
 
-import type { InstrumentSpec } from '@/types';
+import type { AnyInstrumentSpec, DrumSpec, InstrumentSpec } from '@/types';
+
+/** The options a spec builds, whichever kind it is. The dispatch the library
+ *  makes in `createSpecVoice`, made here so one fixture covers both halves. */
+function optionsFor(spec: AnyInstrumentSpec): Record<string, unknown> {
+    return isDrumSpec(spec) ? drumVoiceOptions(spec) : voiceOptions(spec);
+}
 
 // ============================================
 // The golden fixture
@@ -46,11 +62,20 @@ describe('preset specs reproduce the shipped sounds', () => {
     it.each(goldenIds)('%s builds the exact options its factory used to pass', (id) => {
         const spec = PRESET_SPECS[id];
         expect(spec).not.toBeNull();
-        expect(voiceOptions(spec as InstrumentSpec)).toEqual(golden[id].options);
+        expect(optionsFor(spec as AnyInstrumentSpec)).toEqual(golden[id].options);
     });
 
     it.each(goldenIds)('%s names the voice its factory constructed', (id) => {
-        expect((PRESET_SPECS[id] as InstrumentSpec).voice).toBe(golden[id].voice);
+        expect((PRESET_SPECS[id] as AnyInstrumentSpec).voice).toBe(golden[id].voice);
+    });
+
+    it('covers both kinds, and neither list is empty', () => {
+        // Every rule that walks one of these lists passes vacuously if the
+        // filter that built it ever stops matching.
+        expect(CUSTOMIZABLE_MELODIC_IDS.length).toBe(53);
+        expect(CUSTOMIZABLE_DRUM_IDS.length).toBe(6);
+        expect([...CUSTOMIZABLE_MELODIC_IDS, ...CUSTOMIZABLE_DRUM_IDS].slice().sort())
+            .toEqual(CUSTOMIZABLE_PRESET_IDS.slice().sort());
     });
 
     it('gives every preset a spec or an explicit null', () => {
@@ -64,16 +89,44 @@ describe('preset specs reproduce the shipped sounds', () => {
         expect(Object.keys(PRESET_SPECS).sort()).toEqual(SYNTH_PRESET_IDS.slice().sort());
     });
 
+    /**
+     * Output trims that are part of a preset's design rather than an accident.
+     *
+     * Level is not the same kind of macro as brightness. Brightness at 100 is
+     * load-bearing — it is what makes `filterSpecFor` return null, so no filter
+     * node is built and the built-in is its factory's output exactly. Level is a
+     * plain `volume.value` set after construction, invisible to the golden
+     * fixture, and for the 52 presets transcribed from deleted factories it must
+     * be 0 because those factories set none: a trim there would be a sound that
+     * never shipped.
+     *
+     * `grand-piano` has no deleted factory. It was designed here, and FM spreads
+     * its energy across sidebands: it peaks at 0.25 where the sine presets peak
+     * at 0.78, and a 10 dB drop on switching instruments reads as a broken one.
+     * The value is pinned rather than waved through, so changing it still fails
+     * the build.
+     */
+    const DESIGNED_LEVEL_TRIMS: Record<string, number> = {
+        'grand-piano': 5,
+    };
+
     it('starts every preset from neutral macros', () => {
         // A preset that shipped with, say, brightness 60 would mean the built-in
         // itself is filtered — which would contradict the fixture above, since
         // the factories built no filter at all.
-        for (const id of CUSTOMIZABLE_PRESET_IDS) {
+        for (const id of CUSTOMIZABLE_MELODIC_IDS) {
             const spec = PRESET_SPECS[id] as InstrumentSpec;
-            expect(spec.brightness).toBe(NEUTRAL_MACROS.brightness);
-            expect(spec.resonance).toBe(NEUTRAL_MACROS.resonance);
-            expect(spec.level).toBe(NEUTRAL_MACROS.level);
-            expect(filterSpecFor(spec)).toBeNull();
+            expect(spec.brightness, id).toBe(NEUTRAL_MACROS.brightness);
+            expect(spec.resonance, id).toBe(NEUTRAL_MACROS.resonance);
+            expect(spec.level, id).toBe(DESIGNED_LEVEL_TRIMS[id] ?? NEUTRAL_MACROS.level);
+            expect(filterSpecFor(spec), id).toBeNull();
+        }
+    });
+
+    it('names a real preset for every designed trim', () => {
+        // So the exception list cannot outlive the preset it excuses.
+        for (const id of Object.keys(DESIGNED_LEVEL_TRIMS)) {
+            expect(CUSTOMIZABLE_MELODIC_IDS, id).toContain(id);
         }
     });
 
@@ -82,7 +135,7 @@ describe('preset specs reproduce the shipped sounds', () => {
         // reaches past them this fails, rather than the preset being quietly
         // trimmed into a different sound the first time it is customized.
         for (const id of CUSTOMIZABLE_PRESET_IDS) {
-            const spec = PRESET_SPECS[id] as InstrumentSpec;
+            const spec = PRESET_SPECS[id] as AnyInstrumentSpec;
             expect(clampSpec(spec)).toEqual(spec);
         }
     });
@@ -95,8 +148,13 @@ describe('preset specs reproduce the shipped sounds', () => {
         expect(PRESET_SPECS['electric-piano']!.envelope.attack).not.toBe(4);
     });
 
-    it('reports drum kits as uncustomizable', () => {
+    it('reports the sampler kits, and only those, as uncustomizable', () => {
         expect(isCustomizablePreset('electric-piano')).toBe(true);
+        // Synthesised since 8.7.5b — a MembraneSynth is a voice with four
+        // parameters, which is what a spec is for.
+        expect(isCustomizablePreset('taiko')).toBe(true);
+        expect(isCustomizablePreset('maracas')).toBe(true);
+        // Samplers. Their sound is a folder of WAV files; there is nothing to turn.
         expect(isCustomizablePreset('808-kit')).toBe(false);
         expect(isCustomizablePreset('drum-sampler')).toBe(false);
         expect(specForPreset('808-kit')).toBeNull();
@@ -263,9 +321,9 @@ describe('parseInstrumentSpec', () => {
 
     it('clamps values that arrive out of range', () => {
         const spec = specForPreset('saw-lead') as InstrumentSpec;
-        const parsed = parseInstrumentSpec({ ...spec, brightness: 100000, level: -9999 });
-        expect(parsed!.brightness).toBe(MACRO_RANGES.brightness.max);
-        expect(parsed!.level).toBe(MACRO_RANGES.level.min);
+        const parsed = parseInstrumentSpec({ ...spec, brightness: 100000, level: -9999 }) as InstrumentSpec;
+        expect(parsed.brightness).toBe(MACRO_RANGES.brightness.max);
+        expect(parsed.level).toBe(MACRO_RANGES.level.min);
     });
 
     it('drops unknown keys instead of carrying them into the synth', () => {
@@ -277,10 +335,130 @@ describe('parseInstrumentSpec', () => {
     it('defaults absent macros to neutral, so an old file plays as it was made', () => {
         const spec = specForPreset('saw-lead') as InstrumentSpec;
         const { brightness: _b, resonance: _r, level: _l, ...withoutMacros } = spec;
-        const parsed = parseInstrumentSpec(withoutMacros);
-        expect(parsed!.brightness).toBe(NEUTRAL_MACROS.brightness);
-        expect(parsed!.resonance).toBe(NEUTRAL_MACROS.resonance);
-        expect(parsed!.level).toBe(NEUTRAL_MACROS.level);
+        const parsed = parseInstrumentSpec(withoutMacros) as InstrumentSpec;
+        expect(parsed.brightness).toBe(NEUTRAL_MACROS.brightness);
+        expect(parsed.resonance).toBe(NEUTRAL_MACROS.resonance);
+        expect(parsed.level).toBe(NEUTRAL_MACROS.level);
+    });
+});
+
+// ============================================
+// Drums
+// ============================================
+
+describe('drum specs', () => {
+    const membrane = () => specForPreset('taiko') as DrumSpec;
+    const noise = () => specForPreset('maracas') as DrumSpec;
+
+    it('names the six synthesised kits and nothing else', () => {
+        expect(CUSTOMIZABLE_DRUM_IDS.slice().sort()).toEqual([
+            'bongos', 'drum-synth', 'maracas', 'synth-drum-kit', 'taiko', 'wooden-block',
+        ]);
+    });
+
+    it('tells the two kinds apart by voice alone', () => {
+        expect(isDrumSpec(membrane())).toBe(true);
+        expect(isDrumSpec(noise())).toBe(true);
+        expect(isDrumSpec(specForPreset('electric-piano') as AnyInstrumentSpec)).toBe(false);
+        expect(isDrumSpec(specForPreset('harpsichord') as AnyInstrumentSpec)).toBe(false);
+    });
+
+    it('carries the membrane parameters and no melodic ones', () => {
+        const spec = membrane();
+        expect(spec.pitchDecay).toBeDefined();
+        expect(spec.octaves).toBeDefined();
+        expect(spec.oscillator).toBeDefined();
+        // No brightness means no filter node, ever — which is what makes an
+        // unedited custom drum its preset by construction rather than by argument.
+        expect('brightness' in spec).toBe(false);
+        expect('resonance' in spec).toBe(false);
+    });
+
+    it('gives the shaker a colour and no oscillator', () => {
+        const spec = noise();
+        expect(spec.noise).toEqual({ type: 'white' });
+        expect(spec.oscillator).toBeUndefined();
+        expect(spec.pitchDecay).toBeUndefined();
+    });
+
+    it('leaves every drum preset untouched by clamping', () => {
+        // Same guarantee as the envelope ranges, for the two fields only drums
+        // have: the built-ins span 0.008-0.08 of pitch decay and 2-6 octaves, so
+        // if a future kit reaches past DRUM_RANGES this fails rather than the kit
+        // being quietly trimmed into a different sound.
+        for (const id of CUSTOMIZABLE_DRUM_IDS) {
+            const spec = PRESET_SPECS[id] as DrumSpec;
+            expect(clampSpec(spec)).toEqual(spec);
+        }
+    });
+
+    it('pulls pitch decay and octaves inside their ranges', () => {
+        const clamped = clampSpec({ ...membrane(), pitchDecay: 99, octaves: -4, level: 99 });
+        expect(clamped.pitchDecay).toBe(DRUM_RANGES.pitchDecay.max);
+        expect(clamped.octaves).toBe(DRUM_RANGES.octaves.min);
+        expect(clamped.level).toBe(MACRO_RANGES.level.max);
+    });
+
+    it('drops fields that belong to the other voice', () => {
+        // A noise spec carrying an oscillator would be dropped by
+        // `drumVoiceOptions` anyway — but silently, and this object is what gets
+        // written to IndexedDB and to an export file.
+        const clamped = clampSpec({ ...noise(), oscillator: { type: 'square' }, pitchDecay: 0.1 });
+        expect(clamped.oscillator).toBeUndefined();
+        expect(clamped.pitchDecay).toBeUndefined();
+        expect(clamped.noise).toEqual({ type: 'white' });
+    });
+
+    it('builds options with only the keys its voice takes', () => {
+        expect(Object.keys(drumVoiceOptions(membrane())).sort())
+            .toEqual(['envelope', 'octaves', 'oscillator', 'pitchDecay']);
+        expect(Object.keys(drumVoiceOptions(noise())).sort())
+            .toEqual(['envelope', 'noise']);
+    });
+
+    it('round-trips every drum preset through JSON', () => {
+        for (const id of CUSTOMIZABLE_DRUM_IDS) {
+            const spec = specForPreset(id) as DrumSpec;
+            expect(parseInstrumentSpec(JSON.parse(JSON.stringify(spec)))).toEqual(spec);
+        }
+    });
+
+    it('rejects a membrane with no usable oscillator', () => {
+        // Same rule as the melodic half: the field that decides the *timbre* is
+        // a rejection rather than a repair, because guessing at it builds a
+        // different drum and says nothing.
+        expect(parseInstrumentSpec({ ...membrane(), oscillator: undefined })).toBeNull();
+        expect(parseInstrumentSpec({ ...membrane(), oscillator: { type: 7 } })).toBeNull();
+    });
+
+    it('rejects a noise colour Tone does not have', () => {
+        expect(parseInstrumentSpec({ ...noise(), noise: { type: 'green' } })).toBeNull();
+        expect(parseInstrumentSpec({ ...noise(), noise: undefined })).toBeNull();
+    });
+
+    it('repairs a damaged drum envelope rather than rejecting the file', () => {
+        const parsed = parseInstrumentSpec({ ...membrane(), envelope: { decay: 'long' } }) as DrumSpec;
+        expect(parsed).not.toBeNull();
+        expect(Number.isFinite(parsed.envelope.decay)).toBe(true);
+        // Percussive, not the melodic default — a drum that inherited a 0.5
+        // sustain would ring until its release and never stop.
+        expect(parsed.envelope.sustain).toBe(0);
+    });
+
+    it('fills absent membrane fields with Tone\'s own defaults', () => {
+        const { pitchDecay: _p, octaves: _o, ...withoutSweep } = membrane();
+        const parsed = parseInstrumentSpec(withoutSweep) as DrumSpec;
+        expect(parsed.pitchDecay).toBe(0.05);
+        expect(parsed.octaves).toBe(10);
+    });
+
+    it('does not read a drum spec as a melodic one', () => {
+        // The discriminant is `voice`, so a file naming a voice from the other
+        // half must not be repaired into it — it must build what it says.
+        const parsed = parseInstrumentSpec({ ...membrane(), brightness: 40, resonance: 80 }) as DrumSpec;
+        expect(isDrumSpec(parsed)).toBe(true);
+        expect('brightness' in parsed).toBe(false);
+        expect(parseInstrumentSpec({ ...membrane(), voice: 'kazoo' })).toBeNull();
     });
 });
 
