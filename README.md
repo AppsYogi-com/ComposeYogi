@@ -1,5 +1,7 @@
 <div align="center">
 
+[![Deploy to Railyard](https://app.railyard.run/deploy/badge)](https://app.railyard.run/deploy?repo=https://github.com/AppsYogi-com/ComposeYogi)
+
 # ComposeYogi
 
 <img src="public/apple-touch-icon.svg" alt="ComposeYogi Logo" width="120" />
