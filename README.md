@@ -68,6 +68,7 @@ A free, open-source music composition tool for beat-making, loops, and arrangeme
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/AppsYogi-com/ComposeYogi)
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template?template=https://github.com/AppsYogi-com/ComposeYogi)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/AppsYogi-com/ComposeYogi)
+[![Deploy to Railyard](https://app.railyard.run/deploy/badge)](https://app.railyard.run/deploy?repo=https://github.com/AppsYogi-com/ComposeYogi)
 
 ## Quick Start
 
