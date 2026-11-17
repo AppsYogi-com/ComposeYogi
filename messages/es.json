@@ -649,7 +649,9 @@
     "dismiss": "Descartar",
     "themeToLight": "Modo claro",
     "themeToDark": "Modo oscuro",
+    "reset": "Restablecer",
     "githubStarsAlt": "Estrellas de GitHub"
+    
   },
   "app": {
     "loadingProject": "Cargando proyecto…",
