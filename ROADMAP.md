@@ -170,6 +170,8 @@ The pro depth. Sequenced behind the on-ramp, not cut from it.
 - [ ] **Sidechain compression** and master-bus FX
 - [ ] **Version history**
 - [ ] **Plugin exploration** — a WASM instrument and effect API
+- [ ] **Desktop and mobile apps** — native builds for computers, phones and tablets,
+      beyond the installable web app ([#40](https://github.com/AppsYogi-com/ComposeYogi/issues/40))
 
 **Deliberately not planned:** real-time simultaneous co-editing. We are building
 the asynchronous model instead — remix and comment — because it fits how music
