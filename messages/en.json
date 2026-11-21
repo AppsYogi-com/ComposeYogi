@@ -649,6 +649,7 @@
     "dismiss": "Dismiss",
     "themeToLight": "Light mode",
     "themeToDark": "Dark mode",
+    "resetParam": "Reset {param}",
     "githubStarsAlt": "GitHub stars"
   },
   "app": {
