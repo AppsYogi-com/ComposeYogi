@@ -649,9 +649,8 @@
     "dismiss": "Descartar",
     "themeToLight": "Modo claro",
     "themeToDark": "Modo oscuro",
-    "reset": "Restablecer",
+    "resetParam": "Restablecer {param}",
     "githubStarsAlt": "Estrellas de GitHub"
-    
   },
   "app": {
     "loadingProject": "Cargando proyecto…",

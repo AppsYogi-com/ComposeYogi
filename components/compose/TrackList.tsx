@@ -828,26 +828,27 @@ function SortableTrackHeader(props: TrackHeaderProps) {
                             <TooltipContent>{t('volume')}</TooltipContent>
                         </Tooltip>
 
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label={`${tCommon('reset')} ${t('volume')}`}
-                                    title={`${tCommon('reset')} ${t('volume')}`}
-                                    className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        props.onVolumeChange(0.8);
-                                    }}
-                                >
-                                    <RotateCcw className="h-3 w-3" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {`${tCommon('reset')} ${t('volume')}`}
-                            </TooltipContent>
-                        </Tooltip>
+                        {props.track.volume !== 0.8 && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={tCommon('resetParam', { param: t('volume') })}
+                                        className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            props.onVolumeChange(0.8);
+                                        }}
+                                    >
+                                        <RotateCcw className="h-3 w-3" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {tCommon('resetParam', { param: t('volume') })}
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                     </div>
 
                 </div>
