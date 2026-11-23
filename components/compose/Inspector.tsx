@@ -14,7 +14,7 @@ import {
     Sparkles,
     Trash2,
     Waves,
-    RotateCcw,
+    RotateCcw
 } from 'lucide-react';
 import { MACRO_NEUTRAL, TRANSPOSE_RANGE, isNeutral, readClipMacros } from '@/lib/audio/clip-macros';
 import { useProjectStore, useUIStore } from '@/lib/store';
@@ -385,9 +385,7 @@ export function Inspector() {
                         )}
 
                         <Field
-                            label={t('track.pan', {
-                                value: Math.round((selectedTrack.pan || 0) * 100),
-                            })}
+                            label={t('track.pan', { value: Math.round((selectedTrack.pan || 0) * 100) })}
                             value={
                                 (selectedTrack.pan ?? 0) !== 0 && (
                                     <Tooltip>
@@ -397,7 +395,7 @@ export function Inspector() {
                                                 variant="ghost"
                                                 size="icon-sm"
                                                 className="h-6 w-6"
-                                                aria-label={tCommon('resetParam', { param: 'Pan' })}
+                                                aria-label={tCommon('resetParam', { param: t('track.panName') })}
                                                 onClick={() => {
                                                     useProjectStore.getState().updateTrack(selectedTrack.id, {
                                                         pan: 0,
@@ -408,29 +406,28 @@ export function Inspector() {
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>{tCommon('resetParam', { param: 'Pan' })}</p>
+                                            <p>{tCommon('resetParam', { param: t('track.panName') })}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 )
                             }
                         >
                             {({ labelledBy }) => (
-                                <Slider
-                                    aria-labelledby={labelledBy}
-                                    value={[(selectedTrack.pan || 0) * 50 + 50]}
-                                    min={0}
-                                    max={100}
-                                    step={1}
-                                    onValueChange={([v]) => {
-                                        useProjectStore.getState().updateTrack(selectedTrack.id, {
-                                            pan: (v - 50) / 50,
-                                        });
-                                    }}
-                                    className="py-2"
-                                />
+                            <Slider
+                                aria-labelledby={labelledBy}
+                                value={[(selectedTrack.pan || 0) * 50 + 50]}
+                                min={0}
+                                max={100}
+                                step={1}
+                                onValueChange={([v]) => {
+                                    useProjectStore.getState().updateTrack(selectedTrack.id, {
+                                        pan: (v - 50) / 50,
+                                    });
+                                }}
+                                className="py-2"
+                            />
                             )}
                         </Field>
-
                     </Section>
                 )}
 
@@ -509,24 +506,21 @@ export function Inspector() {
                                                         )}
                                                     </div>
                                                 }
-                                            >
-                                                {({ labelledBy }) => (
-                                                    <Slider
-                                                        aria-labelledby={labelledBy}
-                                                        value={[(effect.params.wet ?? 0.5) * 100]}
-                                                        min={0}
-                                                        max={100}
-                                                        step={1}
-                                                        onValueChange={([v]) => {
-                                                            const newParams = { ...effect.params, wet: v / 100 };
-                                                            updateTrackEffect(selectedTrack.id, effect.id, {
-                                                                params: newParams,
-                                                            });
-                                                        }}
-                                                        className="py-1"
-                                                    />
-                                                )}
-                                            </Field>
+                                            >{({ labelledBy }) => (
+                                                <Slider
+                                                    aria-labelledby={labelledBy}
+                                                    value={[(effect.params.wet ?? 0.5) * 100]}
+                                                    min={0}
+                                                    max={100}
+                                                    step={1}
+                                                    onValueChange={([v]) => {
+                                                        const newParams = { ...effect.params, wet: v / 100 };
+                                                        updateTrackEffect(selectedTrack.id, effect.id, { params: newParams });
+                                                    }}
+                                                    className="py-1"
+                                                />
+                                            )}</Field>
+
                                             {/* Specific Controls based on Type */}
                                             {effect.type === 'reverb' && (
                                                 <Field
@@ -562,25 +556,20 @@ export function Inspector() {
                                                             )}
                                                         </div>
                                                     }
-                                                >
-                                                    {({ labelledBy }) => (
-                                                        <Slider
-                                                            aria-labelledby={labelledBy}
-                                                            value={[(effect.params.decay ?? 1.5) * 10]}
-                                                            min={1}
-                                                            max={100}
-                                                            step={1}
-                                                            onValueChange={([v]) => {
-                                                                const newParams = { ...effect.params, decay: v / 10 };
-                                                                updateTrackEffect(selectedTrack.id, effect.id, {
-                                                                    params: newParams,
-                                                                });
-                                                            }}
-                                                            className="py-1"
-                                                        />
-                                                    )}
-                                                </Field>
-
+                                                >{({ labelledBy }) => (
+                                                    <Slider
+                                                        aria-labelledby={labelledBy}
+                                                        value={[(effect.params.decay ?? 1.5) * 10]}
+                                                        min={1}
+                                                        max={100}
+                                                        step={1}
+                                                        onValueChange={([v]) => {
+                                                            const newParams = { ...effect.params, decay: v / 10 };
+                                                            updateTrackEffect(selectedTrack.id, effect.id, { params: newParams });
+                                                        }}
+                                                        className="py-1"
+                                                    />
+                                                )}</Field>
                                             )}
 
                                             {effect.type === 'delay' && (
@@ -617,25 +606,20 @@ export function Inspector() {
                                                             )}
                                                         </div>
                                                     }
-                                                >
-                                                    {({ labelledBy }) => (
-                                                        <Slider
-                                                            aria-labelledby={labelledBy}
-                                                            value={[(effect.params.feedback ?? 0.5) * 100]}
-                                                            min={0}
-                                                            max={90}
-                                                            step={1}
-                                                            onValueChange={([v]) => {
-                                                                const newParams = { ...effect.params, feedback: v / 100 };
-                                                                updateTrackEffect(selectedTrack.id, effect.id, {
-                                                                    params: newParams,
-                                                                });
-                                                            }}
-                                                            className="py-1"
-                                                        />
-                                                    )}
-                                                </Field>
-
+                                                >{({ labelledBy }) => (
+                                                    <Slider
+                                                        aria-labelledby={labelledBy}
+                                                        value={[(effect.params.feedback ?? 0.5) * 100]}
+                                                        min={0}
+                                                        max={90}
+                                                        step={1}
+                                                        onValueChange={([v]) => {
+                                                            const newParams = { ...effect.params, feedback: v / 100 };
+                                                            updateTrackEffect(selectedTrack.id, effect.id, { params: newParams });
+                                                        }}
+                                                        className="py-1"
+                                                    />
+                                                )}</Field>
                                             )}
 
                                             {effect.type === 'distortion' && (
@@ -672,24 +656,20 @@ export function Inspector() {
                                                             )}
                                                         </div>
                                                     }
-                                                >
-                                                    {({ labelledBy }) => (
-                                                        <Slider
-                                                            aria-labelledby={labelledBy}
-                                                            value={[(effect.params.distortion ?? 0.4) * 100]}
-                                                            min={0}
-                                                            max={100}
-                                                            step={1}
-                                                            onValueChange={([v]) => {
-                                                                const newParams = { ...effect.params, distortion: v / 100 };
-                                                                updateTrackEffect(selectedTrack.id, effect.id, {
-                                                                    params: newParams,
-                                                                });
-                                                            }}
-                                                            className="py-1"
-                                                        />
-                                                    )}
-                                                </Field>
+                                                >{({ labelledBy }) => (
+                                                    <Slider
+                                                        aria-labelledby={labelledBy}
+                                                        value={[(effect.params.distortion ?? 0.4) * 100]}
+                                                        min={0}
+                                                        max={100}
+                                                        step={1}
+                                                        onValueChange={([v]) => {
+                                                            const newParams = { ...effect.params, distortion: v / 100 };
+                                                            updateTrackEffect(selectedTrack.id, effect.id, { params: newParams });
+                                                        }}
+                                                        className="py-1"
+                                                    />
+                                                )}</Field>
                                             )}
                                         </div>
                                     </div>
@@ -953,37 +933,37 @@ function SwingSlider() {
         <Field
             label={t('swing')}
             value={
-            <div className="flex items-center gap-1">
-                <span
-                    className={
-                        shown === 0
-                            ? 'text-2xs font-mono text-muted-foreground'
-                            : 'text-2xs font-mono text-foreground'
-                    }
-                >
-                    {format.number(shown)}
-                </span>
-                {shown !== 0 && (
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                className="h-6 w-6"
-                                aria-label={tCommon('resetParam', { param: t('swing') })}
-                                onClick={() => setSwing(0)}
-                            >
-                                <RotateCcw className="h-3.5 w-3.5" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{tCommon('resetParam', { param: t('swing') })}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                )}
-            </div>
-        }
+                <div className="flex items-center gap-1">
+                    <span
+                        className={
+                            shown === 0
+                                ? 'text-2xs font-mono text-muted-foreground'
+                                : 'text-2xs font-mono text-foreground'
+                        }
+                    >
+                        {format.number(shown)}
+                    </span>
+                    {shown !== 0 && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="h-6 w-6"
+                                    aria-label={tCommon('resetParam', { param: t('swing') })}
+                                    onClick={() => setSwing(0)}
+                                >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{tCommon('resetParam', { param: t('swing') })}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
+                </div>
+            }
         >{({ labelledBy }) => (
             <>
                 <Slider

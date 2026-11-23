@@ -227,7 +227,8 @@
       "instrumentSearch": "Search instruments…",
       "instrumentNotFound": "No instrument found",
       "customInstruments": "My Instruments",
-      "pan": "Pan: {value}%"
+      "pan": "Pan: {value}%",
+      "panName": "Pan"
     },
     "trackTypes": {
       "audio": "Audio",
