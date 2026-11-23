@@ -13,7 +13,8 @@ import {
     Hash,
     Sparkles,
     Trash2,
-    Waves
+    Waves,
+    RotateCcw
 } from 'lucide-react';
 import { MACRO_NEUTRAL, TRANSPOSE_RANGE, isNeutral, readClipMacros } from '@/lib/audio/clip-macros';
 import { useProjectStore, useUIStore } from '@/lib/store';
@@ -198,6 +199,7 @@ function InstrumentPicker({
 
 export function Inspector() {
     const t = useTranslations('inspector');
+    const tCommon = useTranslations('common');
     const tScales = useTranslations('scales');
     const project = useProjectStore((s) => s.project);
     const setKey = useProjectStore((s) => s.setKey);
@@ -382,7 +384,34 @@ export function Inspector() {
                             )}</Field>
                         )}
 
-                        <Field label={t('track.pan', { value: Math.round((selectedTrack.pan || 0) * 100) })}>
+                        <Field
+                            label={t('track.pan', { value: Math.round((selectedTrack.pan || 0) * 100) })}
+                            value={
+                                (selectedTrack.pan ?? 0) !== 0 && (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                className="h-6 w-6"
+                                                aria-label={tCommon('resetParam', { param: t('track.panName') })}
+                                                onClick={() => {
+                                                    useProjectStore.getState().updateTrack(selectedTrack.id, {
+                                                        pan: 0,
+                                                    });
+                                                }}
+                                            >
+                                                <RotateCcw className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{tCommon('resetParam', { param: t('track.panName') })}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )
+                            }
+                        >
                             {({ labelledBy }) => (
                             <Slider
                                 aria-labelledby={labelledBy}
@@ -448,9 +477,34 @@ export function Inspector() {
                                                 label={t('effects.mix')}
                                                 labelClassName="text-2xs"
                                                 value={
-                                                    <span className="text-2xs font-mono">
-                                                        {Math.round((effect.params.wet ?? 0.5) * 100)}%
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-2xs font-mono">
+                                                            {Math.round((effect.params.wet ?? 0.5) * 100)}%
+                                                        </span>
+                                                        {(effect.params.wet ?? 0.5) !== 0.5 && (
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon-sm"
+                                                                        className="h-6 w-6"
+                                                                        aria-label={tCommon('resetParam', { param: t('effects.mix') })}
+                                                                        onClick={() => {
+                                                                            updateTrackEffect(selectedTrack.id, effect.id, {
+                                                                                params: { ...effect.params, wet: 0.5 },
+                                                                            });
+                                                                        }}
+                                                                    >
+                                                                        <RotateCcw className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>{tCommon('resetParam', { param: t('effects.mix') })}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+                                                    </div>
                                                 }
                                             >{({ labelledBy }) => (
                                                 <Slider
@@ -472,7 +526,36 @@ export function Inspector() {
                                                 <Field
                                                     label={t('effects.decay')}
                                                     labelClassName="text-2xs"
-                                                    value={<span className="text-2xs font-mono">{effect.params.decay ?? 1.5}s</span>}
+                                                    value={
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-2xs font-mono">
+                                                                {effect.params.decay ?? 1.5}s
+                                                            </span>
+                                                            {(effect.params.decay ?? 1.5) !== 1.5 && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            className="h-6 w-6"
+                                                                            aria-label={tCommon('resetParam', { param: t('effects.decay') })}
+                                                                            onClick={() => {
+                                                                                updateTrackEffect(selectedTrack.id, effect.id, {
+                                                                                    params: { ...effect.params, decay: 1.5 },
+                                                                                });
+                                                                            }}
+                                                                        >
+                                                                            <RotateCcw className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{tCommon('resetParam', { param: t('effects.decay') })}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                        </div>
+                                                    }
                                                 >{({ labelledBy }) => (
                                                     <Slider
                                                         aria-labelledby={labelledBy}
@@ -493,7 +576,36 @@ export function Inspector() {
                                                 <Field
                                                     label={t('effects.feedback')}
                                                     labelClassName="text-2xs"
-                                                    value={<span className="text-2xs font-mono">{Math.round((effect.params.feedback ?? 0.5) * 100)}%</span>}
+                                                    value={
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-2xs font-mono">
+                                                                {Math.round((effect.params.feedback ?? 0.5) * 100)}%
+                                                            </span>
+                                                            {(effect.params.feedback ?? 0.5) !== 0.5 && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            className="h-6 w-6"
+                                                                            aria-label={tCommon('resetParam', { param: t('effects.feedback') })}
+                                                                            onClick={() => {
+                                                                                updateTrackEffect(selectedTrack.id, effect.id, {
+                                                                                    params: { ...effect.params, feedback: 0.5 },
+                                                                                });
+                                                                            }}
+                                                                        >
+                                                                            <RotateCcw className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{tCommon('resetParam', { param: t('effects.feedback') })}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                        </div>
+                                                    }
                                                 >{({ labelledBy }) => (
                                                     <Slider
                                                         aria-labelledby={labelledBy}
@@ -514,7 +626,36 @@ export function Inspector() {
                                                 <Field
                                                     label={t('effects.drive')}
                                                     labelClassName="text-2xs"
-                                                    value={<span className="text-2xs font-mono">{Math.round((effect.params.distortion ?? 0.4) * 100)}%</span>}
+                                                    value={
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-2xs font-mono">
+                                                                {Math.round((effect.params.distortion ?? 0.4) * 100)}%
+                                                            </span>
+                                                            {(effect.params.distortion ?? 0.4) !== 0.4 && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            className="h-6 w-6"
+                                                                            aria-label={tCommon('resetParam', { param: t('effects.drive') })}
+                                                                            onClick={() => {
+                                                                                updateTrackEffect(selectedTrack.id, effect.id, {
+                                                                                    params: { ...effect.params, distortion: 0.4 },
+                                                                                });
+                                                                            }}
+                                                                        >
+                                                                            <RotateCcw className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{tCommon('resetParam', { param: t('effects.drive') })}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                        </div>
+                                                    }
                                                 >{({ labelledBy }) => (
                                                     <Slider
                                                         aria-labelledby={labelledBy}
@@ -783,6 +924,7 @@ function SwingSlider() {
     const swing = useProjectStore(selectSwing);
     const setSwing = useProjectStore((s) => s.setSwing);
     const [dragging, setDragging] = useState<number | null>(null);
+    const tCommon = useTranslations('common');
 
     useEffect(() => setDragging(null), [swing]);
     const shown = dragging ?? swing;
@@ -791,15 +933,36 @@ function SwingSlider() {
         <Field
             label={t('swing')}
             value={
-                <span
-                    className={
-                        shown === 0
-                            ? 'text-2xs font-mono text-muted-foreground'
-                            : 'text-2xs font-mono text-foreground'
-                    }
-                >
-                    {format.number(shown)}
-                </span>
+                <div className="flex items-center gap-1">
+                    <span
+                        className={
+                            shown === 0
+                                ? 'text-2xs font-mono text-muted-foreground'
+                                : 'text-2xs font-mono text-foreground'
+                        }
+                    >
+                        {format.number(shown)}
+                    </span>
+                    {shown !== 0 && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="h-6 w-6"
+                                    aria-label={tCommon('resetParam', { param: t('swing') })}
+                                    onClick={() => setSwing(0)}
+                                >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{tCommon('resetParam', { param: t('swing') })}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
+                </div>
             }
         >{({ labelledBy }) => (
             <>
@@ -838,6 +1001,7 @@ interface MacroSliderProps {
  */
 function MacroSlider({ spec, value, onCommit }: MacroSliderProps) {
     const t = useTranslations('inspector.feel');
+    const tCommon = useTranslations('common');
     const format = useFormatter();
     const [dragging, setDragging] = useState<number | null>(null);
 
@@ -852,17 +1016,38 @@ function MacroSlider({ spec, value, onCommit }: MacroSliderProps) {
         <Field
             label={t(spec.key)}
             value={
-                <span
-                    className={
-                        shown === neutral
-                            ? 'text-2xs font-mono text-muted-foreground'
-                            : 'text-2xs font-mono text-foreground'
-                    }
-                >
-                    {spec.key === 'transpose'
-                        ? t('semitones', { value: shown })
-                        : format.number(shown)}
-                </span>
+                <div className="flex items-center gap-1">
+                    <span
+                        className={
+                            shown === neutral
+                                ? 'text-2xs font-mono text-muted-foreground'
+                                : 'text-2xs font-mono text-foreground'
+                        }
+                    >
+                        {spec.key === 'transpose'
+                            ? t('semitones', { value: shown })
+                            : format.number(shown)}
+                    </span>
+                    {shown !== neutral && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="h-6 w-6"
+                                    aria-label={tCommon('resetParam', { param: t(spec.key) })}
+                                    onClick={() => onCommit(neutral)}
+                                >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{tCommon('resetParam', { param: t(spec.key) })}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
+                </div>
             }
         >{({ labelledBy }) => (
             <>

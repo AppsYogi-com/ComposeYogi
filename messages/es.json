@@ -227,7 +227,8 @@
       "instrumentSearch": "Buscar instrumentos…",
       "instrumentNotFound": "No se encontró ningún instrumento",
       "customInstruments": "Mis instrumentos",
-      "pan": "Paneo: {value}%"
+      "pan": "Paneo: {value}%",
+      "panName": "Paneo"
     },
     "trackTypes": {
       "audio": "Audio",
@@ -649,6 +650,7 @@
     "dismiss": "Descartar",
     "themeToLight": "Modo claro",
     "themeToDark": "Modo oscuro",
+    "resetParam": "Restablecer {param}",
     "githubStarsAlt": "Estrellas de GitHub"
   },
   "app": {
