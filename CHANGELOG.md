@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Reset a parameter to its default in one click.** Every numeric control in the
+  Inspector — pan, each effect's mix, decay, feedback and drive, swing, and the six
+  clip macros — shows a reset button once it has moved away from its default. It
+  goes through undo like any other edit, and it is reachable from the keyboard
+  (#24, #43, by @khwyen131-rgb)
+
+### Fixed
+
+- **`npm run check` could not pass on a Windows clone.** Git for Windows checked
+  files out with CRLF line endings, so the generated design-token files never
+  matched, and the accessibility tests looked for paths with backslashes where
+  TypeScript reports forward slashes. Text files now check out with LF everywhere
+  (#46, reported by @khwyen131-rgb)
+
 ## [1.4.0] - 2026-08-31
 
 Feel and musicality. The studio stops being a grid you fill in and starts being an
@@ -416,7 +432,8 @@ way a studio has to, and about making the codebase safe for contributors.
 
 ---
 
-[Unreleased]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/AppsYogi-com/ComposeYogi/compare/v1.0.0...v1.1.0
