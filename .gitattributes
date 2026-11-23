@@ -1,0 +1,6 @@
+# Check every text file out with LF line endings, on every platform.
+#
+# Without this, Git for Windows checks files out with CRLF (core.autocrlf), the
+# generated design-token files stop matching what `npm run design:tokens`
+# writes, and `npm run check` fails on a clean Windows clone.
+* text=auto eol=lf

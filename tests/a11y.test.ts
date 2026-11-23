@@ -28,7 +28,7 @@
 // it.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, posix, relative } from 'node:path';
 
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
@@ -151,6 +151,10 @@ function isUnnameableInput(element: ts.JsxOpeningLikeElement, sf: ts.SourceFile)
     return type !== null && UNNAMEABLE_INPUT_TYPES.has(type);
 }
 
+// TypeScript reports every `fileName` with forward slashes, even on Windows. So
+// anything matched against `sf.fileName` is built with `posix.join` — a plain
+// `join` writes backslashes there and matches nothing, which is how the
+// DrumSequencer exception and the TrackList lookup both failed on Windows.
 function componentFiles(): ts.SourceFile[] {
     return SOURCE_DIRS
         .flatMap((dir) => walk(join(ROOT, dir), /\.tsx$/))
@@ -168,7 +172,7 @@ describe('every label names a control', () => {
 
         for (const sf of componentFiles()) {
             // The primitive itself is the definition, not a usage.
-            if (sf.fileName.endsWith(join('components', 'ui', 'label.tsx'))) continue;
+            if (sf.fileName.endsWith(posix.join('components', 'ui', 'label.tsx'))) continue;
 
             eachOpeningElement(sf, (element, tag) => {
                 if (tag !== 'Label') return;
@@ -237,7 +241,7 @@ describe('every control can be named', () => {
         const unnamed: string[] = [];
 
         for (const sf of componentFiles()) {
-            if (sf.fileName.includes(join('components', 'ui'))) continue; // primitives take it from callers
+            if (sf.fileName.includes(posix.join('components', 'ui'))) continue; // primitives take it from callers
 
             eachOpeningElement(sf, (element, tag) => {
                 if (!NAMED_CONTROLS.has(tag)) return;
@@ -270,7 +274,7 @@ describe('every icon-only button says what it does', () => {
         const unnamed: string[] = [];
 
         for (const sf of componentFiles()) {
-            if (sf.fileName.includes(join('components', 'ui'))) continue;
+            if (sf.fileName.includes(posix.join('components', 'ui'))) continue;
 
             const visit = (node: ts.Node) => {
                 if (ts.isJsxElement(node)) {
@@ -325,7 +329,7 @@ describe('every modal is a real dialog', () => {
 
         for (const sf of componentFiles()) {
             // The primitives are where the overlay is supposed to be written.
-            if (sf.fileName.includes(join('components', 'ui'))) continue;
+            if (sf.fileName.includes(posix.join('components', 'ui'))) continue;
 
             eachOpeningElement(sf, (element, tag) => {
                 const className = stringAttribute(element, 'className', sf);
@@ -384,14 +388,14 @@ const NATIVE_TITLE = /\stitle=\{?["'a-z]/;
  * for 60fps, and a Radix Tooltip subscribes each cell to a provider — the cost
  * lands exactly where this app cannot afford it.
  */
-const NATIVE_TITLE_ALLOWED = new Set([join('components', 'compose', 'editors', 'DrumSequencer.tsx')]);
+const NATIVE_TITLE_ALLOWED = new Set([posix.join('components', 'compose', 'editors', 'DrumSequencer.tsx')]);
 
 describe('the design system is the only source of UI', () => {
     it.each(HAND_ROLLED)('has no $what', ({ pattern, instead }) => {
         const found: string[] = [];
 
         for (const sf of componentFiles()) {
-            if (sf.fileName.includes(join('components', 'ui'))) continue;
+            if (sf.fileName.includes(posix.join('components', 'ui'))) continue;
 
             sf.getFullText().split('\n').forEach((line, i) => {
                 if (line.trim().startsWith('//') || line.trim().startsWith('*')) return;
@@ -408,7 +412,7 @@ describe('the design system is the only source of UI', () => {
         const found: string[] = [];
 
         for (const sf of componentFiles()) {
-            if (sf.fileName.includes(join('components', 'ui'))) continue;
+            if (sf.fileName.includes(posix.join('components', 'ui'))) continue;
             if ([...NATIVE_TITLE_ALLOWED].some((allowed) => sf.fileName.endsWith(allowed))) continue;
 
             eachOpeningElement(sf, (element, tag) => {
@@ -474,7 +478,7 @@ describe('the cursor names the gesture', () => {
         const repeated: string[] = [];
 
         for (const sf of componentFiles()) {
-            if (sf.fileName.includes(join('components', 'ui'))) continue;
+            if (sf.fileName.includes(posix.join('components', 'ui'))) continue;
 
             eachOpeningElement(sf, (element, tag) => {
                 if (!CURSOR_OWNED_BY_PRIMITIVE.has(tag)) return;
@@ -537,7 +541,7 @@ describe('a toggle says which way it is', () => {
         const silent: string[] = [];
 
         for (const sf of componentFiles()) {
-            if (sf.fileName.includes(join('components', 'ui'))) continue;
+            if (sf.fileName.includes(posix.join('components', 'ui'))) continue;
 
             eachOpeningElement(sf, (element) => {
                 const tag = element.tagName.getText(sf);
@@ -574,7 +578,7 @@ describe('a toggle says which way it is', () => {
         // These signal through className rather than the variant, so the rule
         // above cannot see them. Mute and solo take aria-pressed; arm changes
         // its own name instead, and must not do both.
-        const sf = componentFiles().find((f) => f.fileName.endsWith(join('compose', 'TrackList.tsx')));
+        const sf = componentFiles().find((f) => f.fileName.endsWith(posix.join('compose', 'TrackList.tsx')));
         expect(sf, 'TrackList.tsx has moved — this rule needs repointing').toBeDefined();
 
         const found = new Map<string, Set<string>>();
